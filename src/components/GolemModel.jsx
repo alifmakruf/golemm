@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 
@@ -100,7 +100,9 @@ export default function GolemModel({
   modelScale,
   modelPosition,
   baseRotation,
+  onModelClick,
 }) {
+  const { camera } = useThree()
   const { nodes, materials, animations } = useGLTF('/models/golem.glb')
 
   const pivotRef = useRef() // grup luar: yang berotasi (menoleh)
@@ -166,6 +168,7 @@ export default function GolemModel({
 
   const raycaster = useRef(new THREE.Raycaster())
   const wireframeOpacity = useRef(0)
+  const lastClickTime = useRef(0) // prevent double-click spam
 
   useEffect(() => {
     if (!actions) return
@@ -199,6 +202,32 @@ export default function GolemModel({
       mixer.removeEventListener('finished', onFinished)
     }
   }, [actions])
+
+  // Handle click detection pada model
+  useEffect(() => {
+    const handlePointerDown = () => {
+      const now = Date.now()
+      if (now - lastClickTime.current < 300) return // debounce: max 1 click per 300ms
+      lastClickTime.current = now
+
+      if (!pivotRef.current || !mouse.current.active) return
+
+      raycaster.current.setFromCamera(
+        { x: mouse.current.x, y: -mouse.current.y },
+        camera
+      )
+      
+      pivotRef.current.updateWorldMatrix(true, true)
+      const hits = raycaster.current.intersectObject(centeredRef.current, true)
+      
+      if (hits.length > 0 && onModelClick) {
+        onModelClick()
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    return () => window.removeEventListener('pointerdown', handlePointerDown)
+  }, [onModelClick, camera])
 
   const basePositions = useRef({ right: new THREE.Vector3(), left: new THREE.Vector3() })
   const currentRotation = useRef({ x: 0, y: 0 })

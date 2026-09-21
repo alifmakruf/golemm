@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useRef } from 'react'
+import { Suspense, useCallback, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import GolemModel from './GolemModel.jsx'
 import './GolemHero.css'
@@ -43,6 +43,8 @@ const LIGHTS = {
 export default function GolemHero() {
   const mouse = useRef({ x: 0, y: 0, active: false })
   const canvasContainerRef = useRef(null)
+  const sectionRef = useRef(null)
+  const [debris, setDebris] = useState([])
 
   const handlePointerMove = useCallback((event) => {
     // Hitung mouse position RELATIVE KE CANVAS (bukan section)
@@ -67,8 +69,56 @@ export default function GolemHero() {
     mouse.current.active = false
   }, [])
 
+  const handleModelClick = useCallback(() => {
+    if (!sectionRef.current) return
+    
+    // Tambah class shake
+    sectionRef.current.classList.add('shake-active')
+    
+    // Spawn debris particles
+    const newDebris = Array.from({ length: 12 }).map((_, i) => ({
+      id: `${Date.now()}-${i}`,
+      left: Math.random() * 100, // posisi horizontal random 0-100%
+      delay: Math.random() * 0.1, // delay 0-100ms
+      duration: 1.2 + Math.random() * 0.4, // duration 1.2-1.6s
+      size: 4 + Math.random() * 8, // ukuran krikil 4-12px
+      angle: Math.random() * 360, // rotasi random
+    }))
+    
+    setDebris(prev => [...prev, ...newDebris])
+    
+    // Hapus debris setelah animasi selesai
+    setTimeout(() => {
+      setDebris(prev => 
+        prev.filter(d => !newDebris.some(nd => nd.id === d.id))
+      )
+    }, 2000)
+    
+    // Hapus class shake setelah animasi selesai (600ms)
+    setTimeout(() => {
+      sectionRef.current?.classList.remove('shake-active')
+    }, 600)
+  }, [])
+
   return (
-    <section className="golem-hero" onPointerMove={handlePointerMove}>
+    <section className="golem-hero" ref={sectionRef} onPointerMove={handlePointerMove}>
+      {/* Falling debris/krikil */}
+      <div className="debris-container">
+        {debris.map(d => (
+          <div
+            key={d.id}
+            className="debris-particle"
+            style={{
+              left: `${d.left}%`,
+              '--animation-delay': `${d.delay}s`,
+              '--animation-duration': `${d.duration}s`,
+              '--particle-size': `${d.size}px`,
+              '--particle-angle': `${d.angle}deg`,
+            }}
+          />
+        ))}
+      </div>
+
       <div className="golem-hero__backdrop" aria-hidden="true">
         <div className="modern-glow modern-glow--blue" />
         <div className="modern-glow modern-glow--yellow" />
@@ -111,6 +161,7 @@ export default function GolemHero() {
                 modelScale={MODEL_SCALE}
                 modelPosition={MODEL_POSITION}
                 baseRotation={MODEL_BASE_ROTATION}
+                onModelClick={handleModelClick}
               />
             </Suspense>
           </Canvas>
