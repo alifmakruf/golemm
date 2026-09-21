@@ -1,0 +1,277 @@
+.golem-hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  overflow: hidden;
+  background-color: #fbfcfd;
+  background-image:
+    radial-gradient(ellipse 60% 45% at 18% 18%, rgba(186, 230, 253, 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 40% at 82% 22%, rgba(254, 240, 138, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 50% 88%, rgba(224, 242, 254, 0.45) 0%, transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 40%, #f1f5f9 100%);
+}
+
+/* Susunan lapisan (z-index):
+   0  -> .golem-hero__backdrop (gradasi biru-kuning lembut & grid aksen)
+   1  -> .golem-hero__canvas (model 3D golem)
+   2  -> .golem-hero__content (konten hero di kanan) */
+
+/* ---------- Modern Light Backdrop ---------- */
+.golem-hero__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.modern-glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.75;
+  pointer-events: none;
+  animation: modern-float 16s ease-in-out infinite alternate;
+}
+
+.modern-glow--blue {
+  top: 5%;
+  left: 10%;
+  width: min(50vw, 550px);
+  height: min(50vw, 550px);
+  background: radial-gradient(circle, rgba(186, 230, 253, 0.7) 0%, rgba(186, 230, 253, 0) 70%);
+}
+
+.modern-glow--yellow {
+  top: 10%;
+  right: 8%;
+  width: min(45vw, 500px);
+  height: min(45vw, 500px);
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.65) 0%, rgba(254, 240, 138, 0) 70%);
+  animation-duration: 20s;
+  animation-direction: alternate-reverse;
+}
+
+.modern-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 75%);
+}
+
+@keyframes modern-float {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    transform: translateY(-25px) scale(1.06);
+  }
+}
+
+/* ---------- Golem canvas: ditempatkan rapi di kolom kiri ---------- */
+.golem-hero__canvas-container {
+  width: 100%;
+  height: clamp(380px, 60vh, 560px);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto; /* penting: agar terima pointer events untuk onPointerEnter/Leave */
+}
+
+.golem-hero__canvas-container canvas {
+  background: transparent !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ---------- Split Hero Layout ---------- */
+.golem-hero__content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1240px;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr; /* sisi kiri untuk model golem, kanan untuk teks */
+  align-items: center;
+  gap: 3rem;
+  pointer-events: none;
+}
+
+.golem-hero__content-right {
+  grid-column: 2;
+  text-align: left;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+/* Badge */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.08);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0284c7;
+  letter-spacing: 0.02em;
+}
+
+.hero-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0284c7;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+/* Headline */
+.hero-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.3rem, 4.5vw, 3.6rem);
+  line-height: 1.12;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 40%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtitle */
+.hero-subtitle {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
+  line-height: 1.7;
+  color: #475569;
+  max-width: 540px;
+}
+
+/* Actions / Buttons */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+
+.btn-primary {
+  padding: 0.9rem 2.2rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -6px rgba(14, 165, 233, 0.45);
+  transition: all 0.25s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  box-shadow: 0 14px 28px -6px rgba(14, 165, 233, 0.55);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  padding: 0.9rem 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  background: rgba(255, 255, 255, 0.8);
+  color: #334155;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.25s ease;
+}
+
+.btn-secondary:hover {
+  background: #ffffff;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-2px);
+}
+
+/* Stats Cards */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  max-width: 520px;
+}
+
+.stat-card {
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-card__val {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.stat-card__lbl {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+  .golem-hero__content {
+    grid-template-columns: 1fr;
+    margin-top: 40vh; /* beri ruang untuk model golem di atas */
+  }
+
+  .golem-hero__content-right {
+    grid-column: 1;
+    text-align: center;
+    align-items: center;
+  }
+
+  .hero-subtitle {
+    margin: 0 auto;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-stats {
+    margin: 1rem auto 0;
+  }
+}

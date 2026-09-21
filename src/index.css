@@ -1,0 +1,40 @@
+:root {
+  --bg-void: #fcfdfd;
+  --bg-deep: #f8fafc;
+  --bg-deep-2: #f1f5f9;
+  --accent-blue: #38bdf8;
+  --accent-yellow: #fbbf24;
+  --ink: #0f172a;
+  --ink-dim: #64748b;
+
+  --font-display: "Fraunces", "Iowan Old Style", serif;
+  --font-body: "Sora", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-void);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
