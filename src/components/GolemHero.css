@@ -368,29 +368,117 @@
   font-weight: 500;
 }
 
-/* Responsive */
+/* Responsive: Tablet & Mobile (tetap 100vh & 100vw tanpa scroll) */
 @media (max-width: 960px) {
-  .golem-hero__content {
-    grid-template-columns: 1fr;
-    margin-top: 40vh;
-    /* beri ruang untuk model golem di atas */
+  .golem-hero {
+    height: 100vh;
+    width: 100vw;
+    padding: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: hidden;
   }
 
+  .golem-hero__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+    padding: 0 1.25rem;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  /* Golem ditaruh di atas, di tengah, sekitar margin-top 20% */
+  .golem-hero__canvas-container {
+    margin-top: 18vh;
+    width: 100%;
+    height: clamp(180px, 32vh, 260px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Hero headline berada rapi di bawah golem */
   .golem-hero__content-right {
-    grid-column: 1;
+    grid-column: unset;
+    margin-left: 0;
+    width: 100%;
+    max-width: 480px;
     text-align: center;
     align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-title {
+    font-size: clamp(2rem, 5.5vw, 2.7rem);
+    line-height: 1.15;
   }
 
   .hero-subtitle {
     margin: 0 auto;
+    font-size: 0.95rem;
   }
 
   .hero-actions {
     justify-content: center;
+    margin-top: 0.2rem;
+  }
+
+  .btn-primary {
+    padding: 0.75rem 1.8rem;
+    font-size: 0.92rem;
   }
 
   .hero-stats {
-    margin: 1rem auto 0;
+    margin: 0.4rem auto 0;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .stat-card {
+    padding: 0.5rem 0.6rem;
+    border-radius: 12px;
+    gap: 0.15rem;
+  }
+
+  .stat-card__val {
+    font-size: 0.88rem;
+  }
+
+  .stat-card__lbl {
+    font-size: 0.7rem;
+  }
+}
+
+/* Smartphone kecil (<= 480px) */
+@media (max-width: 480px) {
+  .golem-hero__canvas-container {
+    margin-top: 15vh;
+    height: clamp(150px, 28vh, 210px);
+  }
+
+  .hero-title {
+    font-size: clamp(1.75rem, 6.5vw, 2.2rem);
+  }
+
+  .hero-stats {
+    max-width: 320px;
+    gap: 0.35rem;
+  }
+
+  .stat-card {
+    padding: 0.4rem 0.45rem;
+  }
+
+  .stat-card__val {
+    font-size: 0.8rem;
+  }
+
+  .stat-card__lbl {
+    font-size: 0.64rem;
   }
 }

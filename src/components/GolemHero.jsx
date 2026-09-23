@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useRef, useState } from 'react'
+import { Suspense, useCallback, useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import GolemModel from './GolemModel.jsx'
@@ -14,11 +14,16 @@ const GOLEM_BLOOM_RADIUS = 0.1
 // Panel "Location / Rotation / Scale" ala Blender, tapi untuk React.
 // Ubah angka-angka ini untuk mengatur ukuran, posisi, dan orientasi
 // golem di dalam scene, tanpa perlu menyentuh logika animasi.
-const MODEL_SCALE = 1.7 // ukuran keseluruhan model
-const MODEL_POSITION = [-0.4, 0.1, 0] // tepat di tengah kolom kiri
-const MODEL_BASE_ROTATION = [0.05, 0.35, 0] // menoleh sedikit ke arah teks hero di kanan
+const MODEL_SCALE = 1.7 // ukuran keseluruhan model (Desktop)
+const MODEL_POSITION = [-0.4, 0.1, 0] // tepat di tengah kolom kiri (Desktop)
+const MODEL_BASE_ROTATION = [0.05, 0.35, 0] // menoleh ke teks hero di kanan (Desktop)
 const CAMERA_POSITION = [0, 0, 3.4] // [x, y, z] posisi kamera
 const CAMERA_FOV = 35 // field of view kamera (derajat)
+
+// ---- Tuning: Responsif Tablet & HP ----
+const MOBILE_MODEL_SCALE = 1.35        // golem diperkecil di tablet/hp
+const MOBILE_MODEL_POSITION = [0, 0, 0] // golem pas di tengah di tablet/hp
+const MOBILE_BASE_ROTATION = [0.05, 0, 0] // menghadap depan di tablet/hp
 
 // ================== Parallax sensitivity ==================
 // Hanya untuk canvas golem — satuan px
@@ -57,6 +62,13 @@ export default function GolemHero({ onExplore }) {
   const sectionRef = useRef(null)
   const [debris, setDebris] = useState([])
   const [parallax, setParallax] = useState({ x: 0, y: 0 })
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 960)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 960)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handlePointerMove = useCallback((event) => {
     // Mouse relative ke canvas → untuk raycasting golem
@@ -173,9 +185,9 @@ export default function GolemHero({ onExplore }) {
             <Suspense fallback={null}>
               <GolemModel
                 mouse={mouse}
-                modelScale={MODEL_SCALE}
-                modelPosition={MODEL_POSITION}
-                baseRotation={MODEL_BASE_ROTATION}
+                modelScale={isMobile ? MOBILE_MODEL_SCALE : MODEL_SCALE}
+                modelPosition={isMobile ? MOBILE_MODEL_POSITION : MODEL_POSITION}
+                baseRotation={isMobile ? MOBILE_BASE_ROTATION : MODEL_BASE_ROTATION}
                 onModelClick={handleModelClick}
               />
             </Suspense>

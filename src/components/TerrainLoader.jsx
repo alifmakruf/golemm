@@ -150,10 +150,10 @@ export default function TerrainLoader() {
       <TerrainModel scene={scene} />
 
       {/* Hujan salju */}
-      <SnowEffect />
+      {/* <SnowEffect /> */}
 
       {/* Ray tracing feel: Bloom + SSAO */}
-      <EffectComposer>
+      <EffectComposer enableNormalPass>
         <Bloom
           intensity={BLOOM_INTENSITY}
           luminanceThreshold={BLOOM_LUMINANCE_THRESHOLD}
