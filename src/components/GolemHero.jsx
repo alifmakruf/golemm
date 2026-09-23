@@ -40,7 +40,7 @@ const LIGHTS = {
   },
 }
 
-export default function GolemHero() {
+export default function GolemHero({ onExplore }) {
   const mouse = useRef({ x: 0, y: 0, active: false })
   const canvasContainerRef = useRef(null)
   const sectionRef = useRef(null)
@@ -183,7 +183,7 @@ export default function GolemHero() {
           </p>
 
           <div className="hero-actions">
-            <button className="btn-primary" type="button">
+            <button className="btn-primary" type="button" onClick={onExplore}>
               Jelajahi Sekarang →
             </button>
             {/* <button className="btn-secondary" type="button">

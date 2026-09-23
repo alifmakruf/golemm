@@ -101,6 +101,8 @@ export default function GolemModel({
   modelPosition,
   baseRotation,
   onModelClick,
+  breakdownMode = false,
+  breakdownDistance = 30,
 }) {
   const { camera } = useThree()
   const { nodes, materials, animations } = useGLTF('/models/golem.glb')
@@ -175,6 +177,15 @@ export default function GolemModel({
     const actionList = Object.values(actions).filter(Boolean)
     if (actionList.length === 0) return
 
+    // Stop semua animations saat breakdown mode aktif
+    if (breakdownMode) {
+      actionList.forEach((act) => {
+        act.stop()
+        act.reset()
+      })
+      return
+    }
+
     actionList.forEach((act) => {
       act.timeScale = ANIMATION_SPEED
       act.setLoop(THREE.LoopOnce, 1)
@@ -201,7 +212,7 @@ export default function GolemModel({
       clearTimeout(timer)
       mixer.removeEventListener('finished', onFinished)
     }
-  }, [actions])
+  }, [actions, breakdownMode])
 
   // Handle click detection pada model
   useEffect(() => {
@@ -216,10 +227,10 @@ export default function GolemModel({
         { x: mouse.current.x, y: -mouse.current.y },
         camera
       )
-      
+
       pivotRef.current.updateWorldMatrix(true, true)
       const hits = raycaster.current.intersectObject(centeredRef.current, true)
-      
+
       if (hits.length > 0 && onModelClick) {
         onModelClick()
       }
@@ -229,9 +240,47 @@ export default function GolemModel({
     return () => window.removeEventListener('pointerdown', handlePointerDown)
   }, [onModelClick, camera])
 
+  // Setup line connectors untuk breakdown visualization
+  const lineRef = useRef(null)
+
+  useLayoutEffect(() => {
+    if (!breakdownMode || !centeredRef.current) return
+
+    // Create line connector antara mesh
+    const positions = new Float32Array([
+      0, 0.5, 0,  // kepala atas
+      0, -0.3, 0, // mulut bawah
+      0.2, 0, 0,  // alis
+      0, 0.5, 0,  // kembali ke kepala
+    ])
+
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+    const material = new THREE.LineBasicMaterial({
+      color: 0x0284c7,
+      linewidth: 2,
+      transparent: true,
+      opacity: 0.6,
+    })
+
+    const line = new THREE.Line(geometry, material)
+    lineRef.current = line
+    centeredRef.current.add(line)
+
+    return () => {
+      if (centeredRef.current && lineRef.current) {
+        centeredRef.current.remove(lineRef.current)
+      }
+    }
+  }, [breakdownMode])
+
   const basePositions = useRef({ right: new THREE.Vector3(), left: new THREE.Vector3() })
   const currentRotation = useRef({ x: 0, y: 0 })
   const currentEyeOffset = useRef({ x: 0, y: 0 })
+  // Simpan posisi asli GLB untuk reset saat keluar breakdown mode
+  const meshBasePositions = useRef({ kepalaatas: new THREE.Vector3(), mulutbawah: new THREE.Vector3(), alis: new THREE.Vector3() })
+  const wasBreakdown = useRef(false) // track transisi keluar breakdown
 
   // Mata kanan & kiri memakai material yang sama (Material.002).
   const eyeMaterial = useMemo(() => {
@@ -243,9 +292,22 @@ export default function GolemModel({
     return mat
   }, [materials])
 
+  // Material untuk batu - gunakan material pertama dari GLB atau fallback
+  const stoneMaterial = useMemo(() => {
+    if (materials && Object.keys(materials).length > 0) {
+      const baseMat = Object.values(materials)[0]
+      return baseMat ? baseMat : undefined
+    }
+    return undefined
+  }, [materials])
+
   useEffect(() => {
     if (nodes?.matakanan) basePositions.current.right.copy(nodes.matakanan.position)
     if (nodes?.matakiri) basePositions.current.left.copy(nodes.matakiri.position)
+    // Simpan posisi asli GLB untuk mesh batu
+    if (nodes?.kepalaatas) meshBasePositions.current.kepalaatas.copy(nodes.kepalaatas.position)
+    if (nodes?.mulutbawah) meshBasePositions.current.mulutbawah.copy(nodes.mulutbawah.position)
+    if (nodes?.alis) meshBasePositions.current.alis.copy(nodes.alis.position)
   }, [nodes])
 
   // Pusatkan model: hitung bounding box lalu geser grup dalam supaya
@@ -260,6 +322,49 @@ export default function GolemModel({
   }, [nodes])
 
   useFrame((state, delta) => {
+    // Disable semua interaksi saat breakdown mode aktif
+    if (breakdownMode) {
+      wasBreakdown.current = true
+      if (pivotRef.current && centeredRef.current) {
+        pivotRef.current.position.set(modelPosition[0], modelPosition[1], modelPosition[2])
+        pivotRef.current.scale.set(modelScale, modelScale, modelScale)
+        pivotRef.current.rotation.set(baseRotation[0], baseRotation[1], baseRotation[2])
+
+        // Apply breakdown positions ke setiap mesh dengan coordinate-based system
+        // breakdownSeparation: 10-60px → convert ke coordinate (0.009-0.054)
+        const coordinateDistance = (breakdownSeparation / 100) * 0.09
+
+        const kepalaatasMesh = centeredRef.current.getObjectByName('kepalaatas')
+        if (kepalaatasMesh) {
+          kepalaatasMesh.position.copy(meshBasePositions.current.kepalaatas)
+          kepalaatasMesh.position.y += coordinateDistance * 0.5
+        }
+        const mulutbawahMesh = centeredRef.current.getObjectByName('mulutbawah')
+        if (mulutbawahMesh) {
+          mulutbawahMesh.position.copy(meshBasePositions.current.mulutbawah)
+          mulutbawahMesh.position.y -= coordinateDistance * 0.5
+        }
+        const alisMesh = centeredRef.current.getObjectByName('alis')
+        if (alisMesh) {
+          alisMesh.position.copy(meshBasePositions.current.alis)
+          alisMesh.position.x += coordinateDistance * 0.3
+        }
+      }
+      return
+    }
+
+    // Reset posisi mesh hanya sekali saat baru keluar dari breakdown mode
+    // (tidak setiap frame — itu akan membunuh animasi dari AnimationMixer)
+    if (wasBreakdown.current && centeredRef.current) {
+      const kepalaatasMesh = centeredRef.current.getObjectByName('kepalaatas')
+      if (kepalaatasMesh) kepalaatasMesh.position.copy(meshBasePositions.current.kepalaatas)
+      const mulutbawahMesh = centeredRef.current.getObjectByName('mulutbawah')
+      if (mulutbawahMesh) mulutbawahMesh.position.copy(meshBasePositions.current.mulutbawah)
+      const alisMesh = centeredRef.current.getObjectByName('alis')
+      if (alisMesh) alisMesh.position.copy(meshBasePositions.current.alis)
+    }
+    wasBreakdown.current = false
+
     const targetX = mouse.current.y * -degToRad(HEAD_MAX_ROTATION_DEG)
     const targetY = mouse.current.x * degToRad(HEAD_MAX_ROTATION_DEG)
 
@@ -312,7 +417,6 @@ export default function GolemModel({
         const hits = raycaster.current.intersectObject(centeredRef.current, true)
         if (hits.length > 0) {
           isHovering = true
-          // Lerp titik pusat pindai agar pergerakan wireframe mengikuti kursor sangat mulus
           uniformsRef.current.uHitPoint.value.lerp(hits[0].point, 1 - Math.exp(-20 * delta))
         }
       }
@@ -327,9 +431,9 @@ export default function GolemModel({
   return (
     <group ref={pivotRef}>
       <group ref={centeredRef}>
-        <Part node={nodes.kepalaatas} material={materials.batu} />
-        <Part node={nodes.mulutbawah} material={materials.batu} />
-        <Part node={nodes.alis} material={materials.batu} />
+        <Part node={nodes.kepalaatas} material={stoneMaterial} />
+        <Part node={nodes.mulutbawah} material={stoneMaterial} />
+        <Part node={nodes.alis} material={stoneMaterial} />
 
         <Part
           node={nodes.matakanan}

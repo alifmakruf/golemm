@@ -1,0 +1,12 @@
+
+v1.3
+1. fog efek didepan bawah gunung(sekitar 30% ketinggian gunung) dan memiliki animasi bergerak dari kiri ke kanan secara perlahan dan looping
+2. langit dibelakang gunung berwarna abu 
+3. hujan salju dengan partikle salju berukuran 1-3px (hujan agak deras jadi kecepatan hujannya agak cepat)
+4. perhalus dan perbaiki bug yang ada di hero section sampai optimal
+5. selalu berikan parameter untuk tiap efek/fitur agar bisa saya sesuikan dan enak dilihat
+
+v1.4
+golemdetail section
+1. saya ingin section ini berisi canvas dengan golem ditengah dengan scale 1 dan kameranya agak mundur
+2. ketika mode breakdown aktif maka akan memisahkan part2 mesh dari golem

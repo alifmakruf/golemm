@@ -1,5 +1,5 @@
 :root {
-  --bg-void: #fcfdfd;
+  --bg-void: #23272b;
   --bg-deep: #f8fafc;
   --bg-deep-2: #f1f5f9;
   --accent-blue: #38bdf8;
@@ -30,6 +30,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
