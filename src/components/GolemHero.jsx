@@ -157,12 +157,12 @@ export default function GolemHero({ onExplore }) {
           ref={canvasContainerRef}
           onPointerEnter={handleCanvasPointerEnter}
           onPointerLeave={handleCanvasPointerLeave}
-          style={{ transform: `translate(${parallax.x * -PARALLAX_CANVAS}px, ${parallax.y * -PARALLAX_CANVAS}px)` }}
+          style={{ transform: isMobile ? 'none' : `translate(${parallax.x * -PARALLAX_CANVAS}px, ${parallax.y * -PARALLAX_CANVAS}px)` }}
         >
           <Canvas
             camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}
-            dpr={[1, 2]}
-            gl={{ antialias: true, alpha: true }}
+            dpr={isMobile ? [1, 1.25] : [1, 2]}
+            gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
           >
 
             <ambientLight color={LIGHTS.ambient.color} intensity={LIGHTS.ambient.intensity} />
@@ -192,7 +192,7 @@ export default function GolemHero({ onExplore }) {
               />
             </Suspense>
 
-            <EffectComposer>
+            <EffectComposer multisampling={isMobile ? 0 : 4}>
               <Bloom
                 intensity={GOLEM_BLOOM_INTENSITY}
                 luminanceThreshold={GOLEM_BLOOM_THRESHOLD}

@@ -51,8 +51,10 @@ export default function App() {
     window.scrollTo(0, 0)
   }
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
+
   return (
-    <div className="app-container" onMouseMove={currentSection === 'hero' ? handleMouseMove : undefined}>
+    <div className="app-container" onMouseMove={currentSection === 'hero' && !isMobile ? handleMouseMove : undefined}>
       {/* Loading Screen - tampil sampai asset benar-benar selesai dimuat */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
@@ -61,18 +63,18 @@ export default function App() {
         <div className={`app-terrain-layer ${isLoadingComplete ? 'animate-fade-in-up' : 'terrain-preload'}`}>
           <Canvas
             camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
-            dpr={[1, 2]}
-            gl={{ antialias: true, alpha: true, clearColor: 0x000000, clearAlpha: 0 }}
+            dpr={isMobile ? [1, 1.25] : [1, 2]}
+            gl={{ antialias: true, alpha: true, clearColor: 0x000000, clearAlpha: 0, powerPreference: 'high-performance' }}
             style={{
               position: 'fixed',
-              inset: -PARALLAX_TERRAIN,          // oversized: menutupi celah di semua sisi
-              width: `calc(100vw + ${PARALLAX_TERRAIN * 2}px)`,
-              height: `calc(100vh + ${PARALLAX_TERRAIN * 2}px)`,
+              inset: isMobile ? 0 : -PARALLAX_TERRAIN,          // oversized di desktop untuk parallax
+              width: isMobile ? '100vw' : `calc(100vw + ${PARALLAX_TERRAIN * 2}px)`,
+              height: isMobile ? '100vh' : `calc(100vh + ${PARALLAX_TERRAIN * 2}px)`,
               zIndex: 1,
               pointerEvents: isLoadingComplete ? 'auto' : 'none',
-              transform: `translate(${terrainParallax.x * -PARALLAX_TERRAIN}px, ${terrainParallax.y * -PARALLAX_TERRAIN}px)`,
+              transform: isMobile ? 'none' : `translate(${terrainParallax.x * -PARALLAX_TERRAIN}px, ${terrainParallax.y * -PARALLAX_TERRAIN}px)`,
               transition: 'transform 0.15s ease-out',
-              willChange: 'transform',
+              willChange: isMobile ? 'auto' : 'transform',
             }}
           >
             <TerrainLoader />

@@ -27,6 +27,10 @@ const SSAO_INTENSITY = 30    // kedalaman shadow AO
 const SSAO_RADIUS = 0.3  // jangkauan AO
 const SSAO_BIAS = 0.325 // bias untuk mengurangi shadow acne
 
+// ---- Tuning: Optimasi Mobile (HP & Tablet) ----
+const ENABLE_SSAO_ON_MOBILE = false   // SSAO sangat berat di HP (false = 60 FPS lancar)
+const ENABLE_BLOOM_ON_MOBILE = true   // Bloom lebih ringan dari SSAO
+const ENABLE_SNOW_ON_MOBILE = false   // Salju di HP (false = hemat baterai/GPU)
 
 // ---- Tuning: Snow ----
 const SNOW_COUNT = 1800   // jumlah partikel
@@ -120,6 +124,10 @@ function TerrainModel({ scene }) {
 
 export default function TerrainLoader() {
   const { scene } = useGLTF('/terrainmountain.glb')
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
+  const shouldEnableSSAO = !isMobile || ENABLE_SSAO_ON_MOBILE
+  const shouldEnableSnow = !isMobile || ENABLE_SNOW_ON_MOBILE
+  const shouldEnableBloom = !isMobile || ENABLE_BLOOM_ON_MOBILE
 
   return (
     <>
@@ -140,7 +148,7 @@ export default function TerrainLoader() {
       />
 
       <ambientLight intensity={3.00} color="#5f5f5f" />
-      <directionalLight intensity={2.5} color="#fff4e0" position={[5.00, 6.00, 4.00]} castShadow />
+      <directionalLight intensity={2.5} color="#fff4e0" position={[5.00, 6.00, 4.00]} castShadow={!isMobile} />
       <spotLight intensity={60} color="#e8f4ff" position={[0.00, 4.00, -6.00]} angle={THREE.MathUtils.degToRad(89)} penumbra={0.15} />
       <directionalLight intensity={1.8} color="#a8d8ff" position={[-8, 3, 2]} />
 
@@ -149,23 +157,29 @@ export default function TerrainLoader() {
       {/* Hanya terrain 3D yang naik dari bawah */}
       <TerrainModel scene={scene} />
 
-      {/* Hujan salju */}
-      {/* <SnowEffect /> */}
+      {/* Hujan salju (hanya aktif di desktop atau jika diaktifkan di HP) */}
+      {shouldEnableSnow && <SnowEffect />}
 
-      {/* Ray tracing feel: Bloom + SSAO */}
-      <EffectComposer enableNormalPass>
-        <Bloom
-          intensity={BLOOM_INTENSITY}
-          luminanceThreshold={BLOOM_LUMINANCE_THRESHOLD}
-          luminanceSmoothing={BLOOM_LUMINANCE_SMOOTHING}
-          radius={BLOOM_RADIUS}
-        />
-        <SSAO
-          intensity={SSAO_INTENSITY}
-          radius={SSAO_RADIUS}
-          bias={SSAO_BIAS}
-        />
-      </EffectComposer>
+      {/* Ray tracing feel: Adaptif mobile (multisampling 0 di HP hemat bandwidth) */}
+      {(shouldEnableBloom || shouldEnableSSAO) && (
+        <EffectComposer enableNormalPass={shouldEnableSSAO} multisampling={isMobile ? 0 : 4}>
+          {shouldEnableBloom && (
+            <Bloom
+              intensity={BLOOM_INTENSITY}
+              luminanceThreshold={BLOOM_LUMINANCE_THRESHOLD}
+              luminanceSmoothing={BLOOM_LUMINANCE_SMOOTHING}
+              radius={BLOOM_RADIUS}
+            />
+          )}
+          {shouldEnableSSAO && (
+            <SSAO
+              intensity={SSAO_INTENSITY}
+              radius={SSAO_RADIUS}
+              bias={SSAO_BIAS}
+            />
+          )}
+        </EffectComposer>
+      )}
     </>
   )
 }
