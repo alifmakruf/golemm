@@ -392,14 +392,18 @@
     margin: 0;
   }
 
-  /* Golem ditaruh di atas, di tengah, sekitar margin-top 20% */
+  /* Golem ditaruh di atas, di tengah, dengan rasio 1:1 proporsional agar tidak gepeng */
   .golem-hero__canvas-container {
-    margin-top: 18vh;
-    width: 100%;
-    height: clamp(180px, 32vh, 260px);
+    margin-top: 14vh;
+    width: min(85vw, 280px);
+    height: min(85vw, 280px);
+    aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+    flex-shrink: 0;
   }
 
   /* Hero headline berada rapi di bawah golem */
@@ -458,12 +462,14 @@
 /* Smartphone kecil (<= 480px) */
 @media (max-width: 500px) {
   .golem-hero__canvas-container {
-    margin-top: 15vh;
-    height: clamp(150px, 28vh, 210px);
+    margin-top: 12vh;
+    width: min(75vw, 230px);
+    height: min(75vw, 230px);
+    aspect-ratio: 1 / 1;
   }
 
   .golem-hero__content-right {
-    margin-top: 20%;
+    margin-top: 10px;
   }
 
   .hero-title {

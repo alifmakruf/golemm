@@ -96,6 +96,16 @@ export default function GolemHero({ onExplore, isExiting }) {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Pastikan R3F Canvas mengkalkulasi ulang rasio aspect kamera saat kembali ke Section 1
+  useEffect(() => {
+    if (heroState === 'entering' || heroState === 'initial') {
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+      }, 60)
+      return () => clearTimeout(timer)
+    }
+  }, [heroState])
+
   const handlePointerMove = useCallback((event) => {
     // Mouse relative ke canvas → untuk raycasting golem
     if (canvasContainerRef.current) {
