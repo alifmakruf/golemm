@@ -46,21 +46,19 @@
   pointer-events: auto;
 }
 
-/* Animation untuk terrain fade-in + translate dari bawah */
-@keyframes fadeInUpTerrain {
+/* Animation untuk terrain fade-in murni (translasi fisik 3D ditangani di dalam Three.js) */
+@keyframes fadeInTerrain {
   from {
     opacity: 0;
-    transform: translateY(100px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUpTerrain 3s cubic-bezier(0.23, 1, 0.320, 1) forwards;
+  animation: fadeInTerrain 1.2s ease-out forwards;
   opacity: 0;
 }
 

@@ -56,7 +56,7 @@ export default function App() {
       {/* Loading Screen - tampil sampai asset benar-benar selesai dimuat */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
-      {/* Terrain Canvas selalu di-render sejak awal (di balik loading screen) */}
+      {/* Terrain Canvas 3D */}
       {currentSection === 'hero' && (
         <div className={`app-terrain-layer ${isLoadingComplete ? 'animate-fade-in-up' : 'terrain-preload'}`}>
           <Canvas

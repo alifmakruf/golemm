@@ -1,6 +1,7 @@
 import { useRef, useMemo } from 'react'
 import { useGLTF, OrbitControls, Environment, PerspectiveCamera } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
+import { EffectComposer, Bloom, SSAO } from '@react-three/postprocessing'
 import * as THREE from 'three'
 
 // ---- Tuning: Camera & Orbit ----
@@ -9,7 +10,22 @@ const TERRAIN_ORBIT_TARGET = [-0.09, 1.18, -0.69]
 const TERRAIN_CAMERA_FOV = 45
 
 // ---- Tuning: Sky ----
-const SKY_COLOR = '#23272b'  // warna langit abu di belakang gunung
+export const SKY_COLOR = '#23272b'  // warna langit abu di belakang gunung
+
+// ---- Tuning: Animasi Naik Terrain 3D (fade in up hanya untuk gunung 3D) ----
+const TERRAIN_SPAWN_Y = -3.2        // posisi awal gunung di bawah (world unit)
+const TERRAIN_ANIM_DURATION = 2.5   // durasi naik (detik)
+
+// ---- Tuning: Bloom (ray tracing glow) ----
+const BLOOM_INTENSITY = 1   // kekuatan glow (0 = mati, 2+ = sangat terang)
+const BLOOM_LUMINANCE_THRESHOLD = 0.1  // threshold brightness agar bloom (0=semua, 1=hanya putih)
+const BLOOM_LUMINANCE_SMOOTHING = 1   // transisi halus di threshold
+const BLOOM_RADIUS = 0.5   // jangkauan blur bloom
+
+// ---- Tuning: SSAO (ambient occlusion - sudut gelap) ----
+const SSAO_INTENSITY = 30    // kedalaman shadow AO
+const SSAO_RADIUS = 0.3  // jangkauan AO
+const SSAO_BIAS = 0.325 // bias untuk mengurangi shadow acne
 
 
 // ---- Tuning: Snow ----
@@ -79,12 +95,35 @@ function SnowEffect() {
   return <points geometry={geo} material={mat} />
 }
 
+// Model Terrain dengan animasi naik sendiri di dalam 3D scene (sky tetap diam)
+function TerrainModel({ scene }) {
+  const groupRef = useRef()
+  const progressRef = useRef(0)
+
+  useFrame((_, delta) => {
+    if (progressRef.current < 1) {
+      progressRef.current = Math.min(1, progressRef.current + delta / TERRAIN_ANIM_DURATION)
+      // Ease-out cubic: 1 - pow(1 - t, 3)
+      const ease = 1 - Math.pow(1 - progressRef.current, 3)
+      if (groupRef.current) {
+        groupRef.current.position.y = THREE.MathUtils.lerp(TERRAIN_SPAWN_Y, 0, ease)
+      }
+    }
+  })
+
+  return (
+    <group ref={groupRef} position={[0, TERRAIN_SPAWN_Y, 0]}>
+      <primitive object={scene} />
+    </group>
+  )
+}
+
 export default function TerrainLoader() {
   const { scene } = useGLTF('/terrainmountain.glb')
 
   return (
     <>
-      {/* Langit abu */}
+      {/* Background langit statis (sama dengan index.css var(--bg-void)) */}
       <color attach="background" args={[SKY_COLOR]} />
 
       <PerspectiveCamera makeDefault position={TERRAIN_CAMERA_POSITION} fov={TERRAIN_CAMERA_FOV} near={0.1} far={1000} />
@@ -101,18 +140,32 @@ export default function TerrainLoader() {
       />
 
       <ambientLight intensity={3.00} color="#5f5f5f" />
-      <directionalLight intensity={0.00} color="#fff4e0" position={[5.00, 6.00, 4.00]} castShadow />
-      <spotLight intensity={30.00} color="#ffffff" position={[0.00, 4.00, -6.00]} angle={THREE.MathUtils.degToRad(89)} penumbra={0.15} />
+      <directionalLight intensity={2.5} color="#fff4e0" position={[5.00, 6.00, 4.00]} castShadow />
+      <spotLight intensity={60} color="#e8f4ff" position={[0.00, 4.00, -6.00]} angle={THREE.MathUtils.degToRad(89)} penumbra={0.15} />
+      <directionalLight intensity={1.8} color="#a8d8ff" position={[-8, 3, 2]} />
 
       <Environment preset="studio" background={false} blur={0.00} />
 
-      <group position={[0, 0, 0]} rotation={[0, 0, 0]} scale={1}>
-        <primitive object={scene} />
-      </group>
-
+      {/* Hanya terrain 3D yang naik dari bawah */}
+      <TerrainModel scene={scene} />
 
       {/* Hujan salju */}
       <SnowEffect />
+
+      {/* Ray tracing feel: Bloom + SSAO */}
+      <EffectComposer>
+        <Bloom
+          intensity={BLOOM_INTENSITY}
+          luminanceThreshold={BLOOM_LUMINANCE_THRESHOLD}
+          luminanceSmoothing={BLOOM_LUMINANCE_SMOOTHING}
+          radius={BLOOM_RADIUS}
+        />
+        <SSAO
+          intensity={SSAO_INTENSITY}
+          radius={SSAO_RADIUS}
+          bias={SSAO_BIAS}
+        />
+      </EffectComposer>
     </>
   )
 }

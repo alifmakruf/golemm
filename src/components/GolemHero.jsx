@@ -1,7 +1,14 @@
 import { Suspense, useCallback, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import GolemModel from './GolemModel.jsx'
 import './GolemHero.css'
+
+// ---- Tuning: Bloom pada golem ----
+const GOLEM_BLOOM_INTENSITY = 0.5   // glow mata golem
+const GOLEM_BLOOM_THRESHOLD = 0.1   // hanya area terang yang bloom
+const GOLEM_BLOOM_SMOOTHING = 0.1
+const GOLEM_BLOOM_RADIUS = 0.1
 
 // ================== Kontrol transform & kamera ==================
 // Panel "Location / Rotation / Scale" ala Blender, tapi untuk React.
@@ -172,6 +179,15 @@ export default function GolemHero({ onExplore }) {
                 onModelClick={handleModelClick}
               />
             </Suspense>
+
+            <EffectComposer>
+              <Bloom
+                intensity={GOLEM_BLOOM_INTENSITY}
+                luminanceThreshold={GOLEM_BLOOM_THRESHOLD}
+                luminanceSmoothing={GOLEM_BLOOM_SMOOTHING}
+                radius={GOLEM_BLOOM_RADIUS}
+              />
+            </EffectComposer>
           </Canvas>
         </div>
 
