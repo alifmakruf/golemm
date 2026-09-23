@@ -1,4 +1,9 @@
 /* App Layout & Layering */
+@keyframes fog-drift {
+  from { transform: translateX(calc(-50% - 3%)); }
+  to   { transform: translateX(calc(-50% + 3%)); }
+}
+
 .app-container {
   position: fixed;
   inset: 0;
@@ -55,7 +60,7 @@
 }
 
 .animate-fade-in-up {
-  animation: fadeInUpTerrain 2s cubic-bezier(0.23, 1, 0.320, 1) forwards;
+  animation: fadeInUpTerrain 3s cubic-bezier(0.23, 1, 0.320, 1) forwards;
   opacity: 0;
 }
 

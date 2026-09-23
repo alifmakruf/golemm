@@ -135,6 +135,8 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  will-change: transform;
+  transition: transform 0.12s ease-out;
 }
 
 .modern-glow {
@@ -195,6 +197,8 @@
   pointer-events: auto;
   /* penting: agar terima pointer events untuk onPointerEnter/Leave */
   animation: fadeInUpCanvas 0.8s cubic-bezier(0.23, 1, 0.320, 1) 2.4s both;
+  will-change: transform;
+  transition: transform 0.12s ease-out;
 }
 
 .golem-hero__canvas-container canvas {
@@ -219,6 +223,7 @@
 
 .golem-hero__content-right {
   grid-column: 2;
+  margin-left: 50px;
   text-align: left;
   pointer-events: auto;
   display: flex;
@@ -275,7 +280,7 @@
   font-family: var(--font-body);
   font-size: clamp(1rem, 1.3vw, 1.12rem);
   line-height: 1.7;
-  color: #475569;
+  color: #00b7ff;
   max-width: 540px;
 }
 

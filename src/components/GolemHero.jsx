@@ -13,6 +13,10 @@ const MODEL_BASE_ROTATION = [0.05, 0.35, 0] // menoleh sedikit ke arah teks hero
 const CAMERA_POSITION = [0, 0, 3.4] // [x, y, z] posisi kamera
 const CAMERA_FOV = 35 // field of view kamera (derajat)
 
+// ================== Parallax sensitivity ==================
+// Hanya untuk canvas golem — satuan px
+const PARALLAX_CANVAS = 6 // canvas golem bergerak saat mouse move
+
 // ================== Parameter Pencahayaan (Lighting) ==================
 // Atur warna, posisi [x, y, z], dan intensitas masing-masing lampu di sini.
 const LIGHTS = {
@@ -45,18 +49,21 @@ export default function GolemHero({ onExplore }) {
   const canvasContainerRef = useRef(null)
   const sectionRef = useRef(null)
   const [debris, setDebris] = useState([])
+  const [parallax, setParallax] = useState({ x: 0, y: 0 })
 
   const handlePointerMove = useCallback((event) => {
-    // Hitung mouse position RELATIVE KE CANVAS (bukan section)
-    // Ini penting untuk akurasi raycasting
+    // Mouse relative ke canvas → untuk raycasting golem
     if (canvasContainerRef.current) {
       const rect = canvasContainerRef.current.getBoundingClientRect()
-      let x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      let y = ((event.clientY - rect.top) / rect.height) * 2 - 1
-      
-      // Clamp ke range canvas (-1 sampai 1) untuk smooth edge tracking
-      mouse.current.x = Math.max(-1, Math.min(1, x))
-      mouse.current.y = Math.max(-1, Math.min(1, y))
+      mouse.current.x = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width) * 2 - 1))
+      mouse.current.y = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height) * 2 - 1))
+    }
+    // Mouse relatif ke seluruh section → untuk parallax CSS
+    if (sectionRef.current) {
+      const rect = sectionRef.current.getBoundingClientRect()
+      const px = ((event.clientX - rect.left) / rect.width - 0.5) * 2  // -1..1
+      const py = ((event.clientY - rect.top) / rect.height - 0.5) * 2  // -1..1
+      setParallax({ x: px, y: py })
     }
   }, [])
 
@@ -71,10 +78,10 @@ export default function GolemHero({ onExplore }) {
 
   const handleModelClick = useCallback(() => {
     if (!sectionRef.current) return
-    
+
     // Tambah class shake
     sectionRef.current.classList.add('shake-active')
-    
+
     // Spawn debris particles
     const newDebris = Array.from({ length: 12 }).map((_, i) => ({
       id: `${Date.now()}-${i}`,
@@ -84,16 +91,16 @@ export default function GolemHero({ onExplore }) {
       size: 4 + Math.random() * 8, // ukuran krikil 4-12px
       angle: Math.random() * 360, // rotasi random
     }))
-    
+
     setDebris(prev => [...prev, ...newDebris])
-    
+
     // Hapus debris setelah animasi selesai
     setTimeout(() => {
-      setDebris(prev => 
+      setDebris(prev =>
         prev.filter(d => !newDebris.some(nd => nd.id === d.id))
       )
     }, 2000)
-    
+
     // Hapus class shake setelah animasi selesai (600ms)
     setTimeout(() => {
       sectionRef.current?.classList.remove('shake-active')
@@ -126,11 +133,12 @@ export default function GolemHero({ onExplore }) {
       </div>
 
       <div className="golem-hero__content">
-        <div 
-          className="golem-hero__canvas-container" 
+        <div
+          className="golem-hero__canvas-container"
           ref={canvasContainerRef}
-          onPointerEnter={handleCanvasPointerEnter} 
+          onPointerEnter={handleCanvasPointerEnter}
           onPointerLeave={handleCanvasPointerLeave}
+          style={{ transform: `translate(${parallax.x * -PARALLAX_CANVAS}px, ${parallax.y * -PARALLAX_CANVAS}px)` }}
         >
           <Canvas
             camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}
@@ -168,19 +176,19 @@ export default function GolemHero({ onExplore }) {
         </div>
 
         <div className="golem-hero__content-right">
-          <div className="hero-badge">
+          {/* <div className="hero-badge">
             <span className="hero-badge__dot" />
             <span>follow cursor interactive</span>
-          </div>
+          </div> */}
 
           <h1 className="hero-title">
             Stone
             <span className="text-gradient"> Golem</span>
           </h1>
 
-          <p className="hero-subtitle">
+          {/* <p className="hero-subtitle">
             cursor interaktif dengan keyframe animasi kedip sederhana menggunakan shape keys di blender agar objek tampak lebih hidup
-          </p>
+          </p> */}
 
           <div className="hero-actions">
             <button className="btn-primary" type="button" onClick={onExplore}>

@@ -11,11 +11,6 @@ const TERRAIN_CAMERA_FOV = 45
 // ---- Tuning: Sky ----
 const SKY_COLOR = '#23272b'  // warna langit abu di belakang gunung
 
-// ---- Tuning: Fog ----
-const FOG_COLOR = '#c8d4dc'  // warna kabut
-const FOG_Y_CENTER = 0.3        // tinggi pusat kabut (world unit)
-const FOG_DRIFT_SPEED = 0.012      // kecepatan geser kiri→kanan
-const FOG_OPACITY = 0.55       // opasitas kabut (0-1)
 
 // ---- Tuning: Snow ----
 const SNOW_COUNT = 1800   // jumlah partikel
@@ -29,57 +24,6 @@ const SNOW_SIZE_MAX = 0.045  // ukuran partikel max
 const SNOW_COLOR = '#e8f4f8'
 const SNOW_OPACITY = 0.82
 
-// Fog: shader plane animasi UV drift kiri→kanan
-function FogLayer() {
-  const meshRef = useRef()
-
-  const material = useMemo(() => {
-    const mat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      uniforms: {
-        uColor: { value: new THREE.Color(FOG_COLOR) },
-        uOffset: { value: 0 },
-        uOpacity: { value: FOG_OPACITY },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3  uColor;
-        uniform float uOffset;
-        uniform float uOpacity;
-        varying vec2  vUv;
-        void main() {
-          float alpha = smoothstep(1.0, 0.0, vUv.y) * uOpacity;
-          float drift = sin((vUv.x + uOffset) * 3.14159 * 2.0) * 0.15 + 0.85;
-          gl_FragColor = vec4(uColor, alpha * drift);
-        }
-      `,
-    })
-    return mat
-  }, [])
-
-  useFrame((_, delta) => {
-    material.uniforms.uOffset.value += FOG_DRIFT_SPEED * delta
-  })
-
-  return (
-    <mesh
-      ref={meshRef}
-      material={material}
-      position={[0, FOG_Y_CENTER, 2]}
-      rotation={[-Math.PI / 2 + 0.3, 0, 0]}
-    >
-      <planeGeometry args={[60, 8, 1, 1]} />
-    </mesh>
-  )
-}
 
 // Snow: Points geometry, partikel jatuh dan wrap
 function SnowEffect() {
@@ -166,8 +110,6 @@ export default function TerrainLoader() {
         <primitive object={scene} />
       </group>
 
-      {/* Fog di depan bawah gunung */}
-      <FogLayer />
 
       {/* Hujan salju */}
       <SnowEffect />

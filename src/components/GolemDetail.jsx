@@ -3,151 +3,140 @@ import { Canvas } from '@react-three/fiber'
 import GolemModel from './GolemModel.jsx'
 import './GolemDetail.css'
 
-const MODEL_SCALE = 1.7
+// ---- Tuning ----
+const MODEL_SCALE = 1.0
 const MODEL_POSITION = [0, 0, 0]
 const MODEL_BASE_ROTATION = [0, 0, 0]
-const CAMERA_POSITION = [0, 0, 3.5]
+const CAMERA_POSITION = [0, 0, 4.5]
 const CAMERA_FOV = 35
 
-const COMPOSITION_CARDS = [
-  // Left side
-  {
-    id: 1,
+// ---- Parallax sensitivity per layer ----
+const PARALLAX_CANVAS = 5     // canvas golem bergerak sedikit
+const PARALLAX_INFO = 10      // info panel bergerak lebih banyak
+const PARALLAX_HEADER = 3     // header bergerak paling sedikit
+const PARALLAX_BG = 15        // background glow paling banyak
+
+// ---- Mesh info untuk panel kanan ----
+const MESH_INFO = {
+  kepalaatas: {
     title: 'Kepala Atas',
-    description: 'Struktur kepala bagian atas dengan detail wajah yang tajam',
-    specs: ['1,247 vertices', 'Batu Keras'],
-    side: 'left',
+    subtitle: 'Upper Head Structure',
+    description: 'Bagian atas kepala golem yang membentuk mahkota alami dari batu. Permukaan kasar memberi kesan kekuatan dan usia tua.',
+    specs: ['1,247 vertices', 'Batu Keras', 'Translation keyframe'],
   },
-  {
-    id: 2,
+  mulutbawah: {
     title: 'Mulut Bawah',
-    description: 'Bagian rahang dan mulut dengan ekspresi intens',
-    specs: ['438 vertices', 'Material Keras'],
-    side: 'left',
+    subtitle: 'Lower Jaw Section',
+    description: 'Rahang bawah yang terpisah dari bagian atas. Memiliki animasi keyframe translation untuk gerakan "bicara" halus.',
+    specs: ['438 vertices', 'Material Keras', 'Animated jaw'],
   },
-  {
-    id: 3,
-    title: 'Struktur Wajah',
-    description: 'Framework dasar yang membentuk karakter utama',
-    specs: ['892 vertices', 'Stone Body'],
-    side: 'left',
+  alis: {
+    title: 'Alis',
+    subtitle: 'Brow Ridge',
+    description: 'Struktur alis yang membentuk ekspresi wajah golem. Memiliki animasi keyframe yang memberikan kesan "hidup" pada karakter.',
+    specs: ['892 vertices', 'Stone Body', 'Shape key ready'],
   },
-  // Right side
-  {
-    id: 4,
-    title: 'Mata & Alis',
-    description: 'Fitur wajah dengan efek glow biru yang bernapas',
-    specs: ['284 vertices', 'Emissive Glow'],
-    side: 'right',
+  matakanan: {
+    title: 'Mata Kanan',
+    subtitle: 'Right Eye',
+    description: 'Bola mata dengan efek emissive glow biru yang bernapas. Mengikuti pergerakan kursor secara real-time.',
+    specs: ['142 vertices', 'Emissive Glow', 'Cursor tracking'],
   },
-  {
-    id: 5,
-    title: 'Detail Tekstur',
-    description: 'Permukaan dengan kedalaman visual yang realistis',
-    specs: ['4K Normal Map', 'High Detail'],
-    side: 'right',
+  matakiri: {
+    title: 'Mata Kiri',
+    subtitle: 'Left Eye',
+    description: 'Pasangan mata kiri dengan efek yang identik. Sinkron dengan mata kanan untuk tracking kursor yang natural.',
+    specs: ['142 vertices', 'Emissive Glow', 'Cursor tracking'],
   },
-  {
-    id: 6,
-    title: 'Pencahayaan',
-    description: 'Multi-light setup untuk efek 3D dramatic',
-    specs: ['3 Light Sources', 'Dynamic Shadow'],
-    side: 'right',
-  },
-]
+}
 
 export default function GolemDetail({ onBack }) {
   const mouse = useRef({ x: 0, y: 0, active: false })
   const canvasContainerRef = useRef(null)
+  const sectionRef = useRef(null)
   const [isBreakdown, setIsBreakdown] = useState(false)
-  const [breakdownSeparation, setBreakdownSeparation] = useState(30)
-  const [showSeparationControl, setShowSeparationControl] = useState(false)
+  const [hoveredMesh, setHoveredMesh] = useState(null)
+  const [parallax, setParallax] = useState({ x: 0, y: 0 })
 
-  const handlePointerMove = useCallback((event) => {
-    if (isBreakdown) return // Disable tracking saat breakdown mode
-    if (canvasContainerRef.current) {
+  // Parallax + mouse tracking
+  const handlePointerMove = useCallback((e) => {
+    // Parallax dari posisi mouse relatif ke section
+    if (sectionRef.current) {
+      const rect = sectionRef.current.getBoundingClientRect()
+      const px = ((e.clientX - rect.left) / rect.width - 0.5) * 2
+      const py = ((e.clientY - rect.top) / rect.height - 0.5) * 2
+      setParallax({ x: px, y: py })
+    }
+
+    // Mouse tracking untuk golem model (hanya saat bukan breakdown)
+    if (!isBreakdown && canvasContainerRef.current) {
       const rect = canvasContainerRef.current.getBoundingClientRect()
-      let x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      let y = ((event.clientY - rect.top) / rect.height) * 2 - 1
-      mouse.current.x = Math.max(-1, Math.min(1, x))
-      mouse.current.y = Math.max(-1, Math.min(1, y))
+      mouse.current.x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
+      mouse.current.y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
+    }
+
+    // Canvas tracking untuk breakdown hover detection
+    if (isBreakdown && canvasContainerRef.current) {
+      const rect = canvasContainerRef.current.getBoundingClientRect()
+      mouse.current.x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
+      mouse.current.y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
     }
   }, [isBreakdown])
 
   const handleCanvasPointerEnter = useCallback(() => {
-    if (!isBreakdown) mouse.current.active = true
-  }, [isBreakdown])
+    mouse.current.active = true
+  }, [])
 
   const handleCanvasPointerLeave = useCallback(() => {
     mouse.current.active = false
-  }, [])
+    if (isBreakdown) setHoveredMesh(null)
+  }, [isBreakdown])
 
   const toggleBreakdown = useCallback(() => {
     setIsBreakdown(prev => !prev)
-    mouse.current.active = false // Disable raycast saat toggle
+    setHoveredMesh(null)
+    mouse.current.active = false
   }, [])
 
+  const activeInfo = hoveredMesh && MESH_INFO[hoveredMesh] ? MESH_INFO[hoveredMesh] : null
+
   return (
-    <section className="golem-detail">
-      <div className="golem-detail__backdrop" aria-hidden="true">
+    <section className="golem-detail" ref={sectionRef} onPointerMove={handlePointerMove}>
+      {/* Backdrop parallax */}
+      <div
+        className="golem-detail__backdrop"
+        aria-hidden="true"
+        style={{ transform: `translate(${parallax.x * PARALLAX_BG}px, ${parallax.y * PARALLAX_BG}px)` }}
+      >
         <div className="modern-glow modern-glow--blue" />
         <div className="modern-glow modern-glow--yellow" />
         <div className="modern-grid-pattern" />
       </div>
 
-      {/* Header dengan tombol */}
-      <div className="golem-detail__header">
+      {/* Header parallax */}
+      <div
+        className="golem-detail__header"
+        style={{ transform: `translateX(${parallax.x * PARALLAX_HEADER}px)` }}
+      >
         <button className="btn-back" onClick={onBack} aria-label="Kembali ke hero">
           ← Kembali
         </button>
-        <h2 className="golem-detail__title">Komposisi Detail Golem</h2>
+        <h2 className="golem-detail__title">Breakdown Golem</h2>
         <button className={`btn-breakdown ${isBreakdown ? 'active' : ''}`} onClick={toggleBreakdown}>
           {isBreakdown ? '◉ Mode Breakdown' : '○ Breakdown'}
         </button>
-        {isBreakdown && (
-          <div className="separation-control">
-            <label htmlFor="separation-slider">Distance:</label>
-            <input
-              id="separation-slider"
-              type="range"
-              min="10"
-              max="60"
-              value={breakdownSeparation}
-              onChange={(e) => setBreakdownSeparation(Number(e.target.value))}
-              className="slider"
-            />
-            <span className="separation-value">{breakdownSeparation}px</span>
-          </div>
-        )}
       </div>
 
+      {/* Main content: canvas + info panel */}
       <div className="golem-detail__content">
-        {/* Left Cards */}
-        <div className="golem-detail__cards golem-detail__cards--left">
-          {COMPOSITION_CARDS.filter(c => c.side === 'left').map(card => (
-            <div key={card.id} className="composition-card">
-              <div className="composition-card__header">
-                <h3 className="composition-card__title">{card.title}</h3>
-              </div>
-              <p className="composition-card__description">{card.description}</p>
-              <div className="composition-card__specs">
-                {card.specs.map((spec, i) => (
-                  <div key={i} className="spec-item">
-                    <span className="spec-dot" />
-                    <span className="spec-text">{spec}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Canvas - Golem di tengah */}
-        <div className="golem-detail__canvas-wrapper">
-          <div 
+        {/* Canvas area */}
+        <div
+          className="golem-detail__canvas-wrapper"
+          style={{ transform: `translate(${parallax.x * -PARALLAX_CANVAS}px, ${parallax.y * -PARALLAX_CANVAS}px)` }}
+        >
+          <div
             className="golem-detail__canvas-container"
             ref={canvasContainerRef}
-            onPointerMove={handlePointerMove}
             onPointerEnter={handleCanvasPointerEnter}
             onPointerLeave={handleCanvasPointerLeave}
           >
@@ -169,23 +158,29 @@ export default function GolemDetail({ onBack }) {
                   baseRotation={MODEL_BASE_ROTATION}
                   onModelClick={null}
                   breakdownMode={isBreakdown}
-                  breakdownDistance={breakdownSeparation}
+                  breakdownDistance={30}
+                  onMeshHover={isBreakdown ? setHoveredMesh : null}
+                  hoveredMesh={hoveredMesh}
                 />
               </Suspense>
             </Canvas>
           </div>
         </div>
 
-        {/* Right Cards */}
-        <div className="golem-detail__cards golem-detail__cards--right">
-          {COMPOSITION_CARDS.filter(c => c.side === 'right').map(card => (
-            <div key={card.id} className="composition-card">
-              <div className="composition-card__header">
-                <h3 className="composition-card__title">{card.title}</h3>
+        {/* Info panel kanan — muncul saat breakdown */}
+        <div
+          className={`golem-detail__info ${isBreakdown ? 'golem-detail__info--visible' : ''}`}
+          style={{ transform: `translate(${parallax.x * PARALLAX_INFO}px, ${parallax.y * PARALLAX_INFO}px)` }}
+        >
+          {activeInfo ? (
+            <div className="info-card info-card--active" key={hoveredMesh}>
+              <div className="info-card__header">
+                <h3 className="info-card__title">{activeInfo.title}</h3>
+                <span className="info-card__subtitle">{activeInfo.subtitle}</span>
               </div>
-              <p className="composition-card__description">{card.description}</p>
-              <div className="composition-card__specs">
-                {card.specs.map((spec, i) => (
+              <p className="info-card__description">{activeInfo.description}</p>
+              <div className="info-card__specs">
+                {activeInfo.specs.map((spec, i) => (
                   <div key={i} className="spec-item">
                     <span className="spec-dot" />
                     <span className="spec-text">{spec}</span>
@@ -193,17 +188,14 @@ export default function GolemDetail({ onBack }) {
                 ))}
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="info-card info-card--empty">
+              <div className="info-card__icon">🔍</div>
+              <p className="info-card__hint">Hover pada bagian golem untuk melihat detail komponen</p>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Breakdown info */}
-      {isBreakdown && (
-        <div className="breakdown-info">
-          <span className="breakdown-icon">⚙️</span>
-          Mode Breakdown Aktif - Interaktif dan animasi nonaktif
-        </div>
-      )}
     </section>
   )
 }

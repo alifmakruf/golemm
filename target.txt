@@ -9,4 +9,8 @@ v1.3
 v1.4
 golemdetail section
 1. saya ingin section ini berisi canvas dengan golem ditengah dengan scale 1 dan kameranya agak mundur
-2. ketika mode breakdown aktif maka akan memisahkan part2 mesh dari golem
+2. ketika mode breakdown aktif maka akan memisahkan part2 mesh dari golem jadi ada grid di land di canvas nya
+3. untuk pejelasannya ada di dalam canvas dan terhubung garis antar tiap mesh nya
+4. tambahkan efek parallax saat mouse move di seluruh section dengan tingkat kepekaan per komponen
+5. untuk golem ketika mouse hover di tiap tiap bagian mesh golem(saat breakdown) maka akan memberikan highlight pada mesh nya dan text di kanan akan mengikuti mesh yang di hover
+6. untuk text heading breakdown nya gunakan font inter dan untuk sub heading gunakan font manrope
