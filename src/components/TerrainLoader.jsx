@@ -30,7 +30,7 @@ const SSAO_BIAS = 0.05                // bias untuk mengurangi shadow acne
 
 // ---- Tuning: Optimasi Performa ----
 const ENABLE_BLOOM = true             // Efek glow ray tracing (ringan & estetik)
-const ENABLE_SNOW_ON_MOBILE = false   // Salju di HP (false = hemat baterai/GPU)
+const ENABLE_SNOW_ON_MOBILE = true   // Salju di HP (false = hemat baterai/GPU)
 
 // ---- Tuning: Snow ----
 const SNOW_COUNT = 1800   // jumlah partikel
