@@ -17,7 +17,7 @@ const TERRAIN_SPAWN_Y = -3.2        // posisi awal gunung di bawah (world unit)
 const TERRAIN_ANIM_DURATION = 2.5   // durasi naik (detik)
 
 // ---- Tuning: Bloom (ray tracing glow) ----
-const BLOOM_INTENSITY = 1   // kekuatan glow (0 = mati, 2+ = sangat terang)
+const BLOOM_INTENSITY = 0.5   // kekuatan glow (0 = mati, 2+ = sangat terang)
 const BLOOM_LUMINANCE_THRESHOLD = 0.1  // threshold brightness agar bloom (0=semua, 1=hanya putih)
 const BLOOM_LUMINANCE_SMOOTHING = 1   // transisi halus di threshold
 const BLOOM_RADIUS = 0.5   // jangkauan blur bloom
