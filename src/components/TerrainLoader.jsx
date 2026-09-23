@@ -1,8 +1,17 @@
-import { useRef, useMemo } from 'react'
-import { useGLTF, OrbitControls, PerspectiveCamera } from '@react-three/drei'
+import { useRef, useMemo, useEffect } from 'react'
+import { useGLTF, OrbitControls, PerspectiveCamera, useAnimations } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { EffectComposer, Bloom, SSAO } from '@react-three/postprocessing'
 import * as THREE from 'three'
+
+// ================== Parameter Tuning: Animasi Keyframe Model Terrain ==================
+// Sesuai permintaan:
+// 1. Play sekali saat pertama buka web setelah fadeinup selesai
+// 2. Masuk section 2 -> play dari awal sampai 2 detik / frame 20
+// 3. Klik Back -> lanjutkan dari frame 20 sampai selesai
+const TERRAIN_ANIM_SPEED = 1.0              // Kecepatan putar animasi model (1.0 = normal)
+const TERRAIN_INITIAL_PLAY_DELAY_SEC = 2.4  // Jeda waktu (detik) setelah web dimuat / fadeinup baru animasi pertama kali diputar
+const TERRAIN_S2_STOP_TIME_SEC = 2.0        // Titik berhenti (detik / frame 20) saat masuk Section 2
 
 // ================== Parameter Tuning: Kamera & Orbit ==================
 // Posisi kamera awal (Section 1 - Hero)
@@ -117,17 +126,80 @@ function SnowEffect({ activeSection = 1 }) {
   return <points geometry={geo} material={mat} />
 }
 
-// Model Terrain dengan animasi naik sendiri di awal
-function TerrainModel({ scene }) {
+// Model Terrain dengan animasi keyframe bawaan GLB & kontrol antar section
+function TerrainModel({ scene, animations, activeSection = 1 }) {
   const groupRef = useRef()
   const progressRef = useRef(0)
+  const prevSectionRef = useRef(activeSection)
+  const hasPlayedInitialRef = useRef(false)
+  const isHoldingAtS2Ref = useRef(false)
+
+  // Ambil actions dari animasi model 3D
+  const { actions, names } = useAnimations(animations, groupRef)
+
+  // 1. Initial Load: Putar animasi sekali di awal setelah delay fadeinup selesai
+  useEffect(() => {
+    if (!actions || names.length === 0) return
+    const mainAction = actions[names[0]]
+    if (!mainAction) return
+
+    mainAction.clampWhenFinished = true
+    mainAction.setLoop(THREE.LoopOnce, 1)
+    mainAction.timeScale = TERRAIN_ANIM_SPEED
+
+    const timer = setTimeout(() => {
+      if (!hasPlayedInitialRef.current && activeSection === 1) {
+        hasPlayedInitialRef.current = true
+        mainAction.reset().play()
+      }
+    }, TERRAIN_INITIAL_PLAY_DELAY_SEC * 1000)
+
+    return () => clearTimeout(timer)
+  }, [actions, names, activeSection])
+
+  // 2. Transisi Section 1 <-> Section 2
+  useEffect(() => {
+    if (!actions || names.length === 0) return
+    const mainAction = actions[names[0]]
+    if (!mainAction) return
+
+    mainAction.clampWhenFinished = true
+    mainAction.setLoop(THREE.LoopOnce, 1)
+    mainAction.timeScale = TERRAIN_ANIM_SPEED
+
+    if (activeSection === 2 && prevSectionRef.current === 1) {
+      // Masuk ke Section 2: Putar animasi dari awal sampai 2 detik (frame 20) lalu tahan (hold)
+      isHoldingAtS2Ref.current = false
+      mainAction.reset()
+      mainAction.paused = false
+      mainAction.play()
+    } else if (activeSection === 1 && prevSectionRef.current === 2) {
+      // Klik Back: Lanjutkan animasi dari frame 20 (2 detik) sampai selesai
+      isHoldingAtS2Ref.current = false
+      mainAction.paused = false
+      mainAction.play()
+    }
+
+    prevSectionRef.current = activeSection
+  }, [activeSection, actions, names])
 
   useFrame((_, delta) => {
+    // Animasi naik gunung fisik saat web pertama dimuat
     if (progressRef.current < 1) {
       progressRef.current = Math.min(1, progressRef.current + delta / TERRAIN_ANIM_DURATION)
       const ease = 1 - Math.pow(1 - progressRef.current, 3)
       if (groupRef.current) {
         groupRef.current.position.y = THREE.MathUtils.lerp(TERRAIN_SPAWN_Y, 0, ease)
+      }
+    }
+
+    // Tahan animasi di Section 2 tepat saat mencapai TERRAIN_S2_STOP_TIME_SEC (frame 20 / 2 detik)
+    if (activeSection === 2 && !isHoldingAtS2Ref.current && actions && names.length > 0) {
+      const mainAction = actions[names[0]]
+      if (mainAction && mainAction.time >= TERRAIN_S2_STOP_TIME_SEC) {
+        mainAction.time = TERRAIN_S2_STOP_TIME_SEC
+        mainAction.paused = true
+        isHoldingAtS2Ref.current = true
       }
     }
   })
@@ -177,7 +249,7 @@ function CameraController({ activeSection = 1 }) {
 }
 
 export default function TerrainLoader({ activeSection = 1 }) {
-  const { scene } = useGLTF('/terrainmountain.glb')
+  const { scene, animations } = useGLTF('/terrainmountain.glb')
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
   const shouldEnableSnow = !isMobile || ENABLE_SNOW_ON_MOBILE
 
@@ -210,8 +282,8 @@ export default function TerrainLoader({ activeSection = 1 }) {
       />
       <directionalLight intensity={1.5} color="#8ec5fc" position={[-8, 3, 2]} />
 
-      {/* Gunung 3D (posisi tetap tidak bergerak, hanya kamera yang zoom) */}
-      <TerrainModel scene={scene} />
+      {/* Gunung 3D dengan keyframe animasi */}
+      <TerrainModel scene={scene} animations={animations} activeSection={activeSection} />
 
       {/* Hujan salju dinamis (kecepatan & angin mengikuti activeSection) */}
       {shouldEnableSnow && <SnowEffect activeSection={activeSection} />}
