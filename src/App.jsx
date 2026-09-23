@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
 import GolemHero from './components/GolemHero.jsx'
-import GolemDetail from './components/GolemDetail.jsx'
 import TerrainLoader from './components/TerrainLoader.jsx'
 import LoadingScreen from './components/LoadingScreen.jsx'
 import './App.css'
@@ -19,7 +18,6 @@ const FOG_BOTTOM = '-25%'       // posisi dari bawah viewport
 const FOG_DRIFT_DURATION = '8s' // durasi animasi drift kiri↔kanan
 
 export default function App() {
-  const [currentSection, setCurrentSection] = useState('hero')
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
   const { active, progress } = useProgress()
   const timerRef = useRef(null)
@@ -41,49 +39,39 @@ export default function App() {
     return () => clearTimeout(timerRef.current)
   }, [active, progress, isLoadingComplete])
 
-  const handleNavigateToDetail = () => {
-    setCurrentSection('detail')
-    window.scrollTo(0, 0)
-  }
-
-  const handleBackToHero = () => {
-    setCurrentSection('hero')
-    window.scrollTo(0, 0)
-  }
-
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
 
   return (
-    <div className="app-container" onMouseMove={currentSection === 'hero' && !isMobile ? handleMouseMove : undefined}>
+    <div className="app-container" onMouseMove={!isMobile ? handleMouseMove : undefined}>
       {/* Loading Screen - tampil sampai asset benar-benar selesai dimuat */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
+      {/* Mouse Trail - efek melukis di air (hanya desktop) */}
+
       {/* Terrain Canvas 3D */}
-      {currentSection === 'hero' && (
-        <div className={`app-terrain-layer ${isLoadingComplete ? 'animate-fade-in-up' : 'terrain-preload'}`}>
-          <Canvas
-            camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
-            dpr={isMobile ? [1, 1.25] : [1, 1.5]}
-            gl={{ antialias: true, alpha: true, clearColor: 0x000000, clearAlpha: 0, powerPreference: 'high-performance' }}
-            style={{
-              position: 'fixed',
-              inset: isMobile ? 0 : -PARALLAX_TERRAIN,          // oversized di desktop untuk parallax
-              width: isMobile ? '100vw' : `calc(100vw + ${PARALLAX_TERRAIN * 2}px)`,
-              height: isMobile ? '100vh' : `calc(100vh + ${PARALLAX_TERRAIN * 2}px)`,
-              zIndex: 1,
-              pointerEvents: isLoadingComplete ? 'auto' : 'none',
-              transform: isMobile ? 'none' : `translate(${terrainParallax.x * -PARALLAX_TERRAIN}px, ${terrainParallax.y * -PARALLAX_TERRAIN}px)`,
-              transition: 'transform 0.15s ease-out',
-              willChange: isMobile ? 'auto' : 'transform',
-            }}
-          >
-            <TerrainLoader />
-          </Canvas>
-        </div>
-      )}
+      <div className={`app-terrain-layer ${isLoadingComplete ? 'animate-fade-in-up' : 'terrain-preload'}`}>
+        <Canvas
+          camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
+          dpr={isMobile ? [1, 1.25] : [1, 1.5]}
+          gl={{ antialias: true, alpha: true, clearColor: 0x000000, clearAlpha: 0, powerPreference: 'high-performance' }}
+          style={{
+            position: 'fixed',
+            inset: isMobile ? 0 : -PARALLAX_TERRAIN,          // oversized di desktop untuk parallax
+            width: isMobile ? '100vw' : `calc(100vw + ${PARALLAX_TERRAIN * 2}px)`,
+            height: isMobile ? '100vh' : `calc(100vh + ${PARALLAX_TERRAIN * 2}px)`,
+            zIndex: 1,
+            pointerEvents: isLoadingComplete ? 'auto' : 'none',
+            transform: isMobile ? 'none' : `translate(${terrainParallax.x * -PARALLAX_TERRAIN}px, ${terrainParallax.y * -PARALLAX_TERRAIN}px)`,
+            transition: 'transform 0.15s ease-out',
+            willChange: isMobile ? 'auto' : 'transform',
+          }}
+        >
+          <TerrainLoader />
+        </Canvas>
+      </div>
 
       {/* CSS Fog overlay: elips gaussian blur di depan gunung */}
-      {currentSection === 'hero' && isLoadingComplete && (
+      {isLoadingComplete && (
         <div style={{
           position: 'fixed',
           bottom: FOG_BOTTOM,
@@ -100,12 +88,9 @@ export default function App() {
         }} />
       )}
 
-      {/* Main Content Layer - di-render sejak awal agar golem ikut di-preload */}
+      {/* Main Content Layer */}
       <div className={`app-content ${isLoadingComplete ? 'app-content--loaded' : ''}`}>
-        {currentSection === 'hero' && (
-          <GolemHero onExplore={handleNavigateToDetail} />
-        )}
-        {currentSection === 'detail' && <GolemDetail onBack={handleBackToHero} />}
+        <GolemHero />
       </div>
     </div>
   )

@@ -56,7 +56,7 @@ const LIGHTS = {
   },
 }
 
-export default function GolemHero({ onExplore }) {
+export default function GolemHero() {
   const mouse = useRef({ x: 0, y: 0, active: false })
   const canvasContainerRef = useRef(null)
   const sectionRef = useRef(null)
@@ -210,8 +210,7 @@ export default function GolemHero({ onExplore }) {
           </div> */}
 
           <h1 className="hero-title">
-            Stone
-            <span className="text-gradient"> Golem</span>
+            <span className="text-gradient"> GOLEM</span>
           </h1>
 
           {/* <p className="hero-subtitle">
@@ -219,7 +218,7 @@ export default function GolemHero({ onExplore }) {
           </p> */}
 
           <div className="hero-actions">
-            <button className="btn-primary" type="button" onClick={onExplore}>
+            <button className="btn-primary" type="button">
               Jelajahi Sekarang →
             </button>
             {/* <button className="btn-secondary" type="button">

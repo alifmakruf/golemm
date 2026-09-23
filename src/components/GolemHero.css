@@ -257,21 +257,22 @@
   box-shadow: 0 0 8px #38bdf8;
 }
 
-/* Headline */
+/* Headline - Minecraft pixel style */
 .hero-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: 'Pixelify Sans', 'Press Start 2P', monospace;
   font-weight: 700;
-  font-size: clamp(2.3rem, 4.5vw, 3.6rem);
-  line-height: 1.12;
-  color: #0f172a;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.6rem, 5.5vw, 4.4rem);
+  line-height: 1.1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 40%, #333333 100%);
+  background: linear-gradient(135deg, #00f7ff 0%, #0284c7 50%, #0369a1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(3px 3px 0 rgba(102, 181, 255, 0.9));
 }
 
 /* Subtitle */
@@ -459,6 +460,10 @@
   .golem-hero__canvas-container {
     margin-top: 15vh;
     height: clamp(150px, 28vh, 210px);
+  }
+
+  .golem-hero__content-right {
+    margin-top: 20%;
   }
 
   .hero-title {
