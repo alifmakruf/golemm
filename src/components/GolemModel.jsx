@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useGLTF, useAnimations, Html } from '@react-three/drei'
+import { useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 
 // ---- Tuning constants -------------------------------------------------
@@ -95,23 +95,12 @@ function WireframePart({ node, material, innerRef }) {
   )
 }
 
-// Info mesh untuk label di canvas
-const MESH_LABELS = {
-  kepalaatas: 'Kepala Atas',
-  mulutbawah: 'Mulut Bawah',
-  alis: 'Alis',
-}
-
 export default function GolemModel({
   mouse,
   modelScale,
   modelPosition,
   baseRotation,
   onModelClick,
-  breakdownMode = false,
-  breakdownDistance = 30,
-  onMeshHover = null,
-  hoveredMesh = null,
 }) {
   const { camera } = useThree()
   const { nodes, materials, animations } = useGLTF('/models/golem.glb')
@@ -186,15 +175,6 @@ export default function GolemModel({
     const actionList = Object.values(actions).filter(Boolean)
     if (actionList.length === 0) return
 
-    // Stop semua animations saat breakdown mode aktif
-    if (breakdownMode) {
-      actionList.forEach((act) => {
-        act.stop()
-        act.reset()
-      })
-      return
-    }
-
     actionList.forEach((act) => {
       act.timeScale = ANIMATION_SPEED
       act.setLoop(THREE.LoopOnce, 1)
@@ -221,7 +201,7 @@ export default function GolemModel({
       clearTimeout(timer)
       mixer.removeEventListener('finished', onFinished)
     }
-  }, [actions, breakdownMode])
+  }, [actions])
 
   // Handle click detection pada model
   useEffect(() => {
@@ -249,47 +229,9 @@ export default function GolemModel({
     return () => window.removeEventListener('pointerdown', handlePointerDown)
   }, [onModelClick, camera])
 
-  // Setup line connectors untuk breakdown visualization
-  const lineRef = useRef(null)
-
-  useLayoutEffect(() => {
-    if (!breakdownMode || !centeredRef.current) return
-
-    // Create line connector antara mesh
-    const positions = new Float32Array([
-      0, 0.5, 0,  // kepala atas
-      0, -0.3, 0, // mulut bawah
-      0.2, 0, 0,  // alis
-      0, 0.5, 0,  // kembali ke kepala
-    ])
-
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-    const material = new THREE.LineBasicMaterial({
-      color: 0x0284c7,
-      linewidth: 2,
-      transparent: true,
-      opacity: 0.6,
-    })
-
-    const line = new THREE.Line(geometry, material)
-    lineRef.current = line
-    centeredRef.current.add(line)
-
-    return () => {
-      if (centeredRef.current && lineRef.current) {
-        centeredRef.current.remove(lineRef.current)
-      }
-    }
-  }, [breakdownMode])
-
   const basePositions = useRef({ right: new THREE.Vector3(), left: new THREE.Vector3() })
   const currentRotation = useRef({ x: 0, y: 0 })
   const currentEyeOffset = useRef({ x: 0, y: 0 })
-  // Simpan posisi asli GLB untuk reset saat keluar breakdown mode
-  const meshBasePositions = useRef({ kepalaatas: new THREE.Vector3(), mulutbawah: new THREE.Vector3(), alis: new THREE.Vector3() })
-  const wasBreakdown = useRef(false) // track transisi keluar breakdown
 
   // Mata kanan & kiri memakai material yang sama (Material.002).
   const eyeMaterial = useMemo(() => {
@@ -301,7 +243,7 @@ export default function GolemModel({
     return mat
   }, [materials])
 
-  // Per-mesh stone materials — clone terpisah agar bisa highlight independen
+  // Per-mesh stone materials
   const stoneMats = useMemo(() => {
     const base = materials && Object.values(materials)[0]
     if (!base) return { kepalaatas: undefined, mulutbawah: undefined, alis: undefined }
@@ -312,16 +254,9 @@ export default function GolemModel({
     }
   }, [materials])
 
-  const highlightColor = useMemo(() => new THREE.Color('#1e90ff'), [])
-  const noEmissive = useMemo(() => new THREE.Color(0, 0, 0), [])
-
   useEffect(() => {
     if (nodes?.matakanan) basePositions.current.right.copy(nodes.matakanan.position)
     if (nodes?.matakiri) basePositions.current.left.copy(nodes.matakiri.position)
-    // Simpan posisi asli GLB untuk mesh batu
-    if (nodes?.kepalaatas) meshBasePositions.current.kepalaatas.copy(nodes.kepalaatas.position)
-    if (nodes?.mulutbawah) meshBasePositions.current.mulutbawah.copy(nodes.mulutbawah.position)
-    if (nodes?.alis) meshBasePositions.current.alis.copy(nodes.alis.position)
   }, [nodes])
 
   // Pusatkan model: hitung bounding box lalu geser grup dalam supaya
@@ -336,87 +271,6 @@ export default function GolemModel({
   }, [nodes])
 
   useFrame((state, delta) => {
-    // Disable semua interaksi saat breakdown mode aktif
-    if (breakdownMode) {
-      wasBreakdown.current = true
-      if (pivotRef.current && centeredRef.current) {
-        pivotRef.current.position.set(modelPosition[0], modelPosition[1], modelPosition[2])
-        pivotRef.current.scale.set(modelScale, modelScale, modelScale)
-        pivotRef.current.rotation.set(baseRotation[0], baseRotation[1], baseRotation[2])
-
-        // Apply breakdown positions ke setiap mesh dengan coordinate-based system
-        // breakdownSeparation: 10-60px → convert ke coordinate (0.009-0.054)
-        const coordinateDistance = (breakdownDistance / 100) * 0.09
-
-        const kepalaatasMesh = centeredRef.current.getObjectByName('kepalaatas')
-        if (kepalaatasMesh) {
-          kepalaatasMesh.position.copy(meshBasePositions.current.kepalaatas)
-          kepalaatasMesh.position.y += coordinateDistance * 0.5
-        }
-        const mulutbawahMesh = centeredRef.current.getObjectByName('mulutbawah')
-        if (mulutbawahMesh) {
-          mulutbawahMesh.position.copy(meshBasePositions.current.mulutbawah)
-          mulutbawahMesh.position.y -= coordinateDistance * 0.5
-        }
-        const alisMesh = centeredRef.current.getObjectByName('alis')
-        if (alisMesh) {
-          alisMesh.position.copy(meshBasePositions.current.alis)
-          alisMesh.position.x += coordinateDistance * 0.3
-        }
-
-        // Hover detection per-mesh saat breakdown
-        if (onMeshHover && mouse.current.active) {
-          raycaster.current.setFromCamera({ x: mouse.current.x, y: -mouse.current.y }, state.camera)
-          pivotRef.current.updateWorldMatrix(true, true)
-          const hits = raycaster.current.intersectObject(centeredRef.current, true)
-          onMeshHover(hits.length > 0 ? hits[0].object.name : null)
-        } else if (onMeshHover && !mouse.current.active) {
-          onMeshHover(null)
-        }
-
-        // Update line connector positions
-        if (lineRef.current) {
-          const kp = kepalaatasMesh || centeredRef.current.getObjectByName('kepalaatas')
-          const mb = mulutbawahMesh || centeredRef.current.getObjectByName('mulutbawah')
-          const al = alisMesh || centeredRef.current.getObjectByName('alis')
-          if (kp && mb && al) {
-            const p = lineRef.current.geometry.attributes.position.array
-            p[0] = kp.position.x; p[1] = kp.position.y; p[2] = kp.position.z
-            p[3] = mb.position.x; p[4] = mb.position.y; p[5] = mb.position.z
-            p[6] = al.position.x; p[7] = al.position.y; p[8] = al.position.z
-            p[9] = kp.position.x; p[10] = kp.position.y; p[11] = kp.position.z
-            lineRef.current.geometry.attributes.position.needsUpdate = true
-          }
-        }
-      }
-
-      // Highlight hovered mesh
-      for (const [name, mat] of Object.entries(stoneMats)) {
-        if (!mat) continue
-        if (name === hoveredMesh) {
-          mat.emissive.lerp(highlightColor, 1 - Math.exp(-8 * delta))
-          mat.emissiveIntensity = 0.5
-        } else {
-          mat.emissive.lerp(noEmissive, 1 - Math.exp(-8 * delta))
-          mat.emissiveIntensity = 0
-        }
-      }
-
-      return
-    }
-
-    // Reset posisi mesh hanya sekali saat baru keluar dari breakdown mode
-    // (tidak setiap frame — itu akan membunuh animasi dari AnimationMixer)
-    if (wasBreakdown.current && centeredRef.current) {
-      const kepalaatasMesh = centeredRef.current.getObjectByName('kepalaatas')
-      if (kepalaatasMesh) kepalaatasMesh.position.copy(meshBasePositions.current.kepalaatas)
-      const mulutbawahMesh = centeredRef.current.getObjectByName('mulutbawah')
-      if (mulutbawahMesh) mulutbawahMesh.position.copy(meshBasePositions.current.mulutbawah)
-      const alisMesh = centeredRef.current.getObjectByName('alis')
-      if (alisMesh) alisMesh.position.copy(meshBasePositions.current.alis)
-    }
-    wasBreakdown.current = false
-
     const targetX = mouse.current.y * -degToRad(HEAD_MAX_ROTATION_DEG)
     const targetY = mouse.current.x * degToRad(HEAD_MAX_ROTATION_DEG)
 
@@ -483,27 +337,9 @@ export default function GolemModel({
   return (
     <group ref={pivotRef}>
       <group ref={centeredRef}>
-        <Part node={nodes.kepalaatas} material={stoneMats.kepalaatas}
-          extraChildren={breakdownMode ? (
-            <Html distanceFactor={3} center position={[0.14, 0.02, 0]} style={{ pointerEvents: 'none' }}>
-              <div className={`mesh-label ${hoveredMesh === 'kepalaatas' ? 'mesh-label--active' : ''}`}>Kepala Atas</div>
-            </Html>
-          ) : undefined}
-        />
-        <Part node={nodes.mulutbawah} material={stoneMats.mulutbawah}
-          extraChildren={breakdownMode ? (
-            <Html distanceFactor={3} center position={[0.14, -0.02, 0]} style={{ pointerEvents: 'none' }}>
-              <div className={`mesh-label ${hoveredMesh === 'mulutbawah' ? 'mesh-label--active' : ''}`}>Mulut Bawah</div>
-            </Html>
-          ) : undefined}
-        />
-        <Part node={nodes.alis} material={stoneMats.alis}
-          extraChildren={breakdownMode ? (
-            <Html distanceFactor={3} center position={[0.14, 0, 0]} style={{ pointerEvents: 'none' }}>
-              <div className={`mesh-label ${hoveredMesh === 'alis' ? 'mesh-label--active' : ''}`}>Alis</div>
-            </Html>
-          ) : undefined}
-        />
+        <Part node={nodes.kepalaatas} material={stoneMats.kepalaatas} />
+        <Part node={nodes.mulutbawah} material={stoneMats.mulutbawah} />
+        <Part node={nodes.alis} material={stoneMats.alis} />
 
         <Part
           node={nodes.matakanan}

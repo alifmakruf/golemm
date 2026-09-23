@@ -1,16 +1,17 @@
-
-v1.3
-1. fog efek didepan bawah gunung(sekitar 30% ketinggian gunung) dan memiliki animasi bergerak dari kiri ke kanan secara perlahan dan looping
-2. langit dibelakang gunung berwarna abu 
-3. hujan salju dengan partikle salju berukuran 1-3px (hujan agak deras jadi kecepatan hujannya agak cepat)
-4. perhalus dan perbaiki bug yang ada di hero section sampai optimal
-5. selalu berikan parameter untuk tiap efek/fitur agar bisa saya sesuikan dan enak dilihat
-
-v1.4
-golemdetail section
-1. saya ingin section ini berisi canvas dengan golem ditengah dengan scale 1 dan kameranya agak mundur
-2. ketika mode breakdown aktif maka akan memisahkan part2 mesh dari golem jadi ada grid di land di canvas nya
-3. untuk pejelasannya ada di dalam canvas dan terhubung garis antar tiap mesh nya
-4. tambahkan efek parallax saat mouse move di seluruh section dengan tingkat kepekaan per komponen
-5. untuk golem ketika mouse hover di tiap tiap bagian mesh golem(saat breakdown) maka akan memberikan highlight pada mesh nya dan text di kanan akan mengikuti mesh yang di hover
-6. untuk text heading breakdown nya gunakan font inter dan untuk sub heading gunakan font manrope
+section 1 hero
+vvvvvvvvv
+transisi:
+untuk menuju section 2 user klik button jelajahi maka 
+-hero section akan zoom in ke gunung sekitar 1 langkah koordinat dan sedikit kebawah sekitar 0.5 langkah koordinat
+-golem dan beberapa elemen di hero section akan berpencar keluar dari halaman(kanan dan kiri)
+-posisi gunung tetap dan ga berubah hanya camera saja yang berubah
+-angin kencang
+-salju semakin deras dan cepat
+-animasi smooth dan tidak patah
+vvvvvvvvv
+section 2 latar belakang dan tujuan
+isi: didalam section 2 terdapat 2 headline dan 2 card paragraf yang bentuk nya sedikit menyerong ke arah camera, 
+jadi cardnya ini objek 3d namun berisi text headline dan paragraf
+card: berisi headline dan paragraf, desainnya itu persegi panjang dengan texture atau backgroundnya seperti kaca mobil, agak transparan dan memiliki efek inner blur
+dan juga memiliki rotasi sekitar 20 derajat kekanan dan kekiri menghadap ke kamera
+efek:memiliki efek parallax dan di sisi cardnya memiliki efek mengkilap seperti cahaya, jangan lupa bloom nya, jangan pakai ssao karena berat

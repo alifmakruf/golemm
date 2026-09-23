@@ -487,3 +487,65 @@
     font-size: 0.64rem;
   }
 }
+
+/* ==========================================================================
+   Tuning: Animasi Transisi Hero Exit (Berpencar Keluar Halaman)
+   Saat menuju Section 2, golem meluncur ke kiri & teks meluncur ke kanan
+   ========================================================================== */
+.golem-hero--exiting {
+  pointer-events: none !important;
+}
+
+.golem-hero--exiting .golem-hero__canvas-container {
+  transform: translateX(-140vw) scale(0.7) rotate(-12deg) !important;
+  opacity: 0 !important;
+  transition: transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.75s ease !important;
+}
+
+.golem-hero--exiting .golem-hero__content-right {
+  transform: translateX(140vw) scale(0.85) !important;
+  opacity: 0 !important;
+  transition: transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.75s ease !important;
+}
+
+.golem-hero--exiting .golem-hero__backdrop {
+  opacity: 0 !important;
+  transition: opacity 0.8s ease-out !important;
+}
+
+.golem-hero--exiting .debris-container {
+  opacity: 0 !important;
+  transition: opacity 0.5s ease-out !important;
+}
+
+/* ==========================================================================
+   Tuning: Animasi Re-enter Hero (fadeInUp setelah kamera kembali ke Section 1)
+   ========================================================================== */
+.golem-hero--waiting .golem-hero__canvas-container,
+.golem-hero--waiting .golem-hero__content-right {
+  opacity: 0 !important;
+  transform: translateY(100px) !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.golem-hero--waiting .golem-hero__backdrop {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+.golem-hero--entering .golem-hero__canvas-container {
+  animation: fadeInUpCanvas 0.85s cubic-bezier(0.23, 1, 0.32, 1) both !important;
+  pointer-events: auto !important;
+}
+
+.golem-hero--entering .golem-hero__content-right {
+  animation: fadeInUpContent 0.85s cubic-bezier(0.23, 1, 0.32, 1) both !important;
+  pointer-events: auto !important;
+}
+
+.golem-hero--entering .golem-hero__backdrop {
+  opacity: 1 !important;
+  transition: opacity 0.85s ease-out !important;
+}

@@ -56,13 +56,39 @@ const LIGHTS = {
   },
 }
 
-export default function GolemHero() {
+// ---- Tuning: Transisi Kamera & Animasi Masuk Section 1 ----
+const HERO_CAMERA_RETURN_DELAY_MS = 750 // Delay (ms) menunggu kamera 3D sampai di Section 1 baru mainkan animasi in (fadeInUp)
+
+export default function GolemHero({ onExplore, isExiting }) {
   const mouse = useRef({ x: 0, y: 0, active: false })
   const canvasContainerRef = useRef(null)
   const sectionRef = useRef(null)
   const [debris, setDebris] = useState([])
   const [parallax, setParallax] = useState({ x: 0, y: 0 })
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 960)
+
+  // State kontrol animasi transisi Hero
+  const [heroState, setHeroState] = useState(isExiting ? 'exiting' : 'initial')
+  const prevExiting = useRef(isExiting)
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    if (isExiting) {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      setHeroState('exiting')
+    } else if (prevExiting.current) {
+      // Kembali dari Section 2 ke Section 1:
+      // Langsung kunci ke 'waiting' (sembunyi saat kamera zoom out)
+      setHeroState('waiting')
+      timerRef.current = setTimeout(() => {
+        setHeroState('entering')
+      }, HERO_CAMERA_RETURN_DELAY_MS)
+    }
+    prevExiting.current = isExiting
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [isExiting])
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 960)
@@ -126,8 +152,16 @@ export default function GolemHero() {
     }, 600)
   }, [])
 
+  const heroClass = isExiting
+    ? 'golem-hero--exiting'
+    : heroState === 'waiting' || (prevExiting.current && heroState !== 'entering')
+    ? 'golem-hero--waiting'
+    : heroState === 'entering'
+    ? 'golem-hero--entering'
+    : ''
+
   return (
-    <section className="golem-hero" ref={sectionRef} onPointerMove={handlePointerMove}>
+    <section className={`golem-hero ${heroClass}`} ref={sectionRef} onPointerMove={handlePointerMove}>
       {/* Falling debris/krikil */}
       <div className="debris-container">
         {debris.map(d => (
@@ -210,7 +244,7 @@ export default function GolemHero() {
           </div> */}
 
           <h1 className="hero-title">
-            <span className="text-gradient"> GOLEM</span>
+            <span className="text-gradient">GOLEM.inc</span>
           </h1>
 
           {/* <p className="hero-subtitle">
@@ -218,7 +252,7 @@ export default function GolemHero() {
           </p> */}
 
           <div className="hero-actions">
-            <button className="btn-primary" type="button">
+            <button className="btn-primary" type="button" onClick={onExplore}>
               Jelajahi Sekarang →
             </button>
             {/* <button className="btn-secondary" type="button">

@@ -2,10 +2,12 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
 import GolemHero from './components/GolemHero.jsx'
+import SectionTwo from './components/SectionTwo.jsx'
 import TerrainLoader from './components/TerrainLoader.jsx'
 import LoadingScreen from './components/LoadingScreen.jsx'
 import './App.css'
 
+// ================== Tuning Parameter: Parallax & Fog ==================
 // Parallax terrain: bergerak berlawanan arah mouse (depth illusion)
 const PARALLAX_TERRAIN = 12 // px max geser terrain saat mouse di ujung
 
@@ -13,12 +15,13 @@ const PARALLAX_TERRAIN = 12 // px max geser terrain saat mouse di ujung
 const FOG_COLOR = 'rgba(169, 171, 172, 0.75)'  // warna kabut
 const FOG_BLUR = 40            // gaussian blur radius (px)
 const FOG_WIDTH = '100%'        // lebar elips kabut
-const FOG_HEIGHT = '50%'     // tinggi elips kabut
+const FOG_HEIGHT = '50%'        // tinggi elips kabut
 const FOG_BOTTOM = '-25%'       // posisi dari bawah viewport
-const FOG_DRIFT_DURATION = '8s' // durasi animasi drift kiri↔kanan
+const FOG_DRIFT_DURATION = '8s' // durasi animasi drift kiri↔kanan saat santai
 
 export default function App() {
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
+  const [activeSection, setActiveSection] = useState(1) // 1 = Hero, 2 = Latar Belakang & Tujuan
   const { active, progress } = useProgress()
   const timerRef = useRef(null)
   const [terrainParallax, setTerrainParallax] = useState({ x: 0, y: 0 })
@@ -30,8 +33,7 @@ export default function App() {
     setTerrainParallax({ x: px, y: py })
   }, [])
 
-  // Sembunyikan loading saat asset benar-benar selesai (progress 100% & tidak active)
-  // lalu tunggu 0.2s sebelum show terrain
+  // Sembunyikan loading saat asset selesai dimuat lalu tunggu 0.2s
   useEffect(() => {
     if (!active && progress === 100 && !isLoadingComplete) {
       timerRef.current = setTimeout(() => setIsLoadingComplete(true), 200)
@@ -43,10 +45,10 @@ export default function App() {
 
   return (
     <div className="app-container" onMouseMove={!isMobile ? handleMouseMove : undefined}>
-      {/* Loading Screen - tampil sampai asset benar-benar selesai dimuat */}
+      {/* Loading Screen */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
-      {/* Terrain Canvas 3D */}
+      {/* Terrain Canvas 3D (Gunung, Salju Dinamis, dan Kamera Zoom) */}
       <div className={`app-terrain-layer ${isLoadingComplete ? 'animate-fade-in-up' : 'terrain-preload'}`}>
         <Canvas
           camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
@@ -54,7 +56,7 @@ export default function App() {
           gl={{ antialias: true, alpha: true, clearColor: 0x000000, clearAlpha: 0, powerPreference: 'high-performance' }}
           style={{
             position: 'fixed',
-            inset: isMobile ? 0 : -PARALLAX_TERRAIN,          // oversized di desktop untuk parallax
+            inset: isMobile ? 0 : -PARALLAX_TERRAIN,
             width: isMobile ? '100vw' : `calc(100vw + ${PARALLAX_TERRAIN * 2}px)`,
             height: isMobile ? '100vh' : `calc(100vh + ${PARALLAX_TERRAIN * 2}px)`,
             zIndex: 1,
@@ -64,11 +66,11 @@ export default function App() {
             willChange: isMobile ? 'auto' : 'transform',
           }}
         >
-          <TerrainLoader />
+          <TerrainLoader activeSection={activeSection} />
         </Canvas>
       </div>
 
-      {/* CSS Fog overlay: elips gaussian blur di depan gunung */}
+      {/* CSS Fog overlay: kabut dinamis di depan lereng gunung */}
       {isLoadingComplete && (
         <div style={{
           position: 'fixed',
@@ -82,14 +84,26 @@ export default function App() {
           filter: `blur(${FOG_BLUR}px)`,
           zIndex: 3,
           pointerEvents: 'none',
-          animation: `fog-drift ${FOG_DRIFT_DURATION} ease-in-out infinite alternate`,
+          animation: `fog-drift ${activeSection === 2 ? '4.5s' : FOG_DRIFT_DURATION} ease-in-out infinite alternate`,
+          transition: 'animation-duration 1s ease',
         }} />
       )}
 
-      {/* Main Content Layer */}
+      {/* Main Content Layer (Hero Section) */}
       <div className={`app-content ${isLoadingComplete ? 'app-content--loaded' : ''}`}>
-        <GolemHero />
+        <GolemHero
+          onExplore={() => setActiveSection(2)}
+          isExiting={activeSection === 2}
+        />
       </div>
+
+      {/* Section 2 Layer: 3D Car-Glass Cards (Latar Belakang & Tujuan) */}
+      {isLoadingComplete && (
+        <SectionTwo
+          isVisible={activeSection === 2}
+          onBack={() => setActiveSection(1)}
+        />
+      )}
     </div>
   )
 }
