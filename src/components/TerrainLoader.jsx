@@ -1,5 +1,5 @@
 import { useRef, useMemo } from 'react'
-import { useGLTF, OrbitControls, Environment, PerspectiveCamera } from '@react-three/drei'
+import { useGLTF, OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { EffectComposer, Bloom, SSAO } from '@react-three/postprocessing'
 import * as THREE from 'three'
@@ -23,13 +23,13 @@ const BLOOM_LUMINANCE_SMOOTHING = 1   // transisi halus di threshold
 const BLOOM_RADIUS = 0.5   // jangkauan blur bloom
 
 // ---- Tuning: SSAO (ambient occlusion - sudut gelap) ----
-const SSAO_INTENSITY = 30    // kedalaman shadow AO
-const SSAO_RADIUS = 0.3  // jangkauan AO
-const SSAO_BIAS = 0.325 // bias untuk mengurangi shadow acne
+const ENABLE_SSAO = false             // Penyebab utama berat di laptop & HP (false = langsung 60 FPS enteng)
+const SSAO_INTENSITY = 15             // kedalaman shadow AO jika diaktifkan
+const SSAO_RADIUS = 0.2               // jangkauan AO
+const SSAO_BIAS = 0.05                // bias untuk mengurangi shadow acne
 
-// ---- Tuning: Optimasi Mobile (HP & Tablet) ----
-const ENABLE_SSAO_ON_MOBILE = false   // SSAO sangat berat di HP (false = 60 FPS lancar)
-const ENABLE_BLOOM_ON_MOBILE = true   // Bloom lebih ringan dari SSAO
+// ---- Tuning: Optimasi Performa ----
+const ENABLE_BLOOM = true             // Efek glow ray tracing (ringan & estetik)
 const ENABLE_SNOW_ON_MOBILE = false   // Salju di HP (false = hemat baterai/GPU)
 
 // ---- Tuning: Snow ----
@@ -125,9 +125,8 @@ function TerrainModel({ scene }) {
 export default function TerrainLoader() {
   const { scene } = useGLTF('/terrainmountain.glb')
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
-  const shouldEnableSSAO = !isMobile || ENABLE_SSAO_ON_MOBILE
+  const shouldEnableSSAO = ENABLE_SSAO && (!isMobile)
   const shouldEnableSnow = !isMobile || ENABLE_SNOW_ON_MOBILE
-  const shouldEnableBloom = !isMobile || ENABLE_BLOOM_ON_MOBILE
 
   return (
     <>
@@ -147,12 +146,12 @@ export default function TerrainLoader() {
         enablePan={true}
       />
 
-      <ambientLight intensity={3.00} color="#5f5f5f" />
-      <directionalLight intensity={2.5} color="#fff4e0" position={[5.00, 6.00, 4.00]} castShadow={!isMobile} />
-      <spotLight intensity={60} color="#e8f4ff" position={[0.00, 4.00, -6.00]} angle={THREE.MathUtils.degToRad(89)} penumbra={0.15} />
-      <directionalLight intensity={1.8} color="#a8d8ff" position={[-8, 3, 2]} />
-
-      <Environment preset="studio" background={false} blur={0.00} />
+      {/* Lighting bergaya Minecraft RTX: Kontras hangat (matahari) vs dingin (skylight) */}
+      <ambientLight intensity={1.8} color="#8aa2be" />
+      <hemisphereLight skyColor="#b0e0ff" groundColor="#1e293b" intensity={1.5} />
+      <directionalLight intensity={2.8} color="#fff4d0" position={[5.00, 6.00, 4.00]} />
+      <spotLight intensity={30} color="#e8f4ff" position={[0.00, 4.00, -6.00]} angle={THREE.MathUtils.degToRad(89)} penumbra={0.2} />
+      <directionalLight intensity={1.5} color="#8ec5fc" position={[-8, 3, 2]} />
 
       {/* Hanya terrain 3D yang naik dari bawah */}
       <TerrainModel scene={scene} />
@@ -160,10 +159,10 @@ export default function TerrainLoader() {
       {/* Hujan salju (hanya aktif di desktop atau jika diaktifkan di HP) */}
       {shouldEnableSnow && <SnowEffect />}
 
-      {/* Ray tracing feel: Adaptif mobile (multisampling 0 di HP hemat bandwidth) */}
-      {(shouldEnableBloom || shouldEnableSSAO) && (
-        <EffectComposer enableNormalPass={shouldEnableSSAO} multisampling={isMobile ? 0 : 4}>
-          {shouldEnableBloom && (
+      {/* Ray tracing Bloom: super ringan dengan multisampling 0 */}
+      {(ENABLE_BLOOM || shouldEnableSSAO) && (
+        <EffectComposer enableNormalPass={shouldEnableSSAO} multisampling={0}>
+          {ENABLE_BLOOM && (
             <Bloom
               intensity={BLOOM_INTENSITY}
               luminanceThreshold={BLOOM_LUMINANCE_THRESHOLD}

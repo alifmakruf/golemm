@@ -63,7 +63,7 @@ export default function App() {
         <div className={`app-terrain-layer ${isLoadingComplete ? 'animate-fade-in-up' : 'terrain-preload'}`}>
           <Canvas
             camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
-            dpr={isMobile ? [1, 1.25] : [1, 2]}
+            dpr={isMobile ? [1, 1.25] : [1, 1.5]}
             gl={{ antialias: true, alpha: true, clearColor: 0x000000, clearAlpha: 0, powerPreference: 'high-performance' }}
             style={{
               position: 'fixed',

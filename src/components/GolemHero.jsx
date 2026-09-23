@@ -161,7 +161,7 @@ export default function GolemHero({ onExplore }) {
         >
           <Canvas
             camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}
-            dpr={isMobile ? [1, 1.25] : [1, 2]}
+            dpr={isMobile ? [1, 1.25] : [1, 1.5]}
             gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
           >
 
@@ -192,7 +192,7 @@ export default function GolemHero({ onExplore }) {
               />
             </Suspense>
 
-            <EffectComposer multisampling={isMobile ? 0 : 4}>
+            <EffectComposer multisampling={0}>
               <Bloom
                 intensity={GOLEM_BLOOM_INTENSITY}
                 luminanceThreshold={GOLEM_BLOOM_THRESHOLD}
