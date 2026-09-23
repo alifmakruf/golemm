@@ -46,8 +46,6 @@ export default function App() {
       {/* Loading Screen - tampil sampai asset benar-benar selesai dimuat */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
-      {/* Mouse Trail - efek melukis di air (hanya desktop) */}
-
       {/* Terrain Canvas 3D */}
       <div className={`app-terrain-layer ${isLoadingComplete ? 'animate-fade-in-up' : 'terrain-preload'}`}>
         <Canvas

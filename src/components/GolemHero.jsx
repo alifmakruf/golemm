@@ -228,16 +228,16 @@ export default function GolemHero() {
 
           <div className="hero-stats">
             <div className="stat-card">
-              <span className="stat-card__val">60 FPS</span>
-              <span className="stat-card__lbl">Smooth Physics</span>
+              <span className="stat-card__val">WebGL</span>
+              <span className="stat-card__lbl">Enchant Your Website</span>
             </div>
             <div className="stat-card">
-              <span className="stat-card__val">Real-time</span>
-              <span className="stat-card__lbl">Cursor Tracking</span>
+              <span className="stat-card__val">Parallax</span>
+              <span className="stat-card__lbl">Interactive cursor moving</span>
             </div>
             <div className="stat-card">
-              <span className="stat-card__val">R3F + Drei</span>
-              <span className="stat-card__lbl">Web Tech</span>
+              <span className="stat-card__val">Post-Processing</span>
+              <span className="stat-card__lbl">Visual Encahant</span>
             </div>
           </div>
         </div>

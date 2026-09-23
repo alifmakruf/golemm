@@ -261,8 +261,8 @@
 .hero-title {
   margin: 0;
   font-family: 'Pixelify Sans', 'Press Start 2P', monospace;
-  font-weight: 700;
-  font-size: clamp(2.6rem, 5.5vw, 4.4rem);
+  font-weight: 1000;
+  font-size: clamp(4.6rem, 6.5vw, 5.4rem);
   line-height: 1.1;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -467,7 +467,7 @@
   }
 
   .hero-title {
-    font-size: clamp(1.75rem, 6.5vw, 2.2rem);
+    font-size: clamp(2.75rem, 6.5vw, 2.2rem);
   }
 
   .hero-stats {
