@@ -19,20 +19,34 @@ const TERRAIN_ORBIT_TARGET = [-0.09, 1.18, -0.69]
 const TERRAIN_CAMERA_FOV = 45
 
 // Posisi kamera Section 2 (Zoom in ~1 koordinat, turun ~0.5 koordinat ke gunung)
-const S2_CAMERA_ZOOM_STEP = [-2.0, -1.5, 0.02] // [dx, dy, dz]
+const S2_CAMERA_ZOOM_STEP = [-2.0, -1.5, 0.02] // [dx, dy, dz] posisi kamera
 const S2_CAMERA_POSITION = [
   TERRAIN_CAMERA_POSITION[0] + S2_CAMERA_ZOOM_STEP[0], // 9.68
   TERRAIN_CAMERA_POSITION[1] + S2_CAMERA_ZOOM_STEP[1], // 1.42
   TERRAIN_CAMERA_POSITION[2] + S2_CAMERA_ZOOM_STEP[2], // -0.92
 ]
+// Rotasi / sudut pandang kamera Section 2 (menggeser titik fokus target lookAt [dx, dy, dz]):
+const S2_CAMERA_TARGET_STEP = [0, 0, 4.2] // Sesuaikan [dx, dy, dz] untuk memutar arah hadap kamera di Section 2
+const S2_CAMERA_TARGET = [
+  TERRAIN_ORBIT_TARGET[0] + S2_CAMERA_TARGET_STEP[0],
+  TERRAIN_ORBIT_TARGET[1] + S2_CAMERA_TARGET_STEP[1],
+  TERRAIN_ORBIT_TARGET[2] + S2_CAMERA_TARGET_STEP[2],
+]
 
 // Posisi kamera Section 3 (Bergerak sedikit ke kiri dan sedikit maju mendekati tebing)
 // Anda bisa menyesuaikan [dx, dy, dz] di bawah ini agar sudut kamera sesuai selera:
-const S3_CAMERA_STEP = [-7.1, -0.6, 0.5] // [dx, dy, dz]
+const S3_CAMERA_STEP = [-7.1, -0.6, 0.5] // [dx, dy, dz] posisi kamera
 const S3_CAMERA_POSITION = [
-  TERRAIN_CAMERA_POSITION[0] + S3_CAMERA_STEP[0], // 8.58 (bergerak ke kiri)
-  TERRAIN_CAMERA_POSITION[1] + S3_CAMERA_STEP[1], // 1.32 (stabil)
-  TERRAIN_CAMERA_POSITION[2] + S3_CAMERA_STEP[2], // -0.44 (lebih maju ke depan)
+  TERRAIN_CAMERA_POSITION[0] + S3_CAMERA_STEP[0],
+  TERRAIN_CAMERA_POSITION[1] + S3_CAMERA_STEP[1],
+  TERRAIN_CAMERA_POSITION[2] + S3_CAMERA_STEP[2],
+]
+// Rotasi / sudut pandang kamera Section 3 (menggeser titik fokus target lookAt [dx, dy, dz]):
+const S3_CAMERA_TARGET_STEP = [0, 3, -1] // Sesuaikan [dx, dy, dz] untuk memutar arah hadap kamera di Section 3
+const S3_CAMERA_TARGET = [
+  TERRAIN_ORBIT_TARGET[0] + S3_CAMERA_TARGET_STEP[0],
+  TERRAIN_ORBIT_TARGET[1] + S3_CAMERA_TARGET_STEP[1],
+  TERRAIN_ORBIT_TARGET[2] + S3_CAMERA_TARGET_STEP[2],
 ]
 
 const CAMERA_TRANSITION_SPEED = 1.8 // Kecepatan gerak kamera antar section (lerp)
@@ -308,17 +322,22 @@ function TerrainModel({ scene, animations, activeSection = 1 }) {
   )
 }
 
-// Controller Kamera yang mengatur pergerakan halus antar Section (1, 2, 3)
+// Controller Kamera yang mengatur pergerakan halus posisi dan rotasi antar Section (1, 2, 3)
 function CameraController({ activeSection = 1 }) {
   const controlsRef = useRef()
   const currentPos = useRef(new THREE.Vector3(...TERRAIN_CAMERA_POSITION))
+  const currentTarget = useRef(new THREE.Vector3(...TERRAIN_ORBIT_TARGET))
 
   useFrame((state, delta) => {
     let targetPos = TERRAIN_CAMERA_POSITION
+    let targetLookAt = TERRAIN_ORBIT_TARGET
+
     if (activeSection === 2) {
       targetPos = S2_CAMERA_POSITION
+      targetLookAt = S2_CAMERA_TARGET
     } else if (activeSection === 3) {
       targetPos = S3_CAMERA_POSITION
+      targetLookAt = S3_CAMERA_TARGET
     }
 
     const lerpRate = 1 - Math.exp(-CAMERA_TRANSITION_SPEED * delta)
@@ -326,10 +345,14 @@ function CameraController({ activeSection = 1 }) {
     currentPos.current.y = THREE.MathUtils.lerp(currentPos.current.y, targetPos[1], lerpRate)
     currentPos.current.z = THREE.MathUtils.lerp(currentPos.current.z, targetPos[2], lerpRate)
 
+    currentTarget.current.x = THREE.MathUtils.lerp(currentTarget.current.x, targetLookAt[0], lerpRate)
+    currentTarget.current.y = THREE.MathUtils.lerp(currentTarget.current.y, targetLookAt[1], lerpRate)
+    currentTarget.current.z = THREE.MathUtils.lerp(currentTarget.current.z, targetLookAt[2], lerpRate)
+
     state.camera.position.copy(currentPos.current)
 
     if (controlsRef.current) {
-      controlsRef.current.target.set(TERRAIN_ORBIT_TARGET[0], TERRAIN_ORBIT_TARGET[1], TERRAIN_ORBIT_TARGET[2])
+      controlsRef.current.target.copy(currentTarget.current)
       controlsRef.current.update()
     }
   })
