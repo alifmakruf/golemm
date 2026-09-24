@@ -4,8 +4,9 @@ import './style/SectionThree.css'
 // ================== Tuning Parameter: Section 3 (Tawaran Kami) ==================
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:
 
-// 1. Skala ukuran card (0.62 = sedikit lebih kecil dari Section 2 yang 0.70)
-const CARD_SCALE = 0.62                  // Skala besar-kecil card penawaran
+// 1. Skala ukuran card
+const CARD_SCALE = 0.679                  // Skala besar-kecil card penawaran di desktop
+const MOBILE_CARD_SCALE = 0.79          // Skala besar-kecil card penawaran khusus di responsif HP
 
 // 1b. Transisi Delay Kamera (Menunggu kamera sampai di Section 3 baru card muncul)
 const CAMERA_ARRIVE_DELAY_MS = 650       // Delay (ms) menunggu perpindahan kamera selesai
@@ -29,9 +30,9 @@ const CARD_2_ROTATION_Y = 0              // Card tengah menghadap lurus 0°
 const CARD_3_ROTATION_Y = -14            // Card kanan condong -14°
 
 // 3. Sensitivitas efek Parallax mouse
-const PARALLAX_ROTATION_SENSITIVITY = 8  // Derajat tilt ekstra saat mouse digerakkan
-const PARALLAX_TRANSLATION_X = 18        // Geser horizontal maksimum card (px)
-const PARALLAX_TRANSLATION_Y = 14        // Geser vertikal maksimum card (px)
+const PARALLAX_ROTATION_SENSITIVITY = 10  // Derajat tilt ekstra saat mouse digerakkan
+const PARALLAX_TRANSLATION_X = 36        // Geser horizontal maksimum card (px)
+const PARALLAX_TRANSLATION_Y = 29        // Geser vertikal maksimum card (px)
 
 export default function SectionThree({ onBack, onNext, isVisible }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
@@ -112,13 +113,14 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
 
   // Kalkulasi transform 3D untuk 3 card
   const getCardTransform = (baseRotY) => {
+    const scale = isMobile ? MOBILE_CARD_SCALE : CARD_SCALE
     const rotY = isMobile ? 0 : baseRotY + mousePos.x * PARALLAX_ROTATION_SENSITIVITY
     const rotX = isMobile ? 0 : -mousePos.y * PARALLAX_ROTATION_SENSITIVITY
     const transX = isMobile ? 0 : mousePos.x * -PARALLAX_TRANSLATION_X
     const transY = isMobile ? 0 : mousePos.y * -PARALLAX_TRANSLATION_Y
 
     return `
-      scale(${CARD_SCALE})
+      scale(${scale})
       rotateY(${rotY}deg)
       rotateX(${rotX}deg)
       translate3d(${transX}px, ${transY}px, 20px)

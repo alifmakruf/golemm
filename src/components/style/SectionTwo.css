@@ -503,59 +503,6 @@
   }
 }
 
-/* ---------- Responsif Tablet & HP ---------- */
-@media (max-width: 960px) {
-  .section-two {
-    padding: 1.5rem 1rem;
-    overflow-y: auto;
-  }
-
-  .section-two__stage {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    perspective: 800px;
-    margin: 1rem 0;
-  }
-
-  .section-two__col2 {
-    margin-bottom: 6rem;
-  }
-
-  .glass-card {
-    min-height: auto;
-  }
-
-  .glass-card__inner {
-    padding: 1.6rem 1.4rem;
-  }
-
-  .card-title {
-    font-size: 1.65rem;
-  }
-
-  .card-subtitle {
-    font-size: 0.92rem;
-  }
-
-  .card-paragraph {
-    font-size: 0.88rem;
-  }
-
-  .section-two__center-nav {
-    position: absolute;
-    transform: none;
-    top: 90%;
-  }
-
-  .section-two__center-nav--play {
-    animation: fadeInUp 0.6s ease both;
-  }
-
-  .section-two__center-nav--exit {
-    animation: cardSpinDown 0.5s ease both !important;
-  }
-}
-
 /* Kolom 2: Card 2 + Tombol Next tersusun vertikal */
 .section-two__col2 {
   display: flex;
@@ -665,4 +612,113 @@
 
 .btn-next-step:hover .btn-next-step__arrow {
   transform: translateX(4px);
+}
+
+/* ==========================================================================
+   RESPONSIF MOBILE & TABLET (max-width: 960px)
+   Ditempatkan di baris paling akhir agar meng-override seluruh styling desktop
+   ========================================================================== */
+@media (max-width: 960px) {
+
+  /* ================== Parameter Tuning Responsif HP: Section 2 ==================
+     Sesuaikan parameter di bawah ini agar pas di layar HP: */
+  :root {
+    --s2-mobile-next-gap-top: 2rem;
+    /* Jarak antara Card 2 dengan tombol Next */
+    --s2-mobile-next-bottom-margin: 4.5rem;
+    /* Jarak aman tombol Next ke tepi paling bawah */
+    --s2-mobile-stage-gap: 1.5rem;
+    /* Jarak vertikal antara Card 1 dan Card 2 */
+  }
+
+  .section-two {
+    padding: 1.2rem 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+    /* Mengizinkan scroll vertikal normal di mobile */
+    height: 100vh;
+  }
+
+  .section-two__header {
+    margin-bottom: 1.2rem;
+  }
+
+  /* Grid 1 Kolom: Card 1 di atas, Card 2 di bawah */
+  .section-two__stage {
+    grid-template-columns: 1fr;
+    gap: var(--s2-mobile-stage-gap, 1.5rem);
+    perspective: none;
+    /* Hilangkan perspective 3D yang bisa memotong card di layar sempit */
+    margin: 0 auto;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .card-entrance {
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .section-two__col2 {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .glass-card {
+    width: 100%;
+    min-height: auto;
+    transform: none !important;
+    /* Di HP card tegak lurus dan full width agar tidak terpotong */
+  }
+
+  .glass-card__inner {
+    padding: 1.6rem 1.3rem;
+  }
+
+  .card-title {
+    font-size: 1.65rem;
+  }
+
+  .card-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .card-paragraph {
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+
+  /* Tombol Next mengalir natural di bawah Card 2 dengan posisi relative */
+  .section-two__center-nav {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    margin-top: var(--s2-mobile-next-gap-top, 2rem);
+    margin-bottom: var(--s2-mobile-next-bottom-margin, 4.5rem);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .section-two__center-nav--play {
+    animation: fadeInUp 0.6s ease both;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .section-two__center-nav--exit {
+    animation: cardSpinDown 0.5s ease both !important;
+  }
+
+  .section-two__footer {
+    display: none;
+    /* Sembunyikan footer dots di HP agar tidak menabrak tombol */
+  }
 }

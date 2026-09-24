@@ -460,6 +460,13 @@
 
 /* Responsif Mobile & Tablet */
 @media (max-width: 960px) {
+  /* ================== Parameter Tuning Responsif HP: Tombol Next Section 3 ==================
+     Sesuaikan jarak tombol Next terhadap Card dan sisi bawah halaman di bawah ini: */
+  :root {
+    --s3-mobile-next-gap-top: 1.8rem;       /* Jarak antara Card 3 dengan tombol Next */
+    --s3-mobile-next-bottom-margin: 3.5rem; /* Jarak aman tombol Next ke tepi paling bawah layar */
+  }
+
   .section-three {
     padding: 1.2rem 1rem;
     overflow-y: auto;
@@ -467,9 +474,31 @@
 
   .section-three__stage {
     grid-template-columns: 1fr;
-    gap: 1.2rem;
+    gap: 0.8rem;
     perspective: 800px;
-    margin: 1.2rem 0;
+    margin: 0.5rem 0 0 0;
+  }
+
+  .card-s3-entrance {
+    margin: 0 0;
+  }
+
+  /* Di HP, tombol Next mengalir wajar di bawah Card ketiga dengan jarak yang lega */
+  .section-three__footer {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: var(--s3-mobile-next-gap-top, 1.8rem);
+    margin-bottom: var(--s3-mobile-next-bottom-margin, 3.5rem);
+    width: 100%;
+  }
+
+  .section-three__footer--visible {
+    transform: none;
   }
 
   .s3-headline {

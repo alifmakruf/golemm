@@ -84,7 +84,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
       bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
       accentColor: '#38bdf8',
       // Ganti path gambar berikut sesuai nama file Anda di src/assets/
-      image: '/src/assets/project-1.png',
+      image: '/project-1.png',
     },
     {
       id: 'proj-2',
@@ -94,7 +94,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
       tech: ['Three.js', 'ESP32', 'Node.js', 'MQTT', 'Chart.js'],
       bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
       accentColor: '#60a5fa',
-      image: '/src/assets/project-2.png',
+      image: '/project-2.png',
     },
     {
       id: 'proj-3',
@@ -104,7 +104,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
       tech: ['WebGL', 'Three.js', 'Blender', 'Vite'],
       bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
       accentColor: '#34d399',
-      image: '/src/assets/project-3.png',
+      image: '/project-3.png',
     },
     {
       id: 'proj-4',
@@ -114,7 +114,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
       tech: ['Leaflet', 'React', 'JavaScript', 'API REST'],
       bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
       accentColor: '#c084fc',
-      image: '/src/assets/project-4.png',
+      image: '/project-4.png',
     },
   ]
 
@@ -327,21 +327,16 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
               <div className="social-links-container">
                 <span className="social-title">Saluran Komunikasi:</span>
                 <div className="social-links">
-                  <a href="https://github.com" target="_blank" rel="noreferrer" className="social-chip">
+                  <a href="https://github.com/alifmakruf" target="_blank" rel="noreferrer" className="social-chip">
                     GitHub
                   </a>
-                  <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="social-chip">
+                  <a href="https://www.linkedin.com/in/mohammad-firman-alif-ma-ruf-6bb587375" target="_blank" rel="noreferrer" className="social-chip">
                     LinkedIn
                   </a>
-                  <a href="https://instagram.com" target="_blank" rel="noreferrer" className="social-chip">
+                  <a href="https://www.instagram.com/firmanalif0410/" target="_blank" rel="noreferrer" className="social-chip">
                     Instagram
                   </a>
-                  <a href="https://x.com" target="_blank" rel="noreferrer" className="social-chip">
-                    Twitter / X
-                  </a>
-                  <a href="https://discord.com" target="_blank" rel="noreferrer" className="social-chip">
-                    Discord
-                  </a>
+
                 </div>
               </div>
             </div>
