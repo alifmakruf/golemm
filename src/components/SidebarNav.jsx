@@ -4,7 +4,7 @@ import './style/SidebarNav.css'
 // ================== Parameter Tuning: Sidebar Navigation (Burger Menu) ==================
 // Anda dapat menyesuaikan tampilan & posisi navigasi di sini:
 const SIDEBAR_WIDTH = '320px'             // Lebar panel sidebar saat terbuka
-const BURGER_TOP = '1.8rem'               // Jarak tombol burger dari atas viewport
+const BURGER_TOP = '0.95rem'               // Jarak tombol burger dari atas viewport
 const BURGER_RIGHT = '2.2rem'             // Jarak tombol burger dari kanan viewport
 const SIDEBAR_ANIM_DURATION = '0.35s'     // Kecepatan slide-in drawer
 
