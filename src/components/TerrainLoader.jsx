@@ -28,14 +28,14 @@ const S2_CAMERA_POSITION = [
 
 // Posisi kamera Section 3 (Bergerak sedikit ke kiri dan sedikit maju mendekati tebing)
 // Anda bisa menyesuaikan [dx, dy, dz] di bawah ini agar sudut kamera sesuai selera:
-const S3_CAMERA_STEP = [-3.1, -1.6, 0.5] // [dx, dy, dz]
+const S3_CAMERA_STEP = [-7.1, -0.6, 0.5] // [dx, dy, dz]
 const S3_CAMERA_POSITION = [
   TERRAIN_CAMERA_POSITION[0] + S3_CAMERA_STEP[0], // 8.58 (bergerak ke kiri)
   TERRAIN_CAMERA_POSITION[1] + S3_CAMERA_STEP[1], // 1.32 (stabil)
   TERRAIN_CAMERA_POSITION[2] + S3_CAMERA_STEP[2], // -0.44 (lebih maju ke depan)
 ]
 
-const CAMERA_TRANSITION_SPEED = 2.8 // Kecepatan gerak kamera antar section (lerp)
+const CAMERA_TRANSITION_SPEED = 1.8 // Kecepatan gerak kamera antar section (lerp)
 
 // ================== Parameter Tuning: Langit & Animasi Naik ==================
 export const SKY_COLOR = '#23272b'  // Warna langit abu di belakang gunung
