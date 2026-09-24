@@ -31,7 +31,7 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
   }, [isOpen])
 
   const navItems = [
-    { id: 1, num: '01', title: 'Hero Golem', desc: 'Eksplorasi Karakter 3D' },
+    { id: 1, num: '01', title: 'Home', desc: 'Halaman Utama' },
     { id: 2, num: '02', title: 'Latar Belakang & Visi', desc: 'Tentang GOLEM.inc' },
     { id: 3, num: '03', title: 'Tawaran Kami', desc: 'Penawaran Eksklusif' },
     { id: 4, num: '04', title: 'Portfolio & Client', desc: 'Selected Works & Tech Stack' },
