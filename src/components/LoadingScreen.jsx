@@ -6,7 +6,7 @@ export default function LoadingScreen({ progress = 0 }) {
     <div className="loading-screen">
       <div className="loading-content">
         <div className="loading-logo">
-          <span className="loading-text">Stone Golem</span>
+          <span className="loading-text">Golem.Inc</span>
         </div>
 
         <div className="loading-spinner">
@@ -15,7 +15,7 @@ export default function LoadingScreen({ progress = 0 }) {
           <div className="spinner-ring" />
         </div>
 
-        <p className="loading-status">Loading terrain &amp; model</p>
+        <p className="loading-status">Just Wait &amp; See</p>
 
         <div className="loading-progress">
           <div className="progress-bar" style={{ width: `${progress}%`, animation: 'none' }} />
