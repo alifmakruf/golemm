@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import './SectionPortfolio.css'
+import './style/SectionPortfolio.css'
 
 // ================== Parameter Tuning: Section 4 (Portfolio) & Section 5 (Kontak) ==================
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:

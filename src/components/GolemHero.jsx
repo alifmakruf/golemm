@@ -2,7 +2,7 @@ import { Suspense, useCallback, useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import GolemModel from './GolemModel.jsx'
-import './GolemHero.css'
+import './style/GolemHero.css'
 
 // ---- Tuning: Bloom pada golem ----
 const GOLEM_BLOOM_INTENSITY = 0.5   // glow mata golem
@@ -165,10 +165,10 @@ export default function GolemHero({ onExplore, isExiting }) {
   const heroClass = isExiting
     ? 'golem-hero--exiting'
     : heroState === 'waiting' || (prevExiting.current && heroState !== 'entering')
-    ? 'golem-hero--waiting'
-    : heroState === 'entering'
-    ? 'golem-hero--entering'
-    : ''
+      ? 'golem-hero--waiting'
+      : heroState === 'entering'
+        ? 'golem-hero--entering'
+        : ''
 
   return (
     <section className={`golem-hero ${heroClass}`} ref={sectionRef} onPointerMove={handlePointerMove}>

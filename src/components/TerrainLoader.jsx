@@ -43,7 +43,7 @@ const TERRAIN_SPAWN_Y = -3.2        // Posisi awal gunung di bawah (world unit)
 const TERRAIN_ANIM_DURATION = 2.5   // Durasi naik gunung saat web dibuka (detik)
 
 // ================== Parameter Tuning: Salju & Badai Angin ==================
-const SNOW_COUNT = 1800             // Jumlah partikel salju
+const SNOW_COUNT = 700             // Jumlah partikel salju
 const SNOW_AREA_X = 30              // Lebar sebaran salju
 const SNOW_AREA_Y = 14              // Tinggi sebaran salju
 const SNOW_AREA_Z = 16              // Kedalaman sebaran salju

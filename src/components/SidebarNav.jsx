@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import './SidebarNav.css'
+import './style/SidebarNav.css'
 
 // ================== Parameter Tuning: Sidebar Navigation (Burger Menu) ==================
 // Anda dapat menyesuaikan tampilan & posisi navigasi di sini:
@@ -85,8 +85,8 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
         }}
       >
         <div className="sidebar-header">
-          <span className="sidebar-badge">NAVIGATION</span>
-          <h3 className="sidebar-title">Menu Utama</h3>
+          <span className="sidebar-badge">GOLEM.Inc</span>
+          <h3 className="sidebar-title">Menu</h3>
         </div>
 
         <nav className="sidebar-nav-list">
@@ -115,7 +115,7 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
 
         <div className="sidebar-footer">
           <span className="sidebar-footer-text">GOLEM.inc 3D Experience</span>
-          <span className="sidebar-version">v4.0 • WebGL</span>
+          <span className="sidebar-version">Version 2.0</span>
         </div>
       </aside>
     </>

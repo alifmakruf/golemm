@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import './SectionThree.css'
+import './style/SectionThree.css'
 
 // ================== Tuning Parameter: Section 3 (Tawaran Kami) ==================
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:
@@ -163,11 +163,11 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
     },
     {
       id: '03',
-      badge: 'SINEMATIK ATMOSFER',
-      title: 'Cinematic Experience',
-      subtitle: 'Post-Processing & Efek Partikel',
-      desc: 'Tata cahaya atmosferik, simulasi partikel cuaca dinamis, serta efek bloom sinematik yang memanjakan mata dan meninggalkan impresi tak terlupakan.',
-      tags: ['Bloom Lighting', 'Particle Engine', 'Shader FX'],
+      badge: '2D Website',
+      title: 'Modern & Responsive Web Development',
+      subtitle: 'UI/UX Friendly & SEO Optimized',
+      desc: 'Desain dan pengembangan website modern dengan fokus pada pengalaman pengguna yang intuitif dan optimalisasi mesin pencari (SEO) untuk meningkatkan visibilitas online.',
+      tags: ['SEO', 'UI/UX Design', 'Responsive'],
       rotY: CARD_3_ROTATION_Y,
       glowType: 'emerald',
       iconSvg: (
@@ -260,21 +260,21 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
             </div>
           )
         })}
+
+        {/* Tombol Next dipindah ke dalam stage, agar posisinya menempel di bawah
+            card persis seperti pola section-two__center-nav di Section Two */}
+        <footer className={`section-three__footer ${footerReady && !isExiting ? 'section-three__footer--visible' : ''}`}>
+          <button
+            className="btn-s3-action"
+            type="button"
+            onClick={handleNext}
+            title="Lanjut ke Portfolio (Section 4)"
+          >
+            <span className="btn-s3-action__text">Next</span>
+            <span className="btn-s3-action__arrow">{'>'}</span>
+          </button>
+        </footer>
       </div>
-
-      {/* Footer Navigasi Action: Baru muncul setelah card selesai animasi in */}
-      <footer className={`section-three__footer ${footerReady && !isExiting ? 'section-three__footer--visible' : ''}`}>
-        <button
-          className="btn-s3-action"
-          type="button"
-          onClick={handleNext}
-          title="Lanjut ke Portfolio (Section 4)"
-        >
-
-          <span className="btn-s3-action__text">Next</span>
-          <span className="btn-s3-action__arrow">{'>'}</span>
-        </button>
-      </footer>
     </section>
   )
 }

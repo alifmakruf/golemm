@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import './SectionTwo.css'
+import './style/SectionTwo.css'
 
 // ================== Tuning Parameter: Section 2 (Latar Belakang & Tujuan) ==================
 // Ubah angka & warna di bawah ini sesuka hati untuk menyesuaikan tampilan card 3D:

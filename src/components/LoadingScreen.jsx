@@ -1,4 +1,4 @@
-import './LoadingScreen.css'
+import './style/LoadingScreen.css'
 
 // Progress 0-100 dari useProgress (asset loading asli Three.js)
 export default function LoadingScreen({ progress = 0 }) {

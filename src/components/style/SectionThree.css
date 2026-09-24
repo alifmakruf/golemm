@@ -122,6 +122,8 @@
   width: 100%;
   max-width: 1220px;
   margin: 0 auto;
+  margin-top: -2rem;
+  /* Geser card sedikit ke atas (sesuaikan angka ini sesuka hati) */
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
@@ -316,23 +318,23 @@
   color: #e2e8f0;
 }
 
-/* Footer Action: Tersembunyi sampai card selesai masuk, lalu muncul halus (Perbaikan 1.1) */
+/* Footer Action: sekarang jadi absolute overlay di dalam .section-three__stage,
+   dengan pola posisi yang sama seperti .section-two__center-nav di Section Two
+   (mengambang di tengah horizontal, menempel di bawah stage/card). */
 .section-three__footer {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
   z-index: 10;
-  display: flex;
-  justify-content: center;
-  padding-top: 0.8rem;
   opacity: 0;
-  transform: translateY(20px);
+  transform: translate(-50%, 20px);
   pointer-events: none;
   transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  bottom: 60px;
 }
 
 .section-three__footer--visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
   pointer-events: auto;
 }
 
