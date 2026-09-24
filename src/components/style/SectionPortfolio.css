@@ -36,10 +36,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.2rem 3rem;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .btn-back-to-3d {
@@ -181,12 +180,10 @@
   left: -100%;
   width: 60%;
   height: 200%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, var(--shine-opacity, 0.55)) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, var(--shine-opacity, 0.55)) 50%,
+      transparent 100%);
   transform: rotate(25deg) translate3d(0, 0, 0);
   pointer-events: none;
   z-index: 10;
@@ -203,6 +200,7 @@
   0% {
     left: -120%;
   }
+
   100% {
     left: 220%;
   }
