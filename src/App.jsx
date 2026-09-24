@@ -8,6 +8,7 @@ import SectionPortfolio from './components/SectionPortfolio.jsx'
 import SidebarNav from './components/SidebarNav.jsx'
 import TerrainLoader from './components/TerrainLoader.jsx'
 import LoadingScreen from './components/LoadingScreen.jsx'
+import SplashCursor from './components/SplashCursor.jsx'
 import './App.css'
 
 // ================== Parameter Tuning: Global App & Transisi ==================
@@ -26,6 +27,16 @@ const FOG_WIDTH = '100%'                       // Lebar kabut
 const FOG_HEIGHT = '50%'                       // Tinggi kabut
 const FOG_BOTTOM = '-25%'                      // Posisi vertikal dari bawah viewport
 const FOG_DRIFT_DURATION = '8s'                // Kecepatan animasi kabut
+
+// 4. Tuning SplashCursor (efek fluid cursor trail)
+const SPLASH_ENABLED = true                    // Aktifkan/nonaktifkan efek cursor trail
+const SPLASH_DENSITY_DISSIPATION = 7.5         // Kecepatan warna menghilang (7.5 = cepat, bersih)
+const SPLASH_VELOCITY_DISSIPATION = 7.5        // Kecepatan aliran berhenti
+const SPLASH_PRESSURE = 0.35                   // Tekanan fluid (0.0–1.0)
+const SPLASH_CURL = 40                         // Intensitas pusaran (semakin tinggi = lebih swirl)
+const SPLASH_SPLAT_RADIUS = 0.11               // Ukuran percikan fluid
+const SPLASH_COLOR = '#174a4a'                 // Warna fluid (teal gelap)
+const SPLASH_RAINBOW = false                   // true = warna pelangi acak, false = pakai SPLASH_COLOR
 
 export default function App() {
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
@@ -78,6 +89,19 @@ export default function App() {
     <div className="app-container" onMouseMove={!isMobile ? handleMouseMove : undefined}>
       {/* Loading Screen */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
+
+      {/* SplashCursor: Efek fluid cursor trail (desktop only, skip di mobile) */}
+      {isLoadingComplete && !isMobile && SPLASH_ENABLED && (
+        <SplashCursor
+          DENSITY_DISSIPATION={SPLASH_DENSITY_DISSIPATION}
+          VELOCITY_DISSIPATION={SPLASH_VELOCITY_DISSIPATION}
+          PRESSURE={SPLASH_PRESSURE}
+          CURL={SPLASH_CURL}
+          SPLAT_RADIUS={SPLASH_SPLAT_RADIUS}
+          COLOR={SPLASH_COLOR}
+          RAINBOW_MODE={SPLASH_RAINBOW}
+        />
+      )}
 
       {/* New Sidebar Burger Navigation (Fixed di Pojok Kanan Atas 1-5) */}
       {isLoadingComplete && (
