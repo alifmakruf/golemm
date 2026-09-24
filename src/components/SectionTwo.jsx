@@ -29,7 +29,7 @@ const PARALLAX_ROTATION_SENSITIVITY = 10 // Derajat tilt ekstra saat kursor dige
 const PARALLAX_TRANSLATION_X = 25       // Geser horizontal maksimum card (px)
 const PARALLAX_TRANSLATION_Y = 17       // Geser vertikal maksimum card (px)
 
-export default function SectionTwo({ onBack, isVisible }) {
+export default function SectionTwo({ onBack, onNext, isVisible }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const stageRef = useRef(null)
 
@@ -37,43 +37,50 @@ export default function SectionTwo({ onBack, isVisible }) {
   const [cardsReady, setCardsReady] = useState(false)
   const [animKey, setAnimKey] = useState(0)
   const [isExiting, setIsExiting] = useState(false)
-  const prevVisible = useRef(isVisible)
   const timerRef = useRef(null)
 
   useEffect(() => {
     if (isVisible) {
-      // MASUK (Section 1 -> 2):
       setIsExiting(false)
-      // Tunggu kamera zoom in & animasi Section 1 selesai baru tampilkan card
+      // Tunggu kamera zoom in selesai baru tampilkan card & tombol (hanya 1x animasi masuk)
       timerRef.current = setTimeout(() => {
         setCardsReady(true)
-        setAnimKey((prev) => prev + 1) // Key baru memastikan CSS keyframe @keyframes cardSpinUp re-trigger dari frame 0
+        setAnimKey((prev) => prev + 1)
       }, CAMERA_ARRIVE_DELAY_MS)
-    } else if (prevVisible.current) {
-      // KELUAR (Section 2 -> 1):
-      // Mainkan animasi exit card bersamaan dengan pergeseran kamera balik ke Section 1
-      setIsExiting(true)
+    } else {
       setCardsReady(false)
-      timerRef.current = setTimeout(() => {
-        setIsExiting(false)
-      }, 750) // Durasi animasi exit card
     }
 
-    prevVisible.current = isVisible
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [isVisible])
 
-  // Handler tombol Back: panggil onBack() LANGSUNG agar kamera & Hero S1 langsung bergerak balik!
+  // Handler tombol Back: Mainkan animasi keluar 1 kali bersih, lalu pindah ke Section 1
   const handleBack = useCallback(() => {
-    onBack()
-  }, [onBack])
+    if (isExiting) return
+    setIsExiting(true)
+    setCardsReady(false)
+    timerRef.current = setTimeout(() => {
+      setIsExiting(false)
+      if (onBack) onBack()
+    }, SECTION_EXIT_DELAY_MS)
+  }, [isExiting, onBack])
 
-  const isCurrentlyExiting = isExiting || (prevVisible.current && !isVisible)
-  const showSection = isVisible || isCurrentlyExiting
+  // Handler tombol Next: Mainkan animasi keluar 1 kali bersih, lalu pindah ke Section 3 (tanpa tabrakan)
+  const handleNext = useCallback(() => {
+    if (isExiting) return
+    setIsExiting(true)
+    setCardsReady(false)
+    timerRef.current = setTimeout(() => {
+      setIsExiting(false)
+      if (onNext) onNext()
+    }, SECTION_EXIT_DELAY_MS)
+  }, [isExiting, onNext])
 
-  const entranceClass = isCurrentlyExiting
+  const showSection = isVisible || isExiting
+
+  const entranceClass = isExiting
     ? 'card-entrance--exit'
     : (isVisible && cardsReady)
       ? 'card-entrance--play'
@@ -147,7 +154,7 @@ export default function SectionTwo({ onBack, isVisible }) {
             '--entrance-rot': `${ENTRANCE_ROTATE_DEG}deg`,
             '--entrance-dur': ENTRANCE_DURATION,
             '--exit-dur': EXIT_DURATION,
-            animationDelay: isCurrentlyExiting ? EXIT_STAGGER : '0s',
+            animationDelay: isExiting ? EXIT_STAGGER : '0s',
           }}
         >
           <article
@@ -181,49 +188,69 @@ export default function SectionTwo({ onBack, isVisible }) {
           </article>
         </div>
 
-        {/* Card 2: Tujuan (Menyerong ke kiri / hadap kamera) */}
-        <div
-          key={`card-2-${animKey}`}
-          className={`card-entrance ${entranceClass}`}
-          style={{
-            '--entrance-ty': `${ENTRANCE_TRANSLATE_Y}px`,
-            '--exit-ty': `${EXIT_TRANSLATE_Y}px`,
-            '--entrance-rot': `-${ENTRANCE_ROTATE_DEG}deg`,
-            '--entrance-dur': ENTRANCE_DURATION,
-            '--exit-dur': EXIT_DURATION,
-            animationDelay: isCurrentlyExiting ? '0s' : ENTRANCE_STAGGER,
-          }}
-        >
-          <article
-            className="glass-card glass-card--right"
-            style={{ transform: rightCardTransform }}
+        {/* Kolom 2: Card 2 + Tombol Next di bawahnya */}
+        <div className="section-two__col2">
+          {/* Card 2: Tujuan (Menyerong ke kiri / hadap kamera) */}
+          <div
+            key={`card-2-${animKey}`}
+            className={`card-entrance ${entranceClass}`}
+            style={{
+              '--entrance-ty': `${ENTRANCE_TRANSLATE_Y}px`,
+              '--exit-ty': `${EXIT_TRANSLATE_Y}px`,
+              '--entrance-rot': `-${ENTRANCE_ROTATE_DEG}deg`,
+              '--entrance-dur': ENTRANCE_DURATION,
+              '--exit-dur': EXIT_DURATION,
+              animationDelay: isExiting ? '0s' : ENTRANCE_STAGGER,
+            }}
           >
-            <div className="glass-card__specular" />
-            <div className="glass-card__rim-glow" />
+            <article
+              className="glass-card glass-card--right"
+              style={{ transform: rightCardTransform }}
+            >
+              <div className="glass-card__specular" />
+              <div className="glass-card__rim-glow" />
 
-            <div className="glass-card__inner">
-              <div className="card-badge card-badge--gold">
-                <span className="card-badge__number">02</span>
-                <span className="card-badge__text">VISI & TUJUAN</span>
+              <div className="glass-card__inner">
+                <div className="card-badge card-badge--gold">
+                  <span className="card-badge__number">02</span>
+                  <span className="card-badge__text">VISI & TUJUAN</span>
+                </div>
+
+                <h2 className="card-title">Tujuan & Visi</h2>
+                <h3 className="card-subtitle">Harmonisasi WebGL & Pengalaman 3D</h3>
+
+                <p className="card-paragraph">
+                  Proyek ini dibangun untuk mendemonstrasikan perpaduan teknologi 3D WebGL modern
+                  dan estetika visual di website. Menghadirkan eksplorasi karakter interaktif,
+                  pencahayaan atmosferik, serta simulasi cuaca salju yang dinamis dengan framerate
+                  yang stabil dan ringan tanpa mengorbankan kualitas visual.
+                </p>
+
+                <div className="card-tags">
+                  <span className="card-tag">WebGL 60 FPS</span>
+                  <span className="card-tag">Interaktif Parallax</span>
+                  <span className="card-tag">Sinematik Bloom</span>
+                </div>
               </div>
+            </article>
+          </div>
 
-              <h2 className="card-title">Tujuan & Visi</h2>
-              <h3 className="card-subtitle">Harmonisasi WebGL & Pengalaman 3D</h3>
+          {/* Tombol Next di bawah Card 2 */}
 
-              <p className="card-paragraph">
-                Proyek ini dibangun untuk mendemonstrasikan perpaduan teknologi 3D WebGL modern
-                dan estetika visual di website. Menghadirkan eksplorasi karakter interaktif,
-                pencahayaan atmosferik, serta simulasi cuaca salju yang dinamis dengan framerate
-                yang stabil dan ringan tanpa mengorbankan kualitas visual.
-              </p>
-
-              <div className="card-tags">
-                <span className="card-tag">WebGL 60 FPS</span>
-                <span className="card-tag">Interaktif Parallax</span>
-                <span className="card-tag">Sinematik Bloom</span>
-              </div>
-            </div>
-          </article>
+        </div>{/* end col2 */}
+        <div
+          key={`center-nav-${animKey}`}
+          className={`section-two__center-nav ${cardsReady && !isExiting ? 'section-two__center-nav--play' : ''} ${isExiting ? 'section-two__center-nav--exit' : ''}`}
+        >
+          <button
+            className="btn-next-step"
+            type="button"
+            onClick={handleNext}
+            title="Lanjut ke Tawaran Kami (Section 3)"
+          >
+            <span className="btn-next-step__text">Next</span>
+            <span className="btn-next-step__arrow">{'>'}</span>
+          </button>
         </div>
       </div>
 

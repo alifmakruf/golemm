@@ -1,6 +1,6 @@
 section 1 hero
 vvvvvvvvv
-transisi:
+transisi 1:
 untuk menuju section 2 user klik button jelajahi maka 
 -hero section akan zoom in ke gunung sekitar 1 langkah koordinat dan sedikit kebawah sekitar 0.5 langkah koordinat
 -golem dan beberapa elemen di hero section akan berpencar keluar dari halaman(kanan dan kiri)
@@ -15,3 +15,47 @@ jadi cardnya ini objek 3d namun berisi text headline dan paragraf
 card: berisi headline dan paragraf, desainnya itu persegi panjang dengan texture atau backgroundnya seperti kaca mobil, agak transparan dan memiliki efek inner blur
 dan juga memiliki rotasi sekitar 20 derajat kekanan dan kekiri menghadap ke kamera
 efek:memiliki efek parallax dan di sisi cardnya memiliki efek mengkilap seperti cahaya, jangan lupa bloom nya, jangan pakai ssao karena berat
+vvvvvvvvv
+transisi:
+-tambahkan tombol next di tengah atau diantar 2 card itu
+-animasi out card section 2
+-camera gerak seperti transisi 2 namun bergerak sedikit kekiri dan sedikit maju(parameter camera)
+-angin rada perlahan dan tidak badai
+-pencahayaan menjadi gelap dan muncul kunang-kunang/debu emas bercahaya dan salju semakin sedikit
+-animasi in content section 3
+vvvvvvvv
+section 3
+isi content:
+headline: Tawaran kami
+sub-headline: Berikut adalah penawaran eksklusif yang telah kami persiapkan khusus untuk Anda:
+-content ada 3 buah card, berisi gambar kartu, dan didalamnya ada headline, sub-headline, dan paragraf
+card desain: mirip seperti section 2 namun lebih kecil
+card animasi: animasi in out sama seperti card di section 2
+-tombol ke section 4 dan tombol back ke section 3
+vvvvvvvvv
+transisi: background putih muncul dari bawah menutupi seluruh objek3d(jadi disini mulai seperti website 2d)
+dan model 3d ada animasi fadeout
+vvvvvvvvv
+section4:
+isi contentnya adalah portfolio projek sebelumnya, tech yang digunakan, client, gambar
+-layout: headline : Enaugh!, lets check my portfolio!,
+dibawah headline ada card(nama project, sub, gambar, tech stack, deskripsi project, button i'am interest), tampilan cardnya hanya menampilkan gambar, ketika di hover maka akan muncul tech yang digunakan, deskripsi dan button,
+dibawah content card adalah daftar tech yang digunakan dan logonya, dan dibawah tech stack adalah trusted board client
+animasi: animasi headline adalah fadeinup, animasi in/out cardnya adalah rotate dan scaling kecil, animasi in/out tech nya adalah fadein, animasi trusted boardnya adalah seperti running card dari kiri ke kanan
+desain trusted board: card berisi logo brand yang sudah bekerja sama, hitam putih dan sedikit transparan, logo nya di tengah card
+-tombol back ke section 3 dan gaperlu tombol next karena hanya pakai skroll untuk section 4 dan 5
+section5: 
+isi contentnya adalah kontak saya, sosial media, dan form
+animasinya kurang lebih sama seperti section 4
+tambahkan tombol more? dibagian paling bawah
+
+new sidebar: berisi navigasi ke section 1-5, sidebar di bungkus didalam burger di pojok kanan atas dan posisinya fixed
+
+
+perbaikan 1.1:
+-background burger 90% transparan dengan efek inner blur 10px
+-background sidebar juga 90% transparan dan efek inner blur 10px
+-tombol next:tawaran kami animasi in nya terjadi 2 kali(yang animasi pertama yang dihapus) dan animasi outnya juga muncul 2 kali(yang kedua yang dihapus), juga untuk posisi tombol nya sesuaikan agar berada di tengah2 
+-animasi in card di section 4 itu ketika halaman di muat atau user melewati halaman tersebut, bukan ketika di hover, hover hanya berfungsi untuk menampilkan detail cardnya
+-ketika animasi in section 3, tombol lanjut ke portfolio dan project terlalu cepat munculnya, harusnya ketika pencet tombol next di section 2 itu tombol next di section 3 ga langsung muncul
+-antar section animasi nya gaboleh bertabrakan biar ga tertumpuk tampilannya

@@ -1,0 +1,220 @@
+/* ==========================================================================
+   Sidebar Navigation & Burger Button (Pojok Kanan Atas)
+   ========================================================================== */
+
+/* Tombol Burger Fixed di Pojok Kanan Atas */
+.burger-btn {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: var(--burger-bg, rgba(15, 23, 42, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(var(--burger-blur, 10px));
+  -webkit-backdrop-filter: blur(var(--burger-blur, 10px));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+
+.burger-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+  transform: scale(1.05);
+}
+
+.burger-line {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 2px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease,
+              background-color 0.2s ease;
+}
+
+/* Transformasi ke 'X' saat menu terbuka */
+.burger-btn--open .burger-line--1 {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.burger-btn--open .burger-line--2 {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.burger-btn--open .burger-line--3 {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Backdrop Gelap saat Sidebar Terbuka */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeInBackdrop 0.25s ease both;
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Drawer Sidebar Glassmorphism */
+.sidebar-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  width: var(--sidebar-width, 320px);
+  max-width: 85vw;
+  background: var(--sidebar-bg, rgba(10, 15, 29, 0.1));
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(var(--sidebar-blur, 10px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--sidebar-blur, 10px)) saturate(180%);
+  box-shadow: -15px 0 45px rgba(0, 0, 0, 0.4);
+  padding: 5rem 2rem 2.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transform: translateX(100%);
+  transition: transform var(--sidebar-dur, 0.35s) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-drawer--open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  margin-bottom: 2rem;
+}
+
+.sidebar-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #38bdf8;
+}
+
+.sidebar-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0.2rem 0 0;
+}
+
+/* Daftar Navigasi Item */
+.sidebar-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  flex: 1;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all 0.22s ease;
+}
+
+.sidebar-nav-item:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateX(-3px);
+}
+
+.sidebar-nav-item--active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: #38bdf8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
+}
+
+.sidebar-nav-item__left {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.sidebar-nav-num {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.sidebar-nav-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sidebar-nav-heading {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.sidebar-nav-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.sidebar-active-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+}
+
+/* Footer Sidebar */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.sidebar-version {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+/* Responsif Mobile */
+@media (max-width: 600px) {
+  .burger-btn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .sidebar-drawer {
+    width: 100vw;
+    max-width: 100vw;
+    padding: 4.5rem 1.5rem 2rem;
+  }
+}

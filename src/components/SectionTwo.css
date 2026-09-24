@@ -370,7 +370,7 @@
 }
 
 .card-subtitle {
-  font-size: 1.02rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: #94a3b8;
   margin: -0.3rem 0 0.5rem 0;
@@ -379,7 +379,7 @@
 
 /* Paragraf Kaca */
 .card-paragraph {
-  font-size: 0.96rem;
+  font-size: 1.1rem;
   line-height: 1.68;
   color: #cbd5e1;
   margin: 0;
@@ -462,9 +462,11 @@
     opacity: 0;
     transform: translateY(var(--entrance-ty, 220px)) rotate(var(--entrance-rot, 25deg));
   }
+
   60% {
     opacity: 1;
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) rotate(0deg);
@@ -476,9 +478,11 @@
     opacity: 1;
     transform: translateY(0) rotate(0deg);
   }
+
   30% {
     opacity: 0.9;
   }
+
   100% {
     opacity: 0;
     transform: translateY(var(--exit-ty, 380px)) rotate(var(--entrance-rot, 25deg));
@@ -508,7 +512,11 @@
     grid-template-columns: 1fr;
     gap: 1.5rem;
     perspective: 800px;
-    margin: 1.5rem 0;
+    margin: 1rem 0;
+  }
+
+  .section-two__col2 {
+    margin-bottom: 6rem;
   }
 
   .glass-card {
@@ -530,4 +538,129 @@
   .card-paragraph {
     font-size: 0.88rem;
   }
+
+  .section-two__center-nav {
+    position: absolute;
+    transform: none;
+    top: 90%;
+  }
+
+  .section-two__center-nav--play {
+    animation: fadeInUp 0.6s ease both;
+  }
+
+  .section-two__center-nav--exit {
+    animation: cardSpinDown 0.5s ease both !important;
+  }
+}
+
+/* Kolom 2: Card 2 + Tombol Next tersusun vertikal */
+.section-two__col2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+/* ---------- Tombol Next di bawah Card 2 ---------- */
+.section-two__center-nav {
+  display: flex;
+  position: absolute;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  left: 50%;
+  bottom: -60px;
+}
+
+.section-two__center-nav--play {
+  opacity: 1;
+  pointer-events: auto;
+  animation: nextBtnSpinUp var(--entrance-dur, 1.2s) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.section-two__center-nav--exit {
+  animation: nextBtnSpinDown var(--exit-dur, 0.65s) cubic-bezier(0.5, 0, 0.75, 0) both !important;
+}
+
+@keyframes nextBtnSpinUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + var(--entrance-ty, 180px))) scale(0.85);
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes nextBtnSpinDown {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  30% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + var(--exit-ty, 300px))) scale(0.85);
+  }
+}
+
+.btn-next-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.8rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 9999px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 189, 248, 0.35);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-next-step:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.6), 0 0 35px rgba(56, 189, 248, 0.65);
+  transform: scale(1.05);
+}
+
+.btn-next-step__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.3);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.btn-next-step__arrow {
+  font-size: 1.15rem;
+  transition: transform 0.25s ease;
+}
+
+.btn-next-step:hover .btn-next-step__arrow {
+  transform: translateX(4px);
 }
