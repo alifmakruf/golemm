@@ -27,13 +27,13 @@ const ANIMATION_DELAY_SEC = 4.5 // jeda istirahat antar pengulangan (dalam detik
 
 // ---- Parameter efek wireframe pemindai (scanner hover) ----------------
 const WIREFRAME_ENABLED = true // matikan efek sepenuhnya dari sini
-const WIREFRAME_COLOR = '#38bdf8' // warna garis wireframe (hex)
-const WIREFRAME_MAX_OPACITY = 0.9 // opasitas maksimum saat terkena pindai (0-1)
+const WIREFRAME_COLOR = '#dcedff' // warna garis wireframe (hex)
+const WIREFRAME_MAX_OPACITY = 0.5 // opasitas maksimum saat terkena pindai (0-1)
 const WIREFRAME_FADE_SPEED = 8 // makin besar, makin cepat muncul/menghilang
-const WIREFRAME_SCAN_RADIUS = 0.55 // radius luas area pemindaian kursor di model
+const WIREFRAME_SCAN_RADIUS = 0.3 // radius luas area pemindaian kursor di model
 const WIREFRAME_SCAN_FEATHER = 0.25 // kehalusan gradasi tepi lingkaran pindai
-const WIREFRAME_SCALE_OFFSET = 1.015 // sedikit membesar dari mesh asli, mencegah z-fighting
-const WIREFRAME_INCLUDE_EYES = false // true = mata ikut dibungkus wireframe juga
+const WIREFRAME_SCALE_OFFSET = 1.001 // sedikit membesar dari mesh asli, mencegah z-fighting
+const WIREFRAME_INCLUDE_EYES = true    // true = mata ikut dibungkus wireframe juga
 
 const degToRad = (deg) => (deg * Math.PI) / 180
 

@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import gsap from 'gsap'
+import { EASE } from '../gsap/eases.js'
 import './style/SidebarNav.css'
 
 // ================== Parameter Tuning: Sidebar Navigation (Burger Menu) ==================
@@ -29,6 +31,14 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
+
+  // GSAP — Entrance backdrop (dulunya @keyframes fadeInBackdrop). Elemen ini
+  // mount baru setiap kali sidebar dibuka, jadi ref callback cukup untuk
+  // memicu animasi tiap kali muncul.
+  const animateBackdrop = useCallback((el) => {
+    if (!el) return
+    gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: EASE.css })
+  }, [])
 
   const navItems = [
     { id: 1, num: '01', title: 'Home', desc: 'Halaman Utama' },
@@ -69,6 +79,7 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
       {isOpen && (
         <div
           className="sidebar-backdrop"
+          ref={animateBackdrop}
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />

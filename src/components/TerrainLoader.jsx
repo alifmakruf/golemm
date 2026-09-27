@@ -14,9 +14,9 @@ const TERRAIN_S2_STOP_TIME_SEC = 2.0        // Titik berhenti (detik / frame 20)
 
 // ================== Parameter Tuning: Kamera & Transisi Antar Section ==================
 // Posisi kamera Section 1 (Hero)
-const TERRAIN_CAMERA_POSITION = [11.68, 2.92, -0.94]
-const TERRAIN_ORBIT_TARGET = [-0.09, 1.18, -0.69]
-const TERRAIN_CAMERA_FOV = 45
+const TERRAIN_CAMERA_POSITION = [7.68, 2.92, -0.7]
+const TERRAIN_ORBIT_TARGET = [-0.09, 2.18, -0.69]
+const TERRAIN_CAMERA_FOV = 40
 
 // Posisi kamera Section 2 (Zoom in ~1 koordinat, turun ~0.5 koordinat ke gunung)
 const S2_CAMERA_ZOOM_STEP = [-2.0, -1.5, 0.02] // [dx, dy, dz] posisi kamera
@@ -35,7 +35,7 @@ const S2_CAMERA_TARGET = [
 
 // Posisi kamera Section 3 (Bergerak sedikit ke kiri dan sedikit maju mendekati tebing)
 // Anda bisa menyesuaikan [dx, dy, dz] di bawah ini agar sudut kamera sesuai selera:
-const S3_CAMERA_STEP = [-7.1, -0.6, 0.5] // [dx, dy, dz] posisi kamera
+const S3_CAMERA_STEP = [-3.1, -0, 2.5] // [dx, dy, dz] posisi kamera
 const S3_CAMERA_POSITION = [
   TERRAIN_CAMERA_POSITION[0] + S3_CAMERA_STEP[0],
   TERRAIN_CAMERA_POSITION[1] + S3_CAMERA_STEP[1],
@@ -49,15 +49,23 @@ const S3_CAMERA_TARGET = [
   TERRAIN_ORBIT_TARGET[2] + S3_CAMERA_TARGET_STEP[2],
 ]
 
-const CAMERA_TRANSITION_SPEED = 1.8 // Kecepatan gerak kamera antar section (lerp)
+// Kecepatan gerak kamera antar section (lerp) — 2.6 agar kamera sampai tepat waktu saat kartu terbit
+const CAMERA_TRANSITION_SPEED = 2.6
 
 // ================== Parameter Tuning: Langit & Animasi Naik ==================
-export const SKY_COLOR = '#23272b'  // Warna langit abu di belakang gunung
+// CATATAN PENTING: SKY_COLOR TIDAK lagi dipasang sebagai scene.background di Canvas.
+// Sebelumnya <color attach="background"> membuat Canvas opaque (solid), sehingga
+// apapun yang diletakkan di belakang Canvas (mis. headline text) akan selalu tertutup.
+// Sekarang Canvas dibiarkan transparan (gl alpha:true, clearAlpha:0 - diatur di App.jsx),
+// dan warna langit dipindahkan ke layer CSS terpisah (.app-sky-layer di App.jsx) yang
+// berada di belakang headline text, dan headline text berada di belakang Canvas ini.
+// SKY_COLOR tetap di-export supaya App.jsx bisa memakai warna yang sama persis.
+export const SKY_COLOR = '#414857ff'  // Warna langit abu di belakang gunung
 const TERRAIN_SPAWN_Y = -3.2        // Posisi awal gunung di bawah (world unit)
 const TERRAIN_ANIM_DURATION = 2.5   // Durasi naik gunung saat web dibuka (detik)
 
 // ================== Parameter Tuning: Salju & Badai Angin ==================
-const SNOW_COUNT = 700             // Jumlah partikel salju
+const SNOW_COUNT = 200             // Jumlah partikel salju
 const SNOW_AREA_X = 30              // Lebar sebaran salju
 const SNOW_AREA_Y = 14              // Tinggi sebaran salju
 const SNOW_AREA_Z = 16              // Kedalaman sebaran salju
@@ -90,7 +98,7 @@ const FIREFLIES_SPEED = 0.35        // Kecepatan melayang debu emas
 
 // ================== Parameter Tuning: Efek Visual & Performa ==================
 const ENABLE_BLOOM = true           // Efek glow sinematik (ringan & hemat daya)
-const BLOOM_INTENSITY = 0.55        // Kekuatan glow
+const BLOOM_INTENSITY = 0.7        // Kekuatan glow
 const BLOOM_LUMINANCE_THRESHOLD = 0.1
 const BLOOM_LUMINANCE_SMOOTHING = 1
 const BLOOM_RADIUS = 0.5
@@ -419,8 +427,9 @@ export default function TerrainLoader({ activeSection = 1 }) {
 
   return (
     <>
-      {/* Background langit statis */}
-      <color attach="background" args={[SKY_COLOR]} />
+      {/* Background langit DIHAPUS dari sini (lihat catatan SKY_COLOR di atas).
+          Canvas dibiarkan transparan agar headline text di layer CSS App.jsx
+          bisa terlihat di balik gunung. */}
 
       <PerspectiveCamera
         makeDefault

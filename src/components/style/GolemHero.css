@@ -1,82 +1,5 @@
-@keyframes shake {
-
-  0%,
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-
-  10% {
-    transform: translate(-6px, -6px) rotate(-0.8deg);
-  }
-
-  20% {
-    transform: translate(7px, 5px) rotate(0.8deg);
-  }
-
-  30% {
-    transform: translate(-5px, 6px) rotate(-0.6deg);
-  }
-
-  40% {
-    transform: translate(6px, -5px) rotate(0.6deg);
-  }
-
-  50% {
-    transform: translate(-4px, 4px) rotate(-0.4deg);
-  }
-
-  60% {
-    transform: translate(4px, -4px) rotate(0.4deg);
-  }
-
-  70% {
-    transform: translate(-2px, 2px) rotate(-0.2deg);
-  }
-
-  80% {
-    transform: translate(2px, -2px) rotate(0.2deg);
-  }
-
-  90% {
-    transform: translate(-1px, 1px) rotate(-0.1deg);
-  }
-}
-
-@keyframes fall-debris {
-  0% {
-    opacity: 1;
-    transform: translateY(-80px) translateX(0) rotate(var(--particle-angle));
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(100vh) translateX(20px) rotate(calc(var(--particle-angle) + 720deg));
-  }
-}
-
-@keyframes fadeInUpContent {
-  from {
-    opacity: 0;
-    transform: translateY(100px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUpCanvas {
-  from {
-    opacity: 0;
-    transform: translateY(100px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Animasi shake, fall-debris, fadeInUpContent & fadeInUpCanvas sudah dipindah
+   ke GSAP (lihat src/components/GolemHero.jsx & src/gsap/eases.js). */
 
 .golem-hero {
   position: relative;
@@ -90,10 +13,6 @@
   background-color: transparent;
   background-image: none;
   z-index: 2;
-}
-
-.golem-hero.shake-active {
-  animation: shake 0.6s ease-in-out 1 forwards;
 }
 
 /* ---------- Debris/Krikil Jatuh ---------- */
@@ -111,16 +30,13 @@
 .debris-particle {
   position: absolute;
   top: 0;
-  width: var(--particle-size);
-  height: var(--particle-size);
   background: linear-gradient(135deg, #94a3b8 0%, #cbd5e1 50%, #e2e8f0 100%);
   border-radius: 2px;
   box-shadow:
     inset -1px -1px 2px rgba(0, 0, 0, 0.3),
     inset 1px 1px 1px rgba(255, 255, 255, 0.5),
     0 2px 4px rgba(0, 0, 0, 0.2);
-  animation: fall-debris var(--animation-duration) ease-in forwards;
-  animation-delay: var(--animation-delay);
+  /* Animasi jatuh (fall-debris) sekarang dijalankan lewat GSAP per-partikel di GolemHero.jsx */
 }
 
 /* Susunan lapisan (z-index):
@@ -146,7 +62,7 @@
   opacity: 0.3;
   /* Reduced dari 0.75 ke 0.3 - agar gunung lebih terlihat */
   pointer-events: none;
-  animation: modern-float 16s ease-in-out infinite alternate;
+  /* Animasi melayang (modern-float) sekarang dijalankan lewat GSAP di GolemHero.jsx */
 }
 
 .modern-glow--blue {
@@ -165,8 +81,6 @@
   height: min(45vw, 500px);
   background: radial-gradient(circle, rgba(254, 240, 138, 0.25) 0%, rgba(254, 240, 138, 0) 70%);
   /* Reduced opacity */
-  animation-duration: 20s;
-  animation-direction: alternate-reverse;
 }
 
 .modern-grid-pattern {
@@ -176,27 +90,24 @@
   display: none;
 }
 
-@keyframes modern-float {
-  0% {
-    transform: translateY(0) scale(1);
-  }
-
-  100% {
-    transform: translateY(-25px) scale(1.06);
-  }
-}
-
-/* ---------- Golem canvas: ditempatkan rapi di kolom kiri ---------- */
+/* ---------- Golem canvas: diperbesar dari clamp(380px,60vh,560px) supaya
+   golem yang sekarang digeser ke pojok (lihat GolemHero.jsx) punya ruang
+   pandang lebih lega dan tidak terasa mepet ke tepi container. Perhatikan:
+   pencegahan clipping yang sesungguhnya diatur lewat CAMERA_POSITION/FOV
+   di GolemHero.jsx — ukuran container ini hanya memberi "kanvas" visual
+   yang lebih besar. ---------- */
 .golem-hero__canvas-container {
   width: 100%;
-  height: clamp(380px, 60vh, 560px);
+  height: clamp(460px, 68vh, 660px);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: auto;
   /* penting: agar terima pointer events untuk onPointerEnter/Leave */
-  animation: fadeInUpCanvas 0.8s cubic-bezier(0.23, 1, 0.320, 1) 2.4s both;
+  /* Entrance (fadeInUpCanvas) sekarang dijalankan lewat GSAP di GolemHero.jsx */
+  opacity: 0;
+  transform: translateY(100px);
   will-change: transform;
   transition: transform 0.12s ease-out;
 }
@@ -207,29 +118,34 @@
   height: 100% !important;
 }
 
-/* ---------- Split Hero Layout ---------- */
+/* ---------- Split Hero Layout ----------
+   Kolom kiri (canvas) dibesarkan sedikit (1fr -> 1.15fr) mengikuti canvas
+   yang diperbesar; kolom kanan (teks) tetap diberi porsi nyaman (1.15fr)
+   supaya tetap seimbang meski golem sekarang lebih kecil & di pojok. */
 .golem-hero__content {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 1240px;
+  max-width: 1280px;
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
+  grid-template-columns: 1.15fr 1.15fr;
   /* sisi kiri untuk model golem, kanan untuk teks */
   align-items: center;
-  gap: 3rem;
+  gap: 2.5rem;
   pointer-events: none;
 }
 
 .golem-hero__content-right {
   grid-column: 2;
-  margin-left: 50px;
+  margin-left: 30px;
   text-align: left;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: 1.4rem;
-  animation: fadeInUpContent 0.8s cubic-bezier(0.23, 1, 0.320, 1) 2.5s both;
+  /* Entrance (fadeInUpContent) sekarang dijalankan lewat GSAP di GolemHero.jsx */
+  opacity: 0;
+  transform: translateY(100px);
 }
 
 /* Badge */
@@ -257,24 +173,6 @@
   box-shadow: 0 0 8px #38bdf8;
 }
 
-/* Headline - Minecraft pixel style */
-.hero-title {
-  margin: 0;
-  font-family: 'Pixelify Sans', 'Press Start 2P', monospace;
-  font-weight: 1000;
-  font-size: clamp(4.6rem, 6.5vw, 5.4rem);
-  line-height: 1.1;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, #00f7ff 0%, #0284c7 50%, #0369a1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(3px 3px 0 rgba(102, 181, 255, 0.9));
-}
-
 /* Subtitle */
 .hero-subtitle {
   margin: 0;
@@ -282,7 +180,7 @@
   font-size: clamp(1rem, 1.3vw, 1.12rem);
   line-height: 1.7;
   color: #00b7ff;
-  max-width: 540px;
+  max-width: 480px;
 }
 
 /* Actions / Buttons */
@@ -290,7 +188,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-top: 0.4rem;
+  margin-top: 15.5rem;
+  right: 0;
 }
 
 .btn-primary {
@@ -338,18 +237,13 @@
 .hero-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: 0.85rem;
   margin-top: 1rem;
-  max-width: 520px;
+  max-width: 480px;
 }
 
 .stat-card {
   padding: 1rem 1.1rem;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08);
-  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -359,13 +253,13 @@
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 1.05rem;
-  color: #0f172a;
+  color: #d8d8d8;
 }
 
 .stat-card__lbl {
   font-family: var(--font-body);
   font-size: 0.78rem;
-  color: #64748b;
+  color: #a8a8a8;
   font-weight: 500;
 }
 
@@ -415,11 +309,6 @@
     text-align: center;
     align-items: center;
     gap: 0.75rem;
-  }
-
-  .hero-title {
-    font-size: clamp(2rem, 5.5vw, 2.7rem);
-    line-height: 1.15;
   }
 
   .hero-subtitle {
@@ -472,10 +361,6 @@
     margin-top: 10px;
   }
 
-  .hero-title {
-    font-size: 2.5rem;
-  }
-
   .hero-stats {
     max-width: 320px;
     gap: 0.35rem;
@@ -495,63 +380,18 @@
 }
 
 /* ==========================================================================
-   Tuning: Animasi Transisi Hero Exit (Berpencar Keluar Halaman)
-   Saat menuju Section 2, golem meluncur ke kiri & teks meluncur ke kanan
+/* ==========================================================================
+   Tuning: Animasi Transisi Hero Exit & Re-enter dikendalikan 100% oleh GSAP
+   di GolemHero.jsx agar bebas tabrakan CSS dan gerakannya smooth 60fps.
    ========================================================================== */
 .golem-hero--exiting {
   pointer-events: none !important;
 }
 
-.golem-hero--exiting .golem-hero__canvas-container {
-  transform: translateX(-140vw) scale(0.7) rotate(-12deg) !important;
-  opacity: 0 !important;
-  transition: transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.75s ease !important;
-}
-
-.golem-hero--exiting .golem-hero__content-right {
-  transform: translateX(140vw) scale(0.85) !important;
-  opacity: 0 !important;
-  transition: transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.75s ease !important;
-}
-
-.golem-hero--exiting .golem-hero__backdrop {
-  opacity: 0 !important;
-  transition: opacity 0.8s ease-out !important;
-}
-
-.golem-hero--exiting .debris-container {
-  opacity: 0 !important;
-  transition: opacity 0.5s ease-out !important;
-}
-
-/* ==========================================================================
-   Tuning: Animasi Re-enter Hero (fadeInUp setelah kamera kembali ke Section 1)
-   ========================================================================== */
-.golem-hero--waiting .golem-hero__canvas-container,
-.golem-hero--waiting .golem-hero__content-right {
-  opacity: 0 !important;
-  transform: translateY(100px) !important;
+.golem-hero--waiting {
   pointer-events: none !important;
-  transition: none !important;
-  animation: none !important;
 }
 
-.golem-hero--waiting .golem-hero__backdrop {
-  opacity: 0 !important;
-  transition: none !important;
-}
-
-.golem-hero--entering .golem-hero__canvas-container {
-  animation: fadeInUpCanvas 0.85s cubic-bezier(0.23, 1, 0.32, 1) both !important;
-  pointer-events: auto !important;
-}
-
-.golem-hero--entering .golem-hero__content-right {
-  animation: fadeInUpContent 0.85s cubic-bezier(0.23, 1, 0.32, 1) both !important;
-  pointer-events: auto !important;
-}
-
-.golem-hero--entering .golem-hero__backdrop {
-  opacity: 1 !important;
-  transition: opacity 0.85s ease-out !important;
+.golem-hero--entering {
+  pointer-events: auto;
 }

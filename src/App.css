@@ -1,8 +1,6 @@
 /* App Layout & Layering */
-@keyframes fog-drift {
-  from { transform: translateX(calc(-50% - 3%)); }
-  to   { transform: translateX(calc(-50% + 3%)); }
-}
+/* fog-drift, headlineFadeInUp & fadeInTerrain sudah dipindah ke GSAP
+   (lihat useGSAP di App.jsx & src/gsap/eases.js). */
 
 .app-container {
   position: fixed;
@@ -13,13 +11,104 @@
   z-index: 0;
 }
 
-/* Terrain Background Layer - Canvas di belakang */
-.app-terrain-layer {
+/* ==========================================================================
+   Urutan Layer (z-index), dari paling belakang ke paling depan:
+   0 -> .app-sky-layer      (warna langit statis)
+   1 -> .app-headline-layer (judul besar "GOLEM" - di BELAKANG terrain & fog)
+   2 -> Fog overlay (inline style di App.jsx) - di ATAS headline, di BAWAH terrain
+   3 -> .app-terrain-layer  (Canvas 3D: gunung, salju, kunang-kunang - transparan)
+   4 -> .app-content        (konten Hero: model golem, tombol, dsb)
+
+   CATATAN: semua layer di sini position:fixed dengan z-index eksplisit,
+   jadi urutan elemen di JSX/DOM TIDAK memengaruhi tumpukan visual — yang
+   menentukan murni angka z-index di atas. Kalau mau menggeser urutan
+   tampil suatu layer, ubah angkanya di sini (dan di style inline fog pada
+   App.jsx), jangan cuma memindah posisi JSX-nya.
+   ========================================================================== */
+
+/* Sky Layer (BARU): pengganti scene.background yang dulu ada di dalam Canvas.
+   Warna solid ini yang membuat "langit" tetap terlihat walau Canvas sekarang
+   transparan. */
+.app-sky-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Headline Layer (BARU): kontainer full-screen untuk judul besar.
+   Diletakkan di ATAS sky, tapi di BAWAH Canvas terrain, sehingga bagian
+   Canvas yang transparan (di luar mesh gunung) akan menampilkan judul ini
+   seolah judul berada di balik gunung. */
+.app-headline-layer {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   z-index: 1;
+  pointer-events: none;
+  will-change: transform;
+  /* Entrance (headlineFadeInUp) sekarang dijalankan lewat GSAP di App.jsx */
+  opacity: 0;
+  transform: translateY(-80px);
+}
+
+/* ==========================================================================
+   Tuning: Animasi Exit/Re-enter Headline dikontrol via GSAP di App.jsx
+   agar transisi mulus 60fps tanpa konflik CSS !important.
+   ========================================================================== */
+.app-headline-layer--exiting {
+  pointer-events: none;
+}
+
+.app-headline-layer--waiting {
+  pointer-events: none;
+}
+
+.app-headline-layer--entering {
+  pointer-events: none;
+}
+
+/* Style teks lama (SUDAH TIDAK DIPAKAI, headline kini berupa model 3D
+   lewat HeadlineModel.jsx) — dibiarkan di sini hanya untuk referensi/rollback. */
+.app-headline-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  margin: 0;
+  padding: 0 1rem;
+  text-align: center;
+  font-family: 'Archivo Black', 'Inter', sans-serif;
+  font-weight: 900;
+  font-size: 10rem;
+  line-height: 0.95;
+  letter-spacing: 0.4em;
+  color: #d8faff;
+  white-space: nowrap;
+}
+
+/* Canvas model 3D pengganti teks headline (lihat HeadlineModel.jsx).
+   Mengisi penuh .app-headline-layer (yang sudah fixed & full-screen),
+   posisi tampilan model di layar diatur lewat HEADLINE_MODEL_POSITION /
+   HEADLINE_CAMERA_POSITION di HeadlineModel.jsx, bukan lewat CSS. */
+.app-headline-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Terrain Background Layer - Canvas di depan sky, headline, & fog */
+.app-terrain-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 3;
   pointer-events: none;
 }
 
@@ -29,7 +118,7 @@
   inset: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 2;
+  z-index: 4;
   opacity: 0;
   transform: translateY(100px);
   transition: none;
@@ -46,26 +135,29 @@
   pointer-events: auto;
 }
 
-/* Animation untuk terrain fade-in murni (translasi fisik 3D ditangani di dalam Three.js) */
-@keyframes fadeInTerrain {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+/* Saat aktif di Section 2, 3, 4, 5: nonaktifkan pointer events agar tidak mengganggu klik */
+.app-content--inactive {
+  pointer-events: none !important;
 }
 
-.animate-fade-in-up {
-  animation: fadeInTerrain 1.2s ease-out forwards;
-  opacity: 0;
-}
+/* Terrain fade-in (dulunya keyframe fadeInTerrain) sekarang dijalankan lewat
+   GSAP, lihat useGSAP di App.jsx. Base opacity 0 dipasang di App.jsx (inline)
+   supaya tidak "flash" sebelum GSAP jalan. */
 
-/* Terrain sudah di-render tapi tidak kelihatan selama loading */
+/* Terrain / headline sudah di-render tapi tidak kelihatan selama loading */
 .terrain-preload {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Responsive: headline di tablet/HP sedikit lebih rapat & tidak nowrap
+   supaya tidak overflow di layar sempit */
+@media (max-width: 960px) {
+  .app-headline-text {
+    font-size: clamp(2.4rem, 12vw, 4.5rem);
+    white-space: normal;
+    line-height: 1;
+  }
 }
 
 /* Smooth transitions untuk section changes */

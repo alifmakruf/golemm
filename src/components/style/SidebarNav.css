@@ -64,12 +64,8 @@
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  animation: fadeInBackdrop 0.25s ease both;
-}
-
-@keyframes fadeInBackdrop {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  /* Entrance (fadeInBackdrop) sekarang dijalankan lewat GSAP di SidebarNav.jsx */
+  opacity: 0;
 }
 
 /* Drawer Sidebar Glassmorphism */

@@ -5,23 +5,23 @@ import './style/SectionThree.css'
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:
 
 // 1. Skala ukuran card
-const CARD_SCALE = 0.679                  // Skala besar-kecil card penawaran di desktop
-const MOBILE_CARD_SCALE = 0.79          // Skala besar-kecil card penawaran khusus di responsif HP
+const CARD_SCALE = 0.679                 // Skala besar-kecil card penawaran di desktop
+const MOBILE_CARD_SCALE = 0.79           // Skala besar-kecil card penawaran khusus di responsif HP
 
-// 1b. Transisi Delay Kamera (Menunggu kamera sampai di Section 3 baru card muncul)
-const CAMERA_ARRIVE_DELAY_MS = 650       // Delay (ms) menunggu perpindahan kamera selesai
-const SECTION_EXIT_DELAY_MS = 750        // Delay (ms) menunggu animasi card keluar
+// 1b. Transisi Delay Kamera & Animasi Card
+const CAMERA_ARRIVE_DELAY_MS = 650       // Delay (ms) menunggu perpindahan kamera selesai baru card muncul
+const SECTION_EXIT_DELAY_MS = 750        // Delay (ms) menunggu animasi card keluar saat Back / Next
 
 // 1c. Animasi Entrance & Exit Card (Spin up & Spin down ala Section 2)
 const ENTRANCE_TRANSLATE_Y = 220         // Jarak vertikal animasi masuk dari bawah (px)
 const EXIT_TRANSLATE_Y = 380             // Jarak vertikal animasi keluar ke bawah (px)
 const ENTRANCE_ROTATE_DEG = 20           // Sudut putaran saat masuk
-const ENTRANCE_DURATION = '1.1s'         // Durasi animasi masuk
+const ENTRANCE_DURATION = '1.1s'         // Durasi animasi masuk (entrance)
 const ENTRANCE_STAGGER = 0.14            // Jeda waktu kemunculan antar card (detik)
-const EXIT_DURATION = '0.7s'             // Durasi animasi keluar
+const EXIT_DURATION = '0.7s'             // Durasi animasi keluar (exit)
 const EXIT_STAGGER = 0.1                 // Jeda waktu keluar antar card (detik)
 
-// 1d. Delay Kemunculan Tombol Lanjut ke Portfolio (Perbaikan 1.1: Tidak langsung muncul)
+// 1d. Delay Kemunculan Tombol Lanjut ke Portfolio
 const FOOTER_BTN_DELAY_MS = 850          // Delay (ms) agar tombol Next Section 3 muncul setelah card masuk
 
 // 2. Sudut rotasi 3D card menghadap kamera (derajat)
@@ -29,10 +29,11 @@ const CARD_1_ROTATION_Y = 14             // Card kiri condong +14°
 const CARD_2_ROTATION_Y = 0              // Card tengah menghadap lurus 0°
 const CARD_3_ROTATION_Y = -14            // Card kanan condong -14°
 
-// 3. Sensitivitas efek Parallax mouse
-const PARALLAX_ROTATION_SENSITIVITY = 10  // Derajat tilt ekstra saat mouse digerakkan
+// 3. Sensitivitas efek Parallax mouse (kepekaan gerak)
+const PARALLAX_ROTATION_SENSITIVITY = 10 // Derajat tilt ekstra saat mouse digerakkan
 const PARALLAX_TRANSLATION_X = 36        // Geser horizontal maksimum card (px)
 const PARALLAX_TRANSLATION_Y = 29        // Geser vertikal maksimum card (px)
+const PARALLAX_DEPTH_Z = 20              // Jarak kedalaman Z saat parallax (px)
 
 export default function SectionThree({ onBack, onNext, isVisible }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
@@ -42,30 +43,43 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
   const [footerReady, setFooterReady] = useState(false)
   const [animKey, setAnimKey] = useState(0)
   const [isExiting, setIsExiting] = useState(false)
+  const [canParallax, setCanParallax] = useState(false)
   const timerRef = useRef(null)
   const footerTimerRef = useRef(null)
+  const parallaxTimerRef = useRef(null)
 
   useEffect(() => {
     if (isVisible) {
       setIsExiting(false)
       setFooterReady(false)
+      setMousePos({ x: 0, y: 0 })
+      setCanParallax(false)
+
       timerRef.current = setTimeout(() => {
         setCardsReady(true)
         setAnimKey((prev) => prev + 1)
+
+        // Parallax baru aktif setelah animasi masuk selesai mendarat sempurna (1.1s + stagger)
+        parallaxTimerRef.current = setTimeout(() => {
+          setCanParallax(true)
+        }, 1300)
       }, CAMERA_ARRIVE_DELAY_MS)
 
-      // Tombol lanjut ke portfolio baru muncul setelah card selesai animasi in (Perbaikan 1.1)
+      // Tombol lanjut ke portfolio baru muncul setelah card selesai animasi in
       footerTimerRef.current = setTimeout(() => {
         setFooterReady(true)
       }, CAMERA_ARRIVE_DELAY_MS + FOOTER_BTN_DELAY_MS)
     } else {
       setCardsReady(false)
       setFooterReady(false)
+      setCanParallax(false)
+      setMousePos({ x: 0, y: 0 })
     }
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
       if (footerTimerRef.current) clearTimeout(footerTimerRef.current)
+      if (parallaxTimerRef.current) clearTimeout(parallaxTimerRef.current)
     }
   }, [isVisible])
 
@@ -75,6 +89,7 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
     setIsExiting(true)
     setCardsReady(false)
     setFooterReady(false)
+    setCanParallax(false)
     timerRef.current = setTimeout(() => {
       setIsExiting(false)
       if (onBack) onBack()
@@ -87,6 +102,7 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
     setIsExiting(true)
     setCardsReady(false)
     setFooterReady(false)
+    setCanParallax(false)
     timerRef.current = setTimeout(() => {
       setIsExiting(false)
       if (onNext) onNext()
@@ -103,13 +119,28 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
 
+  // Tangkap pergerakan mouse: hanya aktif setelah animasi entrance selesai
+  // dan card akan tetap statis netral sampai kursor digerakkan pengguna
   const handlePointerMove = useCallback((e) => {
-    if (!stageRef.current) return
+    if (!stageRef.current || !canParallax) return
     const rect = stageRef.current.getBoundingClientRect()
     const x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
     const y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
     setMousePos({ x, y })
-  }, [])
+  }, [canParallax])
+
+  useEffect(() => {
+    if (!canParallax) return
+    const handleGlobalMove = (e) => {
+      if (!stageRef.current) return
+      const rect = stageRef.current.getBoundingClientRect()
+      const x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
+      const y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
+      setMousePos({ x, y })
+    }
+    window.addEventListener('pointermove', handleGlobalMove, { passive: true })
+    return () => window.removeEventListener('pointermove', handleGlobalMove)
+  }, [canParallax])
 
   // Kalkulasi transform 3D untuk 3 card
   const getCardTransform = (baseRotY) => {
@@ -123,7 +154,7 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
       scale(${scale})
       rotateY(${rotY}deg)
       rotateX(${rotX}deg)
-      translate3d(${transX}px, ${transY}px, 20px)
+      translate3d(${transX}px, ${transY}px, ${PARALLAX_DEPTH_Z}px)
     `
   }
 

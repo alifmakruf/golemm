@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+import { EASE } from '../gsap/eases.js'
 import './style/SectionPortfolio.css'
+
+gsap.registerPlugin(useGSAP)
 
 // ================== Parameter Tuning: Section 4 (Portfolio) & Section 5 (Kontak) ==================
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:
@@ -38,6 +43,15 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
   const [formSent, setFormSent] = useState(false)
   const [showMoreModal, setShowMoreModal] = useState(false)
   const formRef = useRef(null)
+  const rootRef = useRef(null)
+  const section4HeaderRef = useRef(null)
+  const section5HeaderRef = useRef(null)
+  const moreDrawerRef = useRef(null)
+  const cardRefs = useRef([])
+  const shineRefs = useRef([])
+  const shineTweens = useRef([])
+  const marqueeTrackRef = useRef(null)
+  const marqueeTweenRef = useRef(null)
 
   // Reset status form jika berganti section
   useEffect(() => {
@@ -141,8 +155,102 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
     { name: 'TITAN HEAVYWORKS', category: 'Industrial IoT' },
   ]
 
+  // ============================================================
+  // GSAP — Entrance header Section 4 & Section 5 (dulunya class global
+  // "animate-fade-in-up" -> @keyframes fadeInTerrain di App.css), sekali
+  // saat mount (opacity only, sama seperti aslinya).
+  // ============================================================
+  useGSAP(() => {
+    gsap.fromTo(section4HeaderRef.current, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: EASE.easeOut })
+    gsap.fromTo(section5HeaderRef.current, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: EASE.easeOut })
+  }, { scope: rootRef })
+
+  // ============================================================
+  // GSAP — Entrance card portfolio (dulunya @keyframes cardEntranceS4),
+  // diputar ulang setiap kali Section 4 aktif (isVisible jadi true).
+  // useEffect biasa (bukan useGSAP) supaya tidak ada auto-revert yang
+  // mengembalikan transform ke default CSS sesaat sebelum tween baru jalan.
+  // ============================================================
+  useEffect(() => {
+    projects.forEach((_, idx) => {
+      const el = cardRefs.current[idx]
+      if (!el) return
+      const initRot = idx % 2 === 0 ? CARD_INIT_ROTATE_DEG : -CARD_INIT_ROTATE_DEG
+      if (isVisible) {
+        gsap.fromTo(
+          el,
+          { opacity: 0, y: 35, scale: CARD_INIT_SCALE, rotate: initRot },
+          {
+            opacity: 1, y: 0, scale: 1, rotate: 0,
+            duration: parseFloat(CARD_ENTRANCE_DURATION),
+            delay: idx * CARD_ENTRANCE_STAGGER_SEC,
+            ease: EASE.softOut2,
+            overwrite: true,
+          }
+        )
+      } else {
+        gsap.set(el, { opacity: 0, y: 35, scale: CARD_INIT_SCALE, rotate: initRot })
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible])
+
+  // ============================================================
+  // GSAP — Entrance panel "more-drawer" (dulunya class global
+  // "animate-fade-in-up"), setiap kali drawer dibuka (mount baru tiap saat
+  // showMoreModal jadi true).
+  // ============================================================
+  useEffect(() => {
+    if (showMoreModal && moreDrawerRef.current) {
+      gsap.fromTo(moreDrawerRef.current, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: EASE.easeOut })
+    }
+  }, [showMoreModal])
+
+  // GSAP — Efek kilap (shimmer) sapuan saat hover card portfolio.
+  // Menggantikan ::after + @keyframes cardShimmerSweep (pseudo-element tidak
+  // bisa dianimasikan GSAP secara langsung, jadi dipindah ke elemen asli).
+  const handleCardMouseEnter = useCallback((idx) => {
+    const el = shineRefs.current[idx]
+    if (!el) return
+    if (shineTweens.current[idx]) shineTweens.current[idx].kill()
+    shineTweens.current[idx] = gsap.fromTo(
+      el,
+      { left: '-120%' },
+      { left: '220%', duration: parseFloat(SHINE_DURATION), ease: EASE.css }
+    )
+  }, [])
+
+  const handleCardMouseLeave = useCallback((idx) => {
+    const el = shineRefs.current[idx]
+    if (!el) return
+    if (shineTweens.current[idx]) shineTweens.current[idx].kill()
+    gsap.set(el, { left: '-100%' })
+  }, [])
+
+  // ============================================================
+  // GSAP — Marquee Trusted Board (dulunya @keyframes marqueeLeftToRight),
+  // infinite loop, mount sekali. Pause/resume saat hover menggantikan
+  // CSS `animation-play-state: paused`.
+  // ============================================================
+  useGSAP(() => {
+    marqueeTweenRef.current = gsap.fromTo(
+      marqueeTrackRef.current,
+      { xPercent: -50 },
+      { xPercent: 0, duration: TRUSTED_BOARD_SPEED_SEC, ease: 'none', repeat: -1 }
+    )
+  }, { scope: rootRef })
+
+  const handleMarqueeEnter = useCallback(() => {
+    marqueeTweenRef.current?.pause()
+  }, [])
+
+  const handleMarqueeLeave = useCallback(() => {
+    marqueeTweenRef.current?.resume()
+  }, [])
+
   return (
     <div
+      ref={rootRef}
       className={`portfolio-page-2d ${isVisible ? 'portfolio-page-2d--visible' : ''}`}
       style={{ '--sheet-dur': SHEET_TRANSITION_DURATION }}
     >
@@ -165,7 +273,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
       <section className="section-four" id="section-4">
         <div className="section-four__container">
           {/* Headline & Sub-headline Section 4 */}
-          <div className="section-four__header animate-fade-in-up">
+          <div className="section-four__header" ref={section4HeaderRef}>
             <span className="section-label">Get IN</span>
             <h1 className="section-headline">Enaugh!, lets check Our portfolio!</h1>
             <p className="section-subheadline">
@@ -179,17 +287,23 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
               <div
                 key={proj.id}
                 className="portfolio-card"
+                ref={(el) => { cardRefs.current[idx] = el }}
+                onMouseEnter={() => handleCardMouseEnter(idx)}
+                onMouseLeave={() => handleCardMouseLeave(idx)}
                 style={{
                   '--card-bg': proj.bgGradient,
                   '--card-accent': proj.accentColor,
-                  '--card-entrance-delay': `${idx * CARD_ENTRANCE_STAGGER_SEC}s`,
-                  '--card-entrance-dur': CARD_ENTRANCE_DURATION,
-                  '--card-init-scale': CARD_INIT_SCALE,
-                  '--card-init-rot': `${idx % 2 === 0 ? CARD_INIT_ROTATE_DEG : -CARD_INIT_ROTATE_DEG}deg`,
-                  '--shine-dur': SHINE_DURATION,
-                  '--shine-opacity': SHINE_OPACITY,
                 }}
               >
+                {/* Efek kilap (shimmer) sapuan saat hover — dulunya ::after + keyframe,
+                    sekarang elemen asli yang posisinya digerakkan lewat GSAP. */}
+                <span
+                  className="portfolio-card__shine"
+                  ref={(el) => { shineRefs.current[idx] = el }}
+                  style={{ '--shine-opacity': SHINE_OPACITY }}
+                  aria-hidden="true"
+                />
+
                 {/* 1. Tampilan Default: HANYA GAMBAR PROYEK */}
                 <div className="portfolio-card__media">
                   <img
@@ -268,7 +382,12 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
 
             {/* Marquee Running Cards: Bergerak Halus dari Kiri ke Kanan */}
             <div className="marquee-container" style={{ '--marquee-speed': `${TRUSTED_BOARD_SPEED_SEC}s` }}>
-              <div className="marquee-track">
+              <div
+                className="marquee-track"
+                ref={marqueeTrackRef}
+                onMouseEnter={handleMarqueeEnter}
+                onMouseLeave={handleMarqueeLeave}
+              >
                 {/* Looping 2x untuk ilusi pergerakan continuous tanpa putus */}
                 {[...clientLogos, ...clientLogos].map((client, i) => (
                   <div key={`${client.name}-${i}`} className="trusted-card">
@@ -287,7 +406,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
           ====================================================================== */}
       <section className="section-five" id="section-5">
         <div className="section-five__container">
-          <div className="section-five__header animate-fade-in-up">
+          <div className="section-five__header" ref={section5HeaderRef}>
             <span className="section-label">GET IN TOUCH</span>
             <h2 className="section-headline">Hubungi & Mulai Kolaborasi</h2>
             <p className="section-subheadline">
@@ -435,7 +554,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
 
           {/* Panel Informasi Tambahan saat tombol more? diklik */}
           {showMoreModal && (
-            <div className="more-drawer animate-fade-in-up">
+            <div className="more-drawer" ref={moreDrawerRef}>
               <div className="more-drawer__grid">
                 <div className="more-drawer__col">
                   <h4>Workflow & Standar Mutu</h4>

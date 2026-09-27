@@ -2,32 +2,33 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import './style/SectionTwo.css'
 
 // ================== Tuning Parameter: Section 2 (Latar Belakang & Tujuan) ==================
-// Ubah angka & warna di bawah ini sesuka hati untuk menyesuaikan tampilan card 3D:
+// Ubah angka & waktu di bawah ini sesuka hati untuk menyesuaikan tampilan card 3D:
 
 // 1. Skala ukuran card (0.7 = 70% dari ukuran normal)
 const CARD_SCALE = 0.7                  // Ubah angka ini untuk mengatur besar/kecilnya kedua card
 
-// 1b. Transisi Delay Kamera (Menunggu kamera 3D sampai ke Section 2 baru card muncul)
-const CAMERA_ARRIVE_DELAY_MS = 750          // Delay (ms) menunggu animasi out Section 1 & zoom kamera selesai
-const SECTION_EXIT_DELAY_MS = 750           // Delay (ms) menunggu card Section 2 turun/exit saat pencet Back
+// 2. Transisi Delay Kamera & Animasi Card
+const CAMERA_ARRIVE_DELAY_MS = 600      // Delay (ms) menunggu kamera 3D sampai baru card naik
+const SECTION_EXIT_DELAY_MS = 650       // Delay (ms) durasi keluar card saat klik Back / Next
 
-// 1c. Animasi Entrance & Exit Card (muncul dari bawah sambil berputar & turun kembali)
-const ENTRANCE_TRANSLATE_Y = 220            // Jarak vertikal animasi masuk dari bawah (px)
-const EXIT_TRANSLATE_Y = 380                // Jarak vertikal animasi keluar meluncur ke bawah (px)
-const ENTRANCE_ROTATE_DEG = 25              // Derajat putaran saat animasi (semakin besar = makin dramatis)
-const ENTRANCE_DURATION = '1.2s'            // Durasi animasi masuk (entrance)
-const ENTRANCE_STAGGER = '0.2s'             // Jeda waktu antara card 1 dan card 2 saat masuk
-const EXIT_DURATION = '0.75s'               // Durasi animasi keluar (exit)
-const EXIT_STAGGER = '0.12s'                // Jeda waktu urutan keluar antar card
+// 3. Animasi Entrance & Exit Card (muncul dari bawah sambil berputar & turun kembali)
+const ENTRANCE_TRANSLATE_Y = 220        // Jarak vertikal start animasi masuk dari bawah (px)
+const EXIT_TRANSLATE_Y = 380            // Jarak vertikal animasi keluar meluncur ke bawah (px)
+const ENTRANCE_ROTATE_DEG = 25          // Derajat putaran saat animasi (semakin besar = makin dramatis)
+const ENTRANCE_DURATION = '1.2s'        // Durasi animasi masuk (entrance)
+const ENTRANCE_STAGGER = '0.15s'        // Jeda waktu antara card 1 dan card 2 saat masuk
+const EXIT_DURATION = '0.65s'           // Durasi animasi keluar (exit)
+const EXIT_STAGGER = '0.1s'             // Jeda waktu keluar antar card
 
-// 2. Sudut rotasi 3D card menghadap kamera (derajat)
+// 4. Sudut rotasi 3D card menghadap kamera (derajat)
 const CARD_ROTATION_Y_DEG = 20          // Card kiri menghadap +20°, kanan -20°
-const MOBILE_CARD_ROTATION_Y_DEG = 0    // Di HP/tablet sudut diperkecil agar teks nyaman dibaca
+const MOBILE_CARD_ROTATION_Y_DEG = 0    // Di HP dibuat 0° tegak lurus agar nyaman dibaca
 
-// 3. Sensitivitas efek Parallax mouse (kepekaan gerak)
-const PARALLAX_ROTATION_SENSITIVITY = 10 // Derajat tilt ekstra saat kursor digerakkan
-const PARALLAX_TRANSLATION_X = 25       // Geser horizontal maksimum card (px)
-const PARALLAX_TRANSLATION_Y = 17       // Geser vertikal maksimum card (px)
+// 5. Sensitivitas efek Parallax mouse (kepekaan gerak)
+const PARALLAX_ROTATION_SENSITIVITY = 7 // Derajat tilt ekstra saat kursor digerakkan
+const PARALLAX_TRANSLATION_X = 11       // Geser horizontal maksimum card (px)
+const PARALLAX_TRANSLATION_Y = 9       // Geser vertikal maksimum card (px)
+const PARALLAX_DEPTH_Z = 12             // Jarak kedalaman Z saat parallax (px)
 
 export default function SectionTwo({ onBack, onNext, isVisible }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
@@ -37,41 +38,56 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
   const [cardsReady, setCardsReady] = useState(false)
   const [animKey, setAnimKey] = useState(0)
   const [isExiting, setIsExiting] = useState(false)
+  const [canParallax, setCanParallax] = useState(false)
   const timerRef = useRef(null)
+  const parallaxTimerRef = useRef(null)
 
   useEffect(() => {
     if (isVisible) {
       setIsExiting(false)
-      // Tunggu kamera zoom in selesai baru tampilkan card & tombol (hanya 1x animasi masuk)
+      setMousePos({ x: 0, y: 0 })
+      setCanParallax(false)
+
+      // Tunggu kamera zoom in selesai baru tampilkan card & tombol
       timerRef.current = setTimeout(() => {
         setCardsReady(true)
         setAnimKey((prev) => prev + 1)
+
+        // Parallax baru aktif setelah animasi entrance selesai mendarat sempurna (1.2s)
+        parallaxTimerRef.current = setTimeout(() => {
+          setCanParallax(true)
+        }, 1200)
       }, CAMERA_ARRIVE_DELAY_MS)
     } else {
       setCardsReady(false)
+      setCanParallax(false)
+      setMousePos({ x: 0, y: 0 })
     }
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
+      if (parallaxTimerRef.current) clearTimeout(parallaxTimerRef.current)
     }
   }, [isVisible])
 
-  // Handler tombol Back: Mainkan animasi keluar 1 kali bersih, lalu pindah ke Section 1
+  // Handler tombol Back: Mainkan animasi keluar secara mulus, lalu pindah ke Section 1
   const handleBack = useCallback(() => {
     if (isExiting) return
     setIsExiting(true)
     setCardsReady(false)
+    setCanParallax(false)
     timerRef.current = setTimeout(() => {
       setIsExiting(false)
       if (onBack) onBack()
     }, SECTION_EXIT_DELAY_MS)
   }, [isExiting, onBack])
 
-  // Handler tombol Next: Mainkan animasi keluar 1 kali bersih, lalu pindah ke Section 3 (tanpa tabrakan)
+  // Handler tombol Next: Mainkan animasi keluar secara mulus, lalu pindah ke Section 3
   const handleNext = useCallback(() => {
     if (isExiting) return
     setIsExiting(true)
     setCardsReady(false)
+    setCanParallax(false)
     timerRef.current = setTimeout(() => {
       setIsExiting(false)
       if (onNext) onNext()
@@ -88,14 +104,28 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
 
+  // Tangkap pergerakan mouse: hanya aktif setelah animasi entrance selesai
+  // dan card akan tetap statis netral sampai kursor digerakkan pengguna
   const handlePointerMove = useCallback((e) => {
-    if (!stageRef.current) return
+    if (!stageRef.current || !canParallax) return
     const rect = stageRef.current.getBoundingClientRect()
-    // Normalisasi -1 sampai 1
     const x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
     const y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
     setMousePos({ x, y })
-  }, [])
+  }, [canParallax])
+
+  useEffect(() => {
+    if (!canParallax) return
+    const handleGlobalMove = (e) => {
+      if (!stageRef.current) return
+      const rect = stageRef.current.getBoundingClientRect()
+      const x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
+      const y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
+      setMousePos({ x, y })
+    }
+    window.addEventListener('pointermove', handleGlobalMove, { passive: true })
+    return () => window.removeEventListener('pointermove', handleGlobalMove)
+  }, [canParallax])
 
   const baseAngle = isMobile ? MOBILE_CARD_ROTATION_Y_DEG : CARD_ROTATION_Y_DEG
 
@@ -104,14 +134,14 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
     scale(${CARD_SCALE})
     rotateY(${baseAngle + mousePos.x * PARALLAX_ROTATION_SENSITIVITY}deg)
     rotateX(${-mousePos.y * PARALLAX_ROTATION_SENSITIVITY}deg)
-    translate3d(${mousePos.x * -PARALLAX_TRANSLATION_X}px, ${mousePos.y * -PARALLAX_TRANSLATION_Y}px, 20px)
+    translate3d(${mousePos.x * -PARALLAX_TRANSLATION_X}px, ${mousePos.y * -PARALLAX_TRANSLATION_Y}px, ${PARALLAX_DEPTH_Z}px)
   `
 
   const rightCardTransform = `
     scale(${CARD_SCALE})
     rotateY(${-baseAngle + mousePos.x * PARALLAX_ROTATION_SENSITIVITY}deg)
     rotateX(${-mousePos.y * PARALLAX_ROTATION_SENSITIVITY}deg)
-    translate3d(${mousePos.x * -PARALLAX_TRANSLATION_X}px, ${mousePos.y * -PARALLAX_TRANSLATION_Y}px, 20px)
+    translate3d(${mousePos.x * -PARALLAX_TRANSLATION_X}px, ${mousePos.y * -PARALLAX_TRANSLATION_Y}px, ${PARALLAX_DEPTH_Z}px)
   `
 
   return (
