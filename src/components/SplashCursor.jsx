@@ -19,12 +19,12 @@ import { useEffect, useRef } from 'react';
 
 function SplashCursor({
   SIM_RESOLUTION = 128,
-  DYE_RESOLUTION = 1440,
+  DYE_RESOLUTION = 720,
   CAPTURE_RESOLUTION = 512,
   DENSITY_DISSIPATION = 3.5,
   VELOCITY_DISSIPATION = 2,
   PRESSURE = 0.1,
-  PRESSURE_ITERATIONS = 20,
+  PRESSURE_ITERATIONS = 12,
   CURL = 3,
   SPLAT_RADIUS = 0.2,
   SPLAT_FORCE = 6000,
@@ -92,7 +92,8 @@ function SplashCursor({
         depth: false,
         stencil: false,
         antialias: false,
-        preserveDrawingBuffer: false
+        preserveDrawingBuffer: false,
+        powerPreference: 'high-performance'
       };
       let gl = canvas.getContext('webgl2', params);
       const isWebGL2 = !!gl;

@@ -63,16 +63,39 @@ const HEADLINE_CAMERA_FOV = 40
 // Auto-rotate halus di sumbu Y tambahan (radian/detik) — isi 0 untuk mematikan
 const HEADLINE_AUTOROTATE_SPEED = 0
 
-// Bloom/glow opsional pada model
+// ----------------------------------------------------------------------------
+// GLOW MATERIAL "bluerift" — model Anda punya 2 material bawaan dari Blender:
+// "stonetext" (tekstur batu, dibiarkan apa adanya) dan "bluerift" (aksen biru
+// solid, warna asli RGB ≈ 0, 0.48, 1). Blok ini membuat material "bluerift"
+// SAJA jadi bercahaya (emissive + Bloom), "stonetext" tidak disentuh.
+// ----------------------------------------------------------------------------
+const HEADLINE_BLUERIFT_GLOW_ENABLED = true
+
+// Warna cahaya yang dipancarkan (emissive). Default dekat dengan warna asli
+// material-nya supaya menyala, bukan berubah warna total.
+const HEADLINE_BLUERIFT_EMISSIVE_COLOR = '#1e9bff'
+
+// Kekuatan cahaya. Boleh > 1 (memang disengaja "overbright") supaya efek
+// Bloom di bawah bisa menangkap & menyebarkannya jadi glow. Naikkan untuk
+// glow lebih terang/menyebar, turunkan untuk lebih redup.
+const HEADLINE_BLUERIFT_EMISSIVE_INTENSITY = 1
+
+// Opsional: ganti juga warna dasar (base color) "bluerift". Isi null untuk
+// tetap pakai warna asli dari Blender, atau isi hex (mis. '#38bdf8') untuk
+// mengganti warna dasarnya sekalian.
+const HEADLINE_BLUERIFT_BASE_COLOR_OVERRIDE = null
+
+// Bloom — WAJIB aktif (true) agar HEADLINE_BLUERIFT_EMISSIVE_INTENSITY di
+// atas benar-benar terlihat "menyala menyebar", bukan cuma warna terang datar.
 const HEADLINE_BLOOM_ENABLED = true
-const HEADLINE_BLOOM_INTENSITY = 10.5
-const HEADLINE_BLOOM_THRESHOLD = 10.4
-const HEADLINE_BLOOM_SMOOTHING = 10
-const HEADLINE_BLOOM_RADIUS = 10
+const HEADLINE_BLOOM_INTENSITY = 1.2      // kekuatan sebaran glow
+const HEADLINE_BLOOM_THRESHOLD = 0.65     // ambang kecerahan yang mulai "bersinar" (lebih rendah = makin banyak bagian yang glow, termasuk stonetext jika terlalu rendah)
+const HEADLINE_BLOOM_SMOOTHING = 0.25     // transisi halus di sekitar ambang
+const HEADLINE_BLOOM_RADIUS = 0.55        // radius blur/sebaran cahaya
 
 // Pencahayaan (Lighting) untuk model headline
 const HEADLINE_LIGHTS = {
-  ambient: { color: '#ffffff', intensity: 0 },
+  ambient: { color: '#ffffff', intensity: 1.4 },
   key: { color: '#fffef5', position: [4, 4, 3], intensity: 2.2 },
   fill: { color: '#bae6fd', position: [-3, 1, 2], intensity: 1.2 },
   rim: { color: '#fef08a', position: [0, 4, -2], intensity: 1.4 },
@@ -82,6 +105,28 @@ function TextGolemModel({ isMobile }) {
   const { scene } = useGLTF(HEADLINE_MODEL_PATH)
   const groupRef = useRef()
   const { viewport } = useThree()
+
+  // Terapkan glow ke material "bluerift" saja (stonetext tidak disentuh).
+  // Cukup dijalankan sekali per model load, tidak tergantung viewport.
+  useLayoutEffect(() => {
+    if (!HEADLINE_BLUERIFT_GLOW_ENABLED) return
+    scene.traverse((obj) => {
+      if (!obj.isMesh || !obj.material) return
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
+      materials.forEach((mat) => {
+        if (mat.name !== 'bluerift') return
+        mat.emissive = new THREE.Color(HEADLINE_BLUERIFT_EMISSIVE_COLOR)
+        mat.emissiveIntensity = HEADLINE_BLUERIFT_EMISSIVE_INTENSITY
+        // toneMapped=false: warna emissive tidak "dipotong" oleh tone mapping,
+        // sehingga tetap overbright dan bisa ditangkap efek Bloom.
+        mat.toneMapped = false
+        if (HEADLINE_BLUERIFT_BASE_COLOR_OVERRIDE) {
+          mat.color = new THREE.Color(HEADLINE_BLUERIFT_BASE_COLOR_OVERRIDE)
+        }
+        mat.needsUpdate = true
+      })
+    })
+  }, [scene])
 
   // Hitung ulang scale & posisi setiap kali ukuran viewport berubah (resize,
   // rotate device, dsb) atau saat isMobile berpindah — supaya model SELALU
@@ -132,13 +177,14 @@ function TextGolemModel({ isMobile }) {
   )
 }
 
-export default function HeadlineModel({ isMobile = false }) {
+export default function HeadlineModel({ isMobile = false, active = true }) {
   return (
     <Canvas
       className="app-headline-canvas"
       camera={{ position: HEADLINE_CAMERA_POSITION, fov: HEADLINE_CAMERA_FOV }}
       dpr={isMobile ? [1, 1.25] : [1, 1.5]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      frameloop={active ? 'always' : 'never'}
       style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
     >
       <ambientLight color={HEADLINE_LIGHTS.ambient.color} intensity={HEADLINE_LIGHTS.ambient.intensity} />

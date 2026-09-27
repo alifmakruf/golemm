@@ -271,7 +271,7 @@ export default function App() {
           ref={headlineLayerRef}
           className={`app-headline-layer ${headlineClass}`}
         >
-          <HeadlineModel isMobile={isMobile} />
+          <HeadlineModel isMobile={isMobile} active={activeSection === 1} />
         </div>
       )}
 
