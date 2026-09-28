@@ -37,10 +37,10 @@ const WIREFRAME_SCALE_OFFSET = 1.001 // sedikit membesar dari mesh asli, mencega
 const WIREFRAME_INCLUDE_EYES = true    // true = mata ikut dibungkus wireframe juga
 
 // ---- Tampilan material golem -------------------------------------------
-const STONE_BRIGHTNESS = 0           // 1 = warna asli, <1 = lebih gelap (mis. 0.4 = jauh lebih gelap)
+const STONE_BRIGHTNESS = 0.4           // 1 = warna asli, <1 = lebih gelap (mis. 0.4 = jauh lebih gelap)
 const CRACK_MATERIAL_NAME = 'Material.005' // material retakan/aksen biru gelap
 const CRACK_GLOW_COLOR = '#1e9bff'      // warna cahaya retakan
-const CRACK_GLOW_INTENSITY = 0.3        // 0 = tidak menyala, ~0.5-1.5 = menyala halus, >2 = terang
+const CRACK_GLOW_INTENSITY = 0.15        // 0 = tidak menyala, ~0.5-1.5 = menyala halus, >2 = terang
 
 const degToRad = (deg) => (deg * Math.PI) / 180
 

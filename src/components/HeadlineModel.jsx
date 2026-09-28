@@ -54,7 +54,21 @@ const HEADLINE_MODEL_SCALE_MOBILE = 1 // Mobile
 // (0 = tengah layar, +Y = naik ke atas, -Y = turun ke bawah). Nilai di bawah
 // meniru posisi teks lama yang berada di dekat atas layar (dulu: top: 6vh).
 const HEADLINE_OFFSET_FRACTION = [0, 0.25, 0]         // [x, y, z] Desktop
-const HEADLINE_OFFSET_FRACTION_MOBILE = [0, 0.35, 0]  // [x, y, z] Mobile
+const HEADLINE_OFFSET_FRACTION_MOBILE = [0, 0.37, 0]  // [x, y, z] Mobile
+
+// ----------------------------------------------------------------------------
+// [OPTIMASI FPS] TINGGI LAYER CANVAS HEADLINE
+// Dulu canvas headline (+ Bloom composer) selebar & setinggi SELURUH layar padahal
+// teks "GOLEM" hanya menempati bagian atas. Itu berarti seluruh layar di-render,
+// di-bloom, dan di-composite tiap frame — sangat berat di HP. Sekarang canvas hanya
+// setinggi fraksi ini (dari atas layar), dan HeadlineModel meng-KONVERSI otomatis
+// semua nilai FIT_HEIGHT_FRACTION & OFFSET_FRACTION di bawah supaya posisi/ukuran teks
+// di layar TETAP SAMA seperti sebelumnya (nilai-nilai itu tetap dibaca sebagai
+// "fraksi dari tinggi layar penuh", jadi tuning lamamu tidak perlu diubah).
+// Naikkan kalau glow/teks terpotong di bawah; turunkan untuk lebih hemat.
+// Dipakai juga oleh App.jsx (import) untuk mengatur tinggi layer-nya.
+// ----------------------------------------------------------------------------
+export const HEADLINE_LAYER_HEIGHT_FRACTION = 0.55
 
 // Kamera canvas headline ini (terpisah dari kamera terrain & golem)
 const HEADLINE_CAMERA_POSITION = [0, 0, 5]
@@ -262,8 +276,13 @@ function TextGolemModel({ isMobile, mouseRef }) {
     box.getCenter(center)
 
     const widthFraction = isMobile ? HEADLINE_FIT_WIDTH_FRACTION_MOBILE : HEADLINE_FIT_WIDTH_FRACTION
-    const heightFraction = isMobile ? HEADLINE_FIT_HEIGHT_FRACTION_MOBILE : HEADLINE_FIT_HEIGHT_FRACTION
-    const offsetFraction = isMobile ? HEADLINE_OFFSET_FRACTION_MOBILE : HEADLINE_OFFSET_FRACTION
+    // Konversi dari "fraksi layar penuh" ke "fraksi canvas" (canvas hanya setinggi
+    // HEADLINE_LAYER_HEIGHT_FRACTION dan menempel di atas layar) -> hasil visual identik.
+    const lf = HEADLINE_LAYER_HEIGHT_FRACTION
+    const heightFraction =
+      (isMobile ? HEADLINE_FIT_HEIGHT_FRACTION_MOBILE : HEADLINE_FIT_HEIGHT_FRACTION) / lf
+    const rawOffset = isMobile ? HEADLINE_OFFSET_FRACTION_MOBILE : HEADLINE_OFFSET_FRACTION
+    const offsetFraction = [rawOffset[0], (rawOffset[1] - 0.5 + lf / 2) / lf, rawOffset[2]]
     const manualScale = isMobile ? HEADLINE_MODEL_SCALE_MOBILE : HEADLINE_MODEL_SCALE
 
     const scaleByWidth = (viewport.width * widthFraction) / size.x
@@ -317,7 +336,7 @@ export default function HeadlineModel({ isMobile = false, active = true, mouseRe
       className="app-headline-canvas"
       camera={{ position: HEADLINE_CAMERA_POSITION, fov: HEADLINE_CAMERA_FOV }}
       dpr={isMobile ? [1, 1.25] : [1, 1.5]}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       frameloop={active ? 'always' : 'never'}
       style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
     >

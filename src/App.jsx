@@ -9,10 +9,11 @@ import SectionThree from './components/SectionThree.jsx'
 import SectionPortfolio from './components/SectionPortfolio.jsx'
 import SidebarNav from './components/SidebarNav.jsx'
 import TerrainLoader, { SKY_COLOR } from './components/TerrainLoader.jsx'
-import HeadlineModel from './components/HeadlineModel.jsx'
+import HeadlineModel, { HEADLINE_LAYER_HEIGHT_FRACTION } from './components/HeadlineModel.jsx'
 import LoadingScreen from './components/LoadingScreen.jsx'
 import SplashCursor from './components/SplashCursor.jsx'
 import './App.css'
+import './perf.css' // override ringan khusus mobile (lihat isi file)
 
 // ================== Parameter Tuning: Global App & Transisi ==================
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:
@@ -29,6 +30,11 @@ const PARALLAX_LERP_SPEED = 0.2
 const CANVAS_3D_FADEOUT_DURATION = '0.8s'
 
 // 3. Tuning CSS Fog Overlay (kabut di lereng gunung)
+// [OPTIMASI FPS] FOG_ENABLED: kabut ini berupa elemen 200% lebar layar dengan blur(40px) yang
+// dianimasikan tanpa henti. Warnanya saat ini transparan penuh (alpha 0) — jadi tidak terlihat
+// sama sekali tapi tetap memakan GPU tiap frame (paling terasa di HP). Aktifkan HANYA kalau
+// FOG_COLOR diberi warna yang benar-benar terlihat.
+const FOG_ENABLED = false
 const FOG_COLOR = 'rgba(255, 255, 255, 0)'  // Warna kabut
 const FOG_BLUR = 40                            // Gaussian blur radius (px)
 const FOG_WIDTH = '200%'                       // Lebar kabut
@@ -174,7 +180,7 @@ export default function App() {
 
   // GSAP — Kabut lereng gunung
   useEffect(() => {
-    if (!fogRef.current) return
+    if (!FOG_ENABLED || !fogRef.current) return
     const duration = activeSection === 2 ? 4.5 : 1
     gsap.fromTo(
       fogRef.current,
@@ -226,6 +232,23 @@ export default function App() {
 
   const is2DMode = activeSection >= 4 // Section 4 & 5 beralih ke website 2D
 
+  // [OPTIMASI FPS] Saat Section 4 & 5 (sheet putih menutupi layar), canvas terrain sudah
+  // transparan (fade out) tapi dulu tetap dirender penuh tiap frame di belakang sheet.
+  // Sekarang render loop-nya dihentikan setelah fade-out selesai, lalu dilanjutkan
+  // begitu kembali ke Section 3.
+  const [terrainPaused, setTerrainPaused] = useState(false)
+  useEffect(() => {
+    if (!is2DMode) {
+      setTerrainPaused(false)
+      return undefined
+    }
+    const t = setTimeout(
+      () => setTerrainPaused(true),
+      parseFloat(CANVAS_3D_FADEOUT_DURATION) * 1000 + 150
+    )
+    return () => clearTimeout(t)
+  }, [is2DMode])
+
   const headlineClass = isHeadlineExiting ? 'app-headline-layer--exiting' : ''
 
   return (
@@ -234,7 +257,7 @@ export default function App() {
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
       {/* SplashCursor: Efek fluid cursor trail (desktop only, skip di mobile) */}
-      {isLoadingComplete && !isMobile && SPLASH_ENABLED && (
+      {isLoadingComplete && !isMobile && SPLASH_ENABLED && !is2DMode && (
         <SplashCursor
           DENSITY_DISSIPATION={SPLASH_DENSITY_DISSIPATION}
           VELOCITY_DISSIPATION={SPLASH_VELOCITY_DISSIPATION}
@@ -270,6 +293,7 @@ export default function App() {
         <div
           ref={headlineLayerRef}
           className={`app-headline-layer ${headlineClass}`}
+          style={{ height: `${HEADLINE_LAYER_HEIGHT_FRACTION * 100}vh` }}
         >
           <HeadlineModel isMobile={isMobile} active={activeSection === 1} mouseRef={mouseCurrentRef} />
         </div>
@@ -284,7 +308,7 @@ export default function App() {
           sekarang: sky(0) < headline(1) < fog(2) < terrain(3) < content(4).
           Lihat juga App.css untuk z-index terrain & content yang ikut
           disesuaikan. */}
-      {isLoadingComplete && (
+      {FOG_ENABLED && isLoadingComplete && (
         <div
           ref={fogRef}
           style={{
@@ -321,10 +345,13 @@ export default function App() {
           }}
         >
           <Canvas
+            frameloop={terrainPaused ? 'never' : 'always'}
             camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
             dpr={isMobile ? [1, 1.25] : [1, 1.5]}
             gl={{
-              antialias: true,
+              // antialias:false -> tidak ada perubahan visual (scene dirender lewat EffectComposer
+              // multisampling 0, jadi MSAA bawaan canvas memang tidak terpakai), tapi hemat memori & bandwidth GPU.
+              antialias: false,
               alpha: true,
               clearColor: 0x000000,
               clearAlpha: 0,

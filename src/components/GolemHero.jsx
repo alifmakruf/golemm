@@ -33,7 +33,7 @@ const CAMERA_POSITION = [0, 0, 3.9] // [x, y, z] posisi kamera — dimundurkan a
 const CAMERA_FOV = 38 // field of view kamera (derajat) — sedikit dilebarkan
 
 // ---- Tuning: Responsif Tablet & HP ----
-const MOBILE_MODEL_SCALE = 1.35        // golem diperkecil di tablet/hp
+const MOBILE_MODEL_SCALE = 2        // golem diperkecil di tablet/hp
 const MOBILE_MODEL_POSITION = [0, 0, 0] // golem pas di tengah di tablet/hp
 const MOBILE_BASE_ROTATION = [0.05, 0, 0] // menghadap depan di tablet/hp
 
@@ -112,7 +112,7 @@ export default function GolemHero({ onExplore, isExiting, isActive = true }) {
 
   // Parallax animation loop ber-lerp (inertial damping) yang fluid 60-120 FPS
   useEffect(() => {
-    if (isMobile) return
+    if (isMobile || !isActive) return
 
     const tick = () => {
       const targetX = mouseTargetRef.current.x
@@ -135,7 +135,7 @@ export default function GolemHero({ onExplore, isExiting, isActive = true }) {
     return () => {
       if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current)
     }
-  }, [isMobile, isExiting])
+  }, [isMobile, isExiting, isActive])
 
   // GSAP: Kontrol Entrance & Exit Golem Hero secara menyeluruh & mulus
   useEffect(() => {
@@ -238,6 +238,16 @@ export default function GolemHero({ onExplore, isExiting, isActive = true }) {
       { y: 0, scale: 1, duration: MODERN_FLOAT_DURATION_YELLOW, ease: EASE.easeInOut, yoyo: true, repeat: -1 }
     )
   }, { scope: sectionRef })
+
+  // [OPTIMASI FPS] Tween "napas" modern-glow berjalan tanpa henti; hentikan saat Hero
+  // tidak aktif (Section 2+) supaya tidak ada animasi terbuang di belakang layar.
+  useEffect(() => {
+    const tweens = [
+      ...gsap.getTweensOf(glowBlueRef.current),
+      ...gsap.getTweensOf(glowYellowRef.current),
+    ]
+    tweens.forEach((t) => (isActive ? t.resume() : t.pause()))
+  }, [isActive])
 
   const handlePointerMove = useCallback((event) => {
     // Mouse relative ke canvas → untuk raycasting golem 3D
@@ -365,7 +375,7 @@ export default function GolemHero({ onExplore, isExiting, isActive = true }) {
             frameloop={isActive ? 'always' : 'never'}
             camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}
             dpr={isMobile ? [1, 1.25] : [1, 1.5]}
-            gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+            gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
           >
 
             <ambientLight color={LIGHTS.ambient.color} intensity={LIGHTS.ambient.intensity} />

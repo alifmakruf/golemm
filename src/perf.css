@@ -1,0 +1,33 @@
+/* ==========================================================================
+   Override performa (dimuat SETELAH semua CSS lain lewat import di App.jsx).
+   Tujuan: mengurangi beban GPU di HP tanpa mengubah tampilan desktop.
+   Kalau ada yang ingin dikembalikan ke tampilan semula, hapus baris terkait.
+   ========================================================================== */
+
+/* 1) Glow latar Hero: gradien radial sudah lembut dengan sendirinya, blur(80px) di atasnya
+      hanya menambah beban (2 elemen besar yang juga dianimasikan tanpa henti). Semua layar. */
+.modern-glow {
+  filter: none;
+}
+
+/* 2) Mobile & tablet: backdrop-filter di atas canvas WebGL yang terus bergerak memaksa
+      GPU membaca ulang & mem-blur area di belakangnya TIAP FRAME (blur + saturate + contrast).
+      Di layar kecil semuanya dimatikan; background semi-transparan kartu tetap dipakai. */
+@media (max-width: 960px) {
+  .glass-card,
+  .glass-card-s3,
+  .btn-back,
+  .section-two__status,
+  .card-tag,
+  .btn-next-step,
+  .btn-next-s3,
+  .btn-s3-action {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Efek angin kecil yang berulang terus: blur 0.5px tidak terlihat, tapi memaksa filter pass */
+  .wind-gust {
+    filter: none;
+  }
+}
