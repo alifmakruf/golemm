@@ -56,15 +56,15 @@ const LIGHTS = {
   },
   // Lampu pengisi (fill light): aksen biru langit lembut
   fill: {
-    color: '#bae6fd',
+    color: '#bae5fd',
     position: [-3, 1, 2],
-    intensity: 1.6,
+    intensity: 2,
   },
   // Lampu siluet / rim: aksen hangat kuning lembut
   rim: {
     color: '#fef08a',
     position: [0, 4, -2],
-    intensity: 1.8,
+    intensity: 2,
   },
 }
 
@@ -358,11 +358,6 @@ export default function GolemHero({ onExplore, isExiting, isActive = true }) {
         ))}
       </div>
 
-      <div className="golem-hero__backdrop" aria-hidden="true">
-        <div className="modern-glow modern-glow--blue" ref={glowBlueRef} />
-        <div className="modern-glow modern-glow--yellow" ref={glowYellowRef} />
-        <div className="modern-grid-pattern" />
-      </div>
 
       <div className="golem-hero__content">
         <div

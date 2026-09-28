@@ -94,7 +94,7 @@ const SNOW_COLOR = '#e8f4f8'
 // ================== Parameter Tuning: Kunang-Kunang / Debu Emas (Section 3) ==================
 // Sesuai target.txt: Muncul kunang-kunang/debu emas bercahaya di Section 3
 const FIREFLIES_COUNT = 85          // Jumlah partikel kunang-kunang (ringan & stabil 60 FPS)
-const FIREFLIES_COLOR = '#fde047'   // Warna kuning emas berkilau
+const FIREFLIES_COLOR = '#01c4ff'   // Warna kuning emas berkilau
 const FIREFLIES_SIZE = 0.09         // Ukuran partikel kunang-kunang
 const FIREFLIES_SPEED = 0.35        // Kecepatan melayang debu emas
 

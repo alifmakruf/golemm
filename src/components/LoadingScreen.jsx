@@ -88,7 +88,6 @@ export default function LoadingScreen({ progress = 0 }) {
         </div>
       </div>
 
-      <div className="loading-backdrop" />
     </div>
   )
 }
