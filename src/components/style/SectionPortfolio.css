@@ -13,18 +13,25 @@
   color: #0f172a;
   overflow-y: auto;
   overflow-x: hidden;
-  transform: translateY(100%);
-  opacity: 0;
+  overscroll-behavior: contain;
+  contain: layout style;
+  transform: translate3d(0, 100%, 0);
+  /* visibility:hidden setelah sheet keluar -> browser berhenti me-render seluruh
+     isi halaman saat tidak dilihat (hemat GPU/CPU di HP). */
+  visibility: hidden;
   pointer-events: none;
   transition: transform var(--sheet-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.4s ease;
+    visibility 0s linear var(--sheet-dur, 0.85s);
   scroll-behavior: smooth;
 }
 
 .portfolio-page-2d--visible {
-  transform: translateY(0);
-  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
   pointer-events: auto;
+  /* visible langsung (tanpa delay) saat sheet mulai masuk */
+  transition: transform var(--sheet-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
 }
 
 /* Navigasi Atas Sticky: Tombol Kembali ke 3D */
@@ -36,9 +43,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.2rem 3rem;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/* Blur halus hanya di desktop; di HP dimatikan agar scroll tetap mulus */
+@media (min-width: 961px) and (hover: hover) {
+  .portfolio-top-nav {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
 }
 
 .btn-back-to-3d {
@@ -54,7 +68,7 @@
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: background-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
 }
 
@@ -96,7 +110,7 @@
 .section-four__header {
   text-align: center;
   margin-bottom: 3.5rem;
-  /* Entrance (opacity fade) sekarang dijalankan lewat GSAP di SectionPortfolio.jsx */
+  /* Entrance (opacity + geser tipis) dijalankan GSAP di SectionPortfolio.jsx */
   opacity: 0;
 }
 
@@ -142,11 +156,11 @@
   border-radius: 24px;
   overflow: hidden;
   background: var(--card-bg, #0f172a);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.35s ease;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.09);
   cursor: pointer;
+  /* Keadaan awal; animasi masuk (opacity + transform) dijalankan GSAP */
   opacity: 0;
-  transform: translateY(35px) scale(0.88) rotate(3deg);
+  transform: translate3d(0, 32px, 0);
 }
 
 /* Animasi Masuk saat Section 4 Aktif: Scale Kecil + Rotasi lalu Normal
@@ -154,38 +168,8 @@
    diputar ulang tiap kali Section 4 di-buka (lihat useGSAP di
    SectionPortfolio.jsx). */
 
-/* Sesuai Perbaikan 1.1: Hover HANYA untuk menampilkan detail card, TANPA rotasi/scaling */
-.portfolio-card:hover {
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.22);
-}
-
-/* Efek Mengkilap (Shimmer / Glass Shine) saat Card di-hover:
-   Dulunya pseudo-element ::after + @keyframes cardShimmerSweep. GSAP tidak
-   bisa menganimasikan pseudo-element secara langsung, jadi dipindah jadi
-   elemen asli <span class="portfolio-card__shine">; posisi sapuannya
-   (`left`) dijalankan lewat GSAP di SectionPortfolio.jsx saat hover,
-   sedangkan fade opacity-nya tetap CSS transition seperti aslinya. */
-/* .portfolio-card__shine {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -100%;
-  width: 60%;
-  height: 200%;
-  background: linear-gradient(90deg,
-      transparent 0%,
-      rgba(142, 238, 255, 0.15) 50%,
-      transparent 100%);
-  transform: rotate(25deg) translate3d(0, 0, 0);
-  pointer-events: none;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-} */
-
-.portfolio-card:hover .portfolio-card__shine {
-  opacity: 1;
-}
+/* Hover HANYA menampilkan detail card (opacity + transform, jalan di GPU).
+   Animasi box-shadow dihapus karena memicu repaint tiap frame. */
 
 /* 1. Tampilan Default: Gambar Project Visual */
 .portfolio-card__media {
@@ -195,7 +179,6 @@
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  transition: transform 0.4s ease, filter 0.4s ease;
 }
 
 .proj-card__art {
@@ -223,34 +206,35 @@
   letter-spacing: 0.06em;
   padding: 0.35rem 0.9rem;
   border-radius: 9999px;
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.82);
   color: #f8fafc;
-  backdrop-filter: blur(8px);
 }
 
 /* 2. Tampilan Hover: Reveal Detail Tech Stack, Deskripsi & Tombol */
 .portfolio-card__hover-content {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.97);
   padding: 2.2rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   color: #ffffff;
   opacity: 0;
-  transform: translateY(18px);
+  visibility: hidden;
+  transform: translate3d(0, 18px, 0);
   pointer-events: none;
   transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.3s;
 }
 
 .portfolio-card:hover .portfolio-card__hover-content {
   opacity: 1;
-  transform: translateY(0);
+  visibility: visible;
+  transform: translate3d(0, 0, 0);
   pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .hover-title {
@@ -307,7 +291,7 @@
   font-size: 0.92rem;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.22s ease;
+  transition: background-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .btn-interested:hover {
@@ -370,7 +354,7 @@
   border-radius: 16px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  transition: all 0.25s ease;
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .tech-card:hover {
@@ -440,24 +424,74 @@
   margin: 0;
 }
 
-/* Running Marquee Container */
+/* Running Marquee Container
+   - Ujung kiri/kanan dipudarkan dengan overlay gradien (bukan mask-image,
+     yang membuat browser HP me-render ulang layer yang bergerak tiap frame).
+   - Pergerakan memakai CSS animation pada transform -> dijalankan di GPU
+     compositor, tetap mulus walau main thread sibuk. */
 .marquee-container {
   overflow: hidden;
   position: relative;
   width: 100%;
   padding: 1rem 0;
-  mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+}
+
+.marquee-container::before,
+.marquee-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 15%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.marquee-container::before {
+  left: 0;
+  background: linear-gradient(90deg, #ffffff, rgba(255, 255, 255, 0));
+}
+
+.marquee-container::after {
+  right: 0;
+  background: linear-gradient(270deg, #ffffff, rgba(255, 255, 255, 0));
 }
 
 .marquee-track {
   display: flex;
-  gap: 1.5rem;
   width: max-content;
-  /* Bergerak dari KIRI ke KANAN — sekarang dijalankan lewat GSAP di
-     SectionPortfolio.jsx (dulunya @keyframes marqueeLeftToRight). Pause saat
-     hover juga dikontrol lewat GSAP (tween.pause()/resume()), bukan CSS
-     animation-play-state lagi. */
+  /* Bergerak dari KIRI ke KANAN. Jarak antar card memakai margin-right (bukan gap)
+     supaya -50% tepat = 1 set card -> loop mulus tanpa loncat. */
+  animation: marqueeLeftToRight var(--marquee-speed, 28s) linear infinite;
+  will-change: transform;
+}
+
+@keyframes marqueeLeftToRight {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Jeda saat hover (hanya perangkat dengan mouse; di layar sentuh hover itu "lengket") */
+@media (hover: hover) {
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+}
+
+/* Hemat tenaga: berhenti saat sheet tidak terlihat */
+.portfolio-page-2d:not(.portfolio-page-2d--visible) .marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
 }
 
 /* Desain Trusted Card: Hitam Putih (Grayscale), Sedikit Transparan, Logo di Tengah */
@@ -466,31 +500,37 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   width: 220px;
   height: 95px;
+  margin-right: 1.5rem;
   border-radius: 16px;
-  background: rgba(241, 245, 249, 0.7);
+  /* Tampilan abu-abu diatur lewat warna (bukan filter: grayscale + opacity, yang
+     membuat tiap card yang bergerak jadi layer render sendiri). */
+  background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  filter: grayscale(100%);
-  opacity: 0.65;
-  transition: all 0.25s ease;
   user-select: none;
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.trusted-card:hover {
-  filter: grayscale(0%);
-  opacity: 1;
-  background: #ffffff;
-  border-color: #0284c7;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+@media (hover: hover) {
+  .trusted-card:hover {
+    background: #ffffff;
+    border-color: #0284c7;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  }
+
+  .trusted-card:hover .trusted-card__logo {
+    color: #0284c7;
+  }
 }
 
 .trusted-card__logo {
   font-size: 1.05rem;
   font-weight: 900;
   letter-spacing: 0.1em;
-  color: #0f172a;
+  color: #64748b;
+  transition: color 0.25s ease;
 }
 
 .trusted-card__cat {
@@ -517,7 +557,7 @@
 .section-five__header {
   text-align: center;
   margin-bottom: 3.5rem;
-  /* Entrance (opacity fade) sekarang dijalankan lewat GSAP di SectionPortfolio.jsx */
+  /* Entrance (opacity + geser tipis) dijalankan GSAP di SectionPortfolio.jsx */
   opacity: 0;
 }
 
@@ -641,7 +681,7 @@
   font-weight: 700;
   color: #334155;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .social-chip:hover {
@@ -706,7 +746,7 @@
   color: #0f172a;
   font-family: inherit;
   font-size: 0.94rem;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group input:focus,
@@ -732,7 +772,7 @@
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: background-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .btn-submit-contact:hover {
@@ -808,7 +848,7 @@
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-  transition: all 0.25s ease;
+  transition: border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .btn-more-info:hover {
@@ -836,7 +876,7 @@
   border-radius: 20px;
   padding: 2.5rem;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
-  /* Entrance (opacity fade) sekarang dijalankan lewat GSAP di SectionPortfolio.jsx */
+  /* Entrance (opacity + geser tipis) dijalankan GSAP di SectionPortfolio.jsx */
   opacity: 0;
 }
 
@@ -870,7 +910,7 @@
   font-size: 0.84rem;
   font-weight: 700;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .btn-cv-download:hover {

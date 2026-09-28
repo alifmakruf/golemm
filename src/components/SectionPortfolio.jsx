@@ -1,10 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import gsap from 'gsap'
-import { useGSAP } from '@gsap/react'
 import { EASE } from '../gsap/eases.js'
 import './style/SectionPortfolio.css'
-
-gsap.registerPlugin(useGSAP)
 
 // ================== Parameter Tuning: Section 4 (Portfolio) & Section 5 (Kontak) ==================
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:
@@ -12,21 +9,17 @@ gsap.registerPlugin(useGSAP)
 // 1. Kecepatan Animasi Marquee Trusted Board (detik untuk 1 putaran penuh)
 const TRUSTED_BOARD_SPEED_SEC = 28       // Semakin kecil angka = lari semakin cepat
 
-// 2. Animasi Masuk (In) Card Section 4 saat Halaman Dimuat (Perbaikan 1.1)
-// Muncul dengan scale kecil & rotasi saat halaman dimuat / dilewati
-const CARD_ENTRANCE_DURATION = '0.9s'   // Durasi animasi masuk card Section 4
-const CARD_ENTRANCE_STAGGER_SEC = 0.12   // Jeda waktu masuk antar card (detik)
-const CARD_INIT_SCALE = 0.88             // Skala awal card (scaling kecil)
-const CARD_INIT_ROTATE_DEG = 3           // Derajat rotasi awal saat card muncul
+// 2. Animasi Masuk (In) Card Section 4 — sekarang dipicu SAAT card masuk layar
+// (scroll-reveal), bukan semuanya sekaligus, supaya ringan di HP.
+const CARD_ENTRANCE_DURATION = '0.8s'   // Durasi animasi masuk card (desktop)
+const CARD_ENTRANCE_STAGGER_SEC = 0.1   // Jeda antar card yang muncul bersamaan (detik)
+const CARD_INIT_SCALE = 0.92            // Skala awal card (desktop saja)
+const CARD_INIT_ROTATE_DEG = 2          // Rotasi awal card (desktop saja; mobile tanpa rotasi)
+const ENTRANCE_START_DELAY_FRAC = 0.35  // Mulai animasi konten setelah sheet meluncur sekian % (0-1)
+const MOBILE_BREAKPOINT_PX = 960        // <= lebar ini dianggap mobile: animasi dibuat lebih ringan
 
 // 3. Durasi Transisi Sheet Putih dari bawah (detik)
 const SHEET_TRANSITION_DURATION = '0.9s'
-
-// 4. Efek Mengkilap (Shine / Shimmer) saat Hover Card Project
-// Durasi kilatan cahaya menyapu kartu (semakin kecil = kilatan makin cepat)
-const SHINE_DURATION = '0.75s'
-// Intensitas cahaya kilap (0.1 - 0.9)
-const SHINE_OPACITY = 0.55
 
 // 5. Data Kontak Pribadi (Bisa langsung diubah di sini)
 const CONTACT_DATA = {
@@ -38,6 +31,75 @@ const CONTACT_DATA = {
   status: 'Mahasiswa',
 }
 
+// Data 4 Project Portfolio sesuai target.txt
+// Parameter path gambar (src): Anda dapat mengubah path file gambar ini sesuai aset yang diletakkan di src/assets/ atau public/
+const PROJECTS = [
+  {
+    id: 'proj-1',
+    title: 'Stone Golem 3D Showcase',
+    sub: 'Eksplorasi WebGL & Shaders Interaktif',
+    desc: 'Pengembangan landing page 3D interaktif real-time dengan karakter golem batu bertekstur realistis, pencahayaan dinamis, partikel cuaca salju, dan post-processing bloom.',
+    tech: ['React Three Fiber', 'Three.js', 'WebGL', 'GLSL Shaders'],
+    bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
+    accentColor: '#38bdf8',
+    // Ganti path gambar berikut sesuai nama file Anda di src/assets/
+    image: '/project-1.png',
+  },
+  {
+    id: 'proj-2',
+    title: 'IoT Smart Home Digital Twin',
+    sub: 'Visualisasi indicator lampu dan sensor Real-Time',
+    desc: 'Platform dashboard monitoring hardware rumah berbasis kembaran digital 3D. Terhubung dengan live sensor MQTT dan WebSocket untuk Suhu ruangan dan lampu.',
+    tech: ['Three.js', 'ESP32', 'Node.js', 'MQTT', 'Chart.js'],
+    bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
+    accentColor: '#60a5fa',
+    image: '/project-2.png',
+  },
+  {
+    id: 'proj-3',
+    title: 'My Personal Profile',
+    sub: '3D interactive website, Custom cursor and Parallax Effect',
+    desc: 'Website personal profile yang menggunakan model 3D pedang kayu dengan efek trail dan efek parallax untuk pergerakan kursor',
+    tech: ['WebGL', 'Three.js', 'Blender', 'Vite'],
+    bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
+    accentColor: '#34d399',
+    image: '/project-3.png',
+  },
+  {
+    id: 'proj-4',
+    title: 'Agrowatch',
+    sub: 'Sistem pelaporan lahan pertanian dengan map interaktif',
+    desc: 'Sistem pelaporan lahan pertanian yang memungkinkan petani melaporkan kondisi lahan mereka secara real-time dengan menggunakan map interaktif yang terhubung dengan Dashboard manajemen.',
+    tech: ['Leaflet', 'React', 'JavaScript', 'API REST'],
+    bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
+    accentColor: '#c084fc',
+    image: '/project-4.png',
+  },
+]
+
+// Daftar Teknologi & Tools yang digunakan sesuai target.txt
+const TECH_STACK = [
+  { name: 'React', desc: 'UI Framework', badge: 'v18' },
+  { name: 'Three.js', desc: '3D Graphics', badge: 'v0.169' },
+  { name: 'React Three Fiber', desc: 'R3F Declarative', badge: 'v8' },
+  { name: 'WebGL & GLSL', desc: 'Shader GPU', badge: 'v2.0' },
+  { name: 'Vite', desc: 'Next-Gen Bundler', badge: 'v5' },
+  { name: 'Blender 3D', desc: 'Modeling & Rigging', badge: 'v4.2' },
+  { name: 'JavaScript / TS', desc: 'Modern ECMAScript', badge: 'ESNext' },
+  { name: 'Node.js', desc: 'IoT Backend & API', badge: 'v20' },
+  { name: 'PostProcessing', desc: 'Bloom & Atmospheric', badge: 'v6' },
+]
+
+// Trusted Board Client (Running Card Marquee dari kiri ke kanan)
+const CLIENT_LOGOS = [
+  { name: 'VERTEX LABS', category: 'Creative Tech' },
+  { name: 'NOVA DYNAMICS', category: 'Robotics & AI' },
+  { name: 'AETHER DIGITAL', category: 'Spatial Computing' },
+  { name: 'NEXUS IOT', category: 'Smart Devices' },
+  { name: 'SOLARIS MEDIA', category: 'Interactive Web' },
+  { name: 'TITAN HEAVYWORKS', category: 'Industrial IoT' },
+]
+
 export default function SectionPortfolio({ isVisible, onBackTo3D }) {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' })
   const [formSent, setFormSent] = useState(false)
@@ -48,10 +110,6 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
   const section5HeaderRef = useRef(null)
   const moreDrawerRef = useRef(null)
   const cardRefs = useRef([])
-  const shineRefs = useRef([])
-  const shineTweens = useRef([])
-  const marqueeTrackRef = useRef(null)
-  const marqueeTweenRef = useRef(null)
 
   // Reset status form jika berganti section
   useEffect(() => {
@@ -86,167 +144,123 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
     }, 4000)
   }
 
-  // Data 4 Project Portfolio sesuai target.txt
-  // Parameter path gambar (src): Anda dapat mengubah path file gambar ini sesuai aset yang diletakkan di src/assets/ atau public/
-  const projects = [
-    {
-      id: 'proj-1',
-      title: 'Stone Golem 3D Showcase',
-      sub: 'Eksplorasi WebGL & Shaders Interaktif',
-      desc: 'Pengembangan landing page 3D interaktif real-time dengan karakter golem batu bertekstur realistis, pencahayaan dinamis, partikel cuaca salju, dan post-processing bloom.',
-      tech: ['React Three Fiber', 'Three.js', 'WebGL', 'GLSL Shaders'],
-      bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
-      accentColor: '#38bdf8',
-      // Ganti path gambar berikut sesuai nama file Anda di src/assets/
-      image: '/project-1.png',
-    },
-    {
-      id: 'proj-2',
-      title: 'IoT Smart Home Digital Twin',
-      sub: 'Visualisasi indicator lampu dan sensor Real-Time',
-      desc: 'Platform dashboard monitoring hardware rumah berbasis kembaran digital 3D. Terhubung dengan live sensor MQTT dan WebSocket untuk Suhu ruangan dan lampu.',
-      tech: ['Three.js', 'ESP32', 'Node.js', 'MQTT', 'Chart.js'],
-      bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
-      accentColor: '#60a5fa',
-      image: '/project-2.png',
-    },
-    {
-      id: 'proj-3',
-      title: 'My Personal Profile',
-      sub: '3D interactive website, Custom cursor and Parallax Effect',
-      desc: 'Website personal profile yang menggunakan model 3D pedang kayu dengan efek trail dan efek parallax untuk pergerakan kursor',
-      tech: ['WebGL', 'Three.js', 'Blender', 'Vite'],
-      bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
-      accentColor: '#34d399',
-      image: '/project-3.png',
-    },
-    {
-      id: 'proj-4',
-      title: 'Agrowatch',
-      sub: 'Sistem pelaporan lahan pertanian dengan map interaktif',
-      desc: 'Sistem pelaporan lahan pertanian yang memungkinkan petani melaporkan kondisi lahan mereka secara real-time dengan menggunakan map interaktif yang terhubung dengan Dashboard manajemen.',
-      tech: ['Leaflet', 'React', 'JavaScript', 'API REST'],
-      bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
-      accentColor: '#c084fc',
-      image: '/project-4.png',
-    },
-  ]
-
-  // Daftar Teknologi & Tools yang digunakan sesuai target.txt
-  const techStack = [
-    { name: 'React', desc: 'UI Framework', badge: 'v18' },
-    { name: 'Three.js', desc: '3D Graphics', badge: 'v0.169' },
-    { name: 'React Three Fiber', desc: 'R3F Declarative', badge: 'v8' },
-    { name: 'WebGL & GLSL', desc: 'Shader GPU', badge: 'v2.0' },
-    { name: 'Vite', desc: 'Next-Gen Bundler', badge: 'v5' },
-    { name: 'Blender 3D', desc: 'Modeling & Rigging', badge: 'v4.2' },
-    { name: 'JavaScript / TS', desc: 'Modern ECMAScript', badge: 'ESNext' },
-    { name: 'Node.js', desc: 'IoT Backend & API', badge: 'v20' },
-    { name: 'PostProcessing', desc: 'Bloom & Atmospheric', badge: 'v6' },
-  ]
-
-  // Trusted Board Client (Running Card Marquee dari kiri ke kanan)
-  const clientLogos = [
-    { name: 'VERTEX LABS', category: 'Creative Tech' },
-    { name: 'NOVA DYNAMICS', category: 'Robotics & AI' },
-    { name: 'AETHER DIGITAL', category: 'Spatial Computing' },
-    { name: 'NEXUS IOT', category: 'Smart Devices' },
-    { name: 'SOLARIS MEDIA', category: 'Interactive Web' },
-    { name: 'TITAN HEAVYWORKS', category: 'Industrial IoT' },
-  ]
-
   // ============================================================
-  // GSAP — Entrance header Section 4 & Section 5 (dulunya class global
-  // "animate-fade-in-up" -> @keyframes fadeInTerrain di App.css), sekali
-  // saat mount (opacity only, sama seperti aslinya).
-  // ============================================================
-  useGSAP(() => {
-    gsap.fromTo(section4HeaderRef.current, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: EASE.easeOut })
-    gsap.fromTo(section5HeaderRef.current, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: EASE.easeOut })
-  }, { scope: rootRef })
-
-  // ============================================================
-  // GSAP — Entrance card portfolio (dulunya @keyframes cardEntranceS4),
-  // diputar ulang setiap kali Section 4 aktif (isVisible jadi true).
-  // useEffect biasa (bukan useGSAP) supaya tidak ada auto-revert yang
-  // mengembalikan transform ke default CSS sesaat sebelum tween baru jalan.
+  // ANIMASI IN/OUT — dioptimalkan untuk mobile.
+  //
+  // Perubahan dibanding versi lama:
+  //  1. Animasi masuk header & card dijalankan SAAT Section 4 dibuka (bukan saat
+  //     mount, ketika halaman masih di luar layar dan animasinya terbuang percuma).
+  //  2. Scroll-reveal: elemen baru dianimasikan begitu masuk layar
+  //     (IntersectionObserver), jadi HP tidak menganimasikan 4 card + 2 header
+  //     sekaligus bersamaan dengan transisi sheet & render 3D di belakangnya.
+  //  3. Mulai setelah sheet meluncur sebagian (ENTRANCE_START_DELAY_FRAC) supaya
+  //     dua animasi besar tidak berebut frame di detik yang sama.
+  //  4. Di mobile: tanpa rotasi/scale, durasi & stagger lebih pendek.
+  //     Hanya opacity + transform (jalan di GPU compositor).
+  //  5. Reset ke keadaan tersembunyi dilakukan SETELAH sheet selesai meluncur
+  //     keluar (dulu langsung, sehingga konten menghilang lebih dulu dari sheet).
+  //  6. Hormati "prefers-reduced-motion".
   // ============================================================
   useEffect(() => {
-    projects.forEach((_, idx) => {
-      const el = cardRefs.current[idx]
-      if (!el) return
-      const initRot = idx % 2 === 0 ? CARD_INIT_ROTATE_DEG : -CARD_INIT_ROTATE_DEG
-      if (isVisible) {
-        gsap.fromTo(
-          el,
-          { opacity: 0, y: 35, scale: CARD_INIT_SCALE, rotate: initRot },
-          {
-            opacity: 1, y: 0, scale: 1, rotate: 0,
-            duration: parseFloat(CARD_ENTRANCE_DURATION),
-            delay: idx * CARD_ENTRANCE_STAGGER_SEC,
-            ease: EASE.softOut2,
-            overwrite: true,
-          }
-        )
-      } else {
-        gsap.set(el, { opacity: 0, y: 35, scale: CARD_INIT_SCALE, rotate: initRot })
-      }
+    const root = rootRef.current
+    if (!root) return
+
+    const sheetSec = parseFloat(SHEET_TRANSITION_DURATION)
+    const compact = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    // Daftar elemen yang dianimasikan (urutan = urutan di halaman)
+    const items = [
+      { el: section4HeaderRef.current, kind: 'header' },
+      ...cardRefs.current.map((el, idx) => ({ el, kind: 'card', idx })),
+      { el: section5HeaderRef.current, kind: 'header' },
+    ].filter((it) => it.el)
+
+    const hiddenVars = (it) =>
+      it.kind === 'header'
+        ? { opacity: 0, y: compact ? 12 : 18 }
+        : {
+          opacity: 0,
+          y: compact ? 22 : 32,
+          scale: compact ? 1 : CARD_INIT_SCALE,
+          rotate: compact ? 0 : (it.idx % 2 === 0 ? CARD_INIT_ROTATE_DEG : -CARD_INIT_ROTATE_DEG),
+        }
+
+    const shownVars = (it) => ({
+      opacity: 1,
+      y: 0,
+      ...(it.kind === 'card' ? { scale: 1, rotate: 0 } : {}),
     })
+
+    // ---------- OUT: reset setelah sheet selesai meluncur keluar ----------
+    if (!isVisible) {
+      const timer = setTimeout(() => {
+        items.forEach((it) => gsap.set(it.el, { ...hiddenVars(it), clearProps: 'willChange' }))
+      }, sheetSec * 1000 + 80)
+      return () => clearTimeout(timer)
+    }
+
+    // ---------- IN ----------
+    if (reduceMotion) {
+      items.forEach((it) => gsap.set(it.el, shownVars(it)))
+      return undefined
+    }
+
+    const cardDur = compact ? 0.55 : parseFloat(CARD_ENTRANCE_DURATION)
+    const stagger = compact ? 0.06 : CARD_ENTRANCE_STAGGER_SEC
+    const headerDur = compact ? 0.5 : 0.8
+    const startDelay = sheetSec * ENTRANCE_START_DELAY_FRAC
+
+    const reveal = (it, delay) => {
+      gsap.fromTo(it.el, hiddenVars(it), {
+        ...shownVars(it),
+        duration: it.kind === 'header' ? headerDur : cardDur,
+        delay,
+        ease: it.kind === 'header' ? EASE.easeOut : EASE.softOut2,
+        overwrite: true,
+        onComplete: () => gsap.set(it.el, { clearProps: 'willChange' }),
+      })
+    }
+
+    // Fallback tanpa IntersectionObserver: tampilkan berurutan
+    if (typeof IntersectionObserver === 'undefined') {
+      items.forEach((it, i) => reveal(it, startDelay + i * stagger))
+      return undefined
+    }
+
+    let firstBatch = true
+    const order = new Map(items.map((it, i) => [it.el, i]))
+    const byEl = new Map(items.map((it) => [it.el, it]))
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleNow = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => order.get(a.target) - order.get(b.target))
+        visibleNow.forEach((entry, i) => {
+          reveal(byEl.get(entry.target), (firstBatch ? startDelay : 0) + i * stagger)
+          observer.unobserve(entry.target)
+        })
+        if (visibleNow.length) firstBatch = false
+      },
+      { root, threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
+    )
+    items.forEach((it) => observer.observe(it.el))
+
+    return () => observer.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible])
 
-  // ============================================================
-  // GSAP — Entrance panel "more-drawer" (dulunya class global
-  // "animate-fade-in-up"), setiap kali drawer dibuka (mount baru tiap saat
-  // showMoreModal jadi true).
-  // ============================================================
+  // Panel "more-drawer": fade singkat saat dibuka (mount baru tiap kali dibuka)
   useEffect(() => {
     if (showMoreModal && moreDrawerRef.current) {
-      gsap.fromTo(moreDrawerRef.current, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: EASE.easeOut })
+      gsap.fromTo(
+        moreDrawerRef.current,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.5, ease: EASE.easeOut, overwrite: true }
+      )
     }
   }, [showMoreModal])
-
-  // GSAP — Efek kilap (shimmer) sapuan saat hover card portfolio.
-  // Menggantikan ::after + @keyframes cardShimmerSweep (pseudo-element tidak
-  // bisa dianimasikan GSAP secara langsung, jadi dipindah ke elemen asli).
-  const handleCardMouseEnter = useCallback((idx) => {
-    const el = shineRefs.current[idx]
-    if (!el) return
-    if (shineTweens.current[idx]) shineTweens.current[idx].kill()
-    shineTweens.current[idx] = gsap.fromTo(
-      el,
-      { left: '-120%' },
-      { left: '220%', duration: parseFloat(SHINE_DURATION), ease: EASE.css }
-    )
-  }, [])
-
-  const handleCardMouseLeave = useCallback((idx) => {
-    const el = shineRefs.current[idx]
-    if (!el) return
-    if (shineTweens.current[idx]) shineTweens.current[idx].kill()
-    gsap.set(el, { left: '-100%' })
-  }, [])
-
-  // ============================================================
-  // GSAP — Marquee Trusted Board (dulunya @keyframes marqueeLeftToRight),
-  // infinite loop, mount sekali. Pause/resume saat hover menggantikan
-  // CSS `animation-play-state: paused`.
-  // ============================================================
-  useGSAP(() => {
-    marqueeTweenRef.current = gsap.fromTo(
-      marqueeTrackRef.current,
-      { xPercent: -50 },
-      { xPercent: 0, duration: TRUSTED_BOARD_SPEED_SEC, ease: 'none', repeat: -1 }
-    )
-  }, { scope: rootRef })
-
-  const handleMarqueeEnter = useCallback(() => {
-    marqueeTweenRef.current?.pause()
-  }, [])
-
-  const handleMarqueeLeave = useCallback(() => {
-    marqueeTweenRef.current?.resume()
-  }, [])
 
   return (
     <div
@@ -283,27 +297,16 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
 
           {/* Grid Portfolio Cards: Tampilan Default HANYA GAMBAR, Hover memunculkan Detail */}
           <div className="portfolio-grid">
-            {projects.map((proj, idx) => (
+            {PROJECTS.map((proj, idx) => (
               <div
                 key={proj.id}
                 className="portfolio-card"
                 ref={(el) => { cardRefs.current[idx] = el }}
-                onMouseEnter={() => handleCardMouseEnter(idx)}
-                onMouseLeave={() => handleCardMouseLeave(idx)}
                 style={{
                   '--card-bg': proj.bgGradient,
                   '--card-accent': proj.accentColor,
                 }}
               >
-                {/* Efek kilap (shimmer) sapuan saat hover — dulunya ::after + keyframe,
-                    sekarang elemen asli yang posisinya digerakkan lewat GSAP. */}
-                <span
-                  className="portfolio-card__shine"
-                  ref={(el) => { shineRefs.current[idx] = el }}
-                  style={{ '--shine-opacity': SHINE_OPACITY }}
-                  aria-hidden="true"
-                />
-
                 {/* 1. Tampilan Default: HANYA GAMBAR PROYEK */}
                 <div className="portfolio-card__media">
                   <img
@@ -311,6 +314,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
                     alt={proj.title}
                     className="proj-card__art"
                     loading="lazy"
+                    decoding="async"
                   />
                   <div className="portfolio-card__image-overlay">
                     <span className="portfolio-card__badge-corner">{proj.title}</span>
@@ -348,7 +352,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
           </div>
 
           {/* Daftar Tech Stack yang digunakan */}
-          <div className="tech-stack-section animate-fade-in">
+          <div className="tech-stack-section">
             <div className="tech-stack-header">
               <span className="tech-badge">CORE CAPABILITIES</span>
               <h2 className="tech-title">Teknologi & Engine yang Digunakan</h2>
@@ -358,7 +362,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
             </div>
 
             <div className="tech-stack-grid">
-              {techStack.map((tech) => (
+              {TECH_STACK.map((tech) => (
                 <div key={tech.name} className="tech-card">
                   <div className="tech-card__top">
                     <span className="tech-card__name">{tech.name}</span>
@@ -382,14 +386,9 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
 
             {/* Marquee Running Cards: Bergerak Halus dari Kiri ke Kanan */}
             <div className="marquee-container" style={{ '--marquee-speed': `${TRUSTED_BOARD_SPEED_SEC}s` }}>
-              <div
-                className="marquee-track"
-                ref={marqueeTrackRef}
-                onMouseEnter={handleMarqueeEnter}
-                onMouseLeave={handleMarqueeLeave}
-              >
+              <div className="marquee-track">
                 {/* Looping 2x untuk ilusi pergerakan continuous tanpa putus */}
-                {[...clientLogos, ...clientLogos].map((client, i) => (
+                {[...CLIENT_LOGOS, ...CLIENT_LOGOS].map((client, i) => (
                   <div key={`${client.name}-${i}`} className="trusted-card">
                     <span className="trusted-card__logo">{client.name}</span>
                     <span className="trusted-card__cat">{client.category}</span>
