@@ -8,7 +8,9 @@ import './style/SidebarNav.css'
 const SIDEBAR_WIDTH = '320px'             // Lebar panel sidebar saat terbuka
 const BURGER_TOP = '0.95rem'               // Jarak tombol burger dari atas viewport
 const BURGER_RIGHT = '2.2rem'             // Jarak tombol burger dari kanan viewport
+const COMPACT_BREAKPOINT_PX = 600          // <= lebar ini (mobile): Hero pakai burger, bukan navbar tengah-atas
 const SIDEBAR_ANIM_DURATION = '0.35s'     // Kecepatan slide-in drawer
+const HERO_NAV_TOP = '1.1rem'             // Jarak navbar tengah-atas (khusus Hero) dari atas viewport
 
 // Sesuai Perbaikan 1.1 di target.txt:
 // 1. Background burger 90% transparan (0.1 opacity) dengan efek inner blur 10px
@@ -20,6 +22,28 @@ const SIDEBAR_BLUR_PX = 10                // Efek blur 10px
 
 export default function SidebarNav({ activeSection, onSelectSection }) {
   const [isOpen, setIsOpen] = useState(false)
+
+  const isHero = activeSection === 1
+
+  // Deteksi layar kecil (mobile). Di mobile, Hero juga memakai burger.
+  const [isCompact, setIsCompact] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(`(max-width: ${COMPACT_BREAKPOINT_PX}px)`).matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${COMPACT_BREAKPOINT_PX}px)`)
+    const onChange = (e) => setIsCompact(e.matches)
+    setIsCompact(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  const showHeroNav = isHero && !isCompact   // navbar tengah-atas: Hero + desktop saja
+  const showBurger = !isHero || isCompact    // burger: Section 2+ di semua layar, plus Hero di mobile
+
+  // Kalau burger disembunyikan (Hero di desktop) saat drawer masih terbuka, tutup drawer
+  useEffect(() => {
+    if (!showBurger) setIsOpen(false)
+  }, [showBurger])
 
   // Tutup sidebar saat tombol Escape ditekan
   useEffect(() => {
@@ -48,6 +72,14 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
     { id: 5, num: '05', title: 'Kontak & Kolaborasi', desc: 'Mulai Diskusi Proyek' },
   ]
 
+  // Label singkat untuk navbar Hero (tengah-atas)
+  const heroNavItems = [
+    { id: 2, label: 'Tentang' },
+    { id: 3, label: 'Tawaran' },
+    { id: 4, label: 'Portfolio' },
+    { id: 5, label: 'Kontak' },
+  ]
+
   const handleNavClick = (sectionId) => {
     setIsOpen(false)
     if (onSelectSection) {
@@ -57,10 +89,31 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
 
   return (
     <>
-      {/* Tombol Burger Fixed di Pojok Kanan Atas */}
+      {/* Navbar tengah-atas — hanya tampil di Hero (Section 1) */}
+      <nav
+        className={`hero-topnav ${showHeroNav ? 'hero-topnav--visible' : ''}`}
+        style={{ top: HERO_NAV_TOP }}
+        aria-label="Navigasi utama"
+        aria-hidden={!showHeroNav}
+      >
+        {heroNavItems.map((item) => (
+          <button
+            key={item.id}
+            className="hero-topnav__link"
+            type="button"
+            tabIndex={showHeroNav ? 0 : -1}
+            onClick={() => handleNavClick(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Tombol Burger Fixed di Pojok Kanan Atas — hanya tampil di Section 2 dst. */}
       <button
-        className={`burger-btn ${isOpen ? 'burger-btn--open' : ''}`}
+        className={`burger-btn ${isOpen ? 'burger-btn--open' : ''} ${showBurger ? '' : 'burger-btn--hidden'}`}
         type="button"
+        tabIndex={showBurger ? 0 : -1}
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? 'Tutup navigasi' : 'Buka navigasi'}
         style={{

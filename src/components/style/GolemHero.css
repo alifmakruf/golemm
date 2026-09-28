@@ -187,9 +187,11 @@
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 1rem;
   margin-top: 15.5rem;
-  right: 0;
+  width: 100%;
+  max-width: 480px;
 }
 
 .btn-primary {
@@ -304,6 +306,8 @@
   .golem-hero__content-right {
     grid-column: unset;
     margin-left: 0;
+    margin-top: 30vh;
+    /* geser turun 30% tinggi layar */
     width: 100%;
     max-width: 480px;
     text-align: center;
@@ -351,14 +355,15 @@
 /* Smartphone kecil (<= 480px) */
 @media (max-width: 500px) {
   .golem-hero__canvas-container {
-    margin-top: 12vh;
+    margin-top: 22vh;
     width: min(75vw, 230px);
     height: min(75vw, 230px);
     aspect-ratio: 1 / 1;
   }
 
   .golem-hero__content-right {
-    margin-top: 10px;
+    margin-top: calc(17vh + 10px);
+    /* 30vh + 10px bawaanmu */
   }
 
   .hero-stats {

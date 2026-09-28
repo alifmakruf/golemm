@@ -60,8 +60,9 @@ const CAMERA_TRANSITION_SPEED = 2.6
 // dan warna langit dipindahkan ke layer CSS terpisah (.app-sky-layer di App.jsx) yang
 // berada di belakang headline text, dan headline text berada di belakang Canvas ini.
 // SKY_COLOR tetap di-export supaya App.jsx bisa memakai warna yang sama persis.
-export const SKY_COLOR = '#414857ff'  // Warna langit abu di belakang gunung
+export const SKY_COLOR = '#1c1e24ff'  // Warna langit abu di belakang gunung
 const TERRAIN_SPAWN_Y = -3.2        // Posisi awal gunung di bawah (world unit)
+const TERRAIN_OFFSET_Y = -0.6       // Posisi akhir (diam) gunung di sumbu Y. 0 = posisi asli, negatif = turun, positif = naik
 const TERRAIN_ANIM_DURATION = 2.5   // Durasi naik gunung saat web dibuka (detik)
 
 // ================== Parameter Tuning: Salju & Badai Angin ==================
@@ -308,7 +309,7 @@ function TerrainModel({ scene, animations, activeSection = 1 }) {
       progressRef.current = Math.min(1, progressRef.current + delta / TERRAIN_ANIM_DURATION)
       const ease = 1 - Math.pow(1 - progressRef.current, 3)
       if (groupRef.current) {
-        groupRef.current.position.y = THREE.MathUtils.lerp(TERRAIN_SPAWN_Y, 0, ease)
+        groupRef.current.position.y = THREE.MathUtils.lerp(TERRAIN_SPAWN_Y, TERRAIN_OFFSET_Y, ease)
       }
     }
 
