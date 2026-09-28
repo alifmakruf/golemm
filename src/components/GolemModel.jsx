@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
+import { golemPointerState } from './pointerState.js'
 import * as THREE from 'three'
 
 // ---- Tuning constants -------------------------------------------------
@@ -35,6 +36,12 @@ const WIREFRAME_SCAN_FEATHER = 0.25 // kehalusan gradasi tepi lingkaran pindai
 const WIREFRAME_SCALE_OFFSET = 1.001 // sedikit membesar dari mesh asli, mencegah z-fighting
 const WIREFRAME_INCLUDE_EYES = true    // true = mata ikut dibungkus wireframe juga
 
+// ---- Tampilan material golem -------------------------------------------
+const STONE_BRIGHTNESS = 0.55           // 1 = warna asli, <1 = lebih gelap (mis. 0.4 = jauh lebih gelap)
+const CRACK_MATERIAL_NAME = 'Material.005' // material retakan/aksen biru gelap
+const CRACK_GLOW_COLOR = '#1e9bff'      // warna cahaya retakan
+const CRACK_GLOW_INTENSITY = 0.8        // 0 = tidak menyala, ~0.5-1.5 = menyala halus, >2 = terang
+
 const degToRad = (deg) => (deg * Math.PI) / 180
 
 // Helper: pasang mesh dengan geometry + transform (posisi/rotasi/skala)
@@ -62,36 +69,6 @@ function Part({ node, material, innerRef, extraChildren }) {
     >
       {extraChildren}
     </mesh>
-  )
-}
-
-// Overlay wireframe untuk satu bagian golem. Memakai geometry yang sama
-// persis dengan Part aslinya (termasuk morph target alis, supaya wireframe
-// ikut "berubah bentuk" saat animasi kedip/gerak jalan), tapi di-scale
-// sedikit lebih besar (WIREFRAME_SCALE_OFFSET) supaya garisnya tidak
-// tenggelam/z-fighting dengan permukaan solid batu di baliknya.
-function WireframePart({ node, material, innerRef }) {
-  if (!node) return null
-  const scale = useMemo(
-    () => new THREE.Vector3(
-      node.scale.x * WIREFRAME_SCALE_OFFSET,
-      node.scale.y * WIREFRAME_SCALE_OFFSET,
-      node.scale.z * WIREFRAME_SCALE_OFFSET,
-    ),
-    [node],
-  )
-  return (
-    <mesh
-      ref={innerRef}
-      geometry={node.geometry}
-      material={material}
-      position={node.position}
-      rotation={node.rotation}
-      scale={scale}
-      morphTargetDictionary={node.morphTargetDictionary}
-      morphTargetInfluences={node.morphTargetInfluences}
-      renderOrder={1}
-    />
   )
 }
 
@@ -243,16 +220,82 @@ export default function GolemModel({
     return mat
   }, [materials])
 
-  // Per-mesh stone materials
-  const stoneMats = useMemo(() => {
-    const base = materials && Object.values(materials)[0]
-    if (!base) return { kepalaatas: undefined, mulutbawah: undefined, alis: undefined }
-    return {
-      kepalaatas: base.clone(),
-      mulutbawah: base.clone(),
-      alis: base.clone(),
+  // CATATAN: kepalaatas / mulutbawah / alis sekarang masing-masing punya BEBERAPA
+  // primitive dengan material berbeda (batu bertekstur + aksen biru gelap), sehingga
+  // three.js memuatnya sebagai Group berisi beberapa Mesh, bukan satu Mesh. Karena itu
+  // node-nya dipasang apa adanya lewat <primitive> (material asli dari GLB dipertahankan)
+  // dan wireframe dibuat per-mesh di dalam efek di bawah.
+
+  // Gelapkan batu & buat retakan (Material.005) sedikit bercahaya.
+  // Material di-clone per mesh supaya material asli di cache useGLTF tidak ikut berubah;
+  // dikembalikan lagi saat unmount.
+  useLayoutEffect(() => {
+    const cache = new Map()
+    const restore = []
+    const tune = (orig) => {
+      if (cache.has(orig)) return cache.get(orig)
+      const c = orig.clone()
+      if (orig.name === CRACK_MATERIAL_NAME) {
+        c.emissive = new THREE.Color(CRACK_GLOW_COLOR)
+        c.emissiveIntensity = CRACK_GLOW_INTENSITY
+      } else if (c.color) {
+        c.color.multiplyScalar(STONE_BRIGHTNESS)
+      }
+      cache.set(orig, c)
+      return c
     }
-  }, [materials])
+      ;[nodes?.kepalaatas, nodes?.mulutbawah, nodes?.alis].forEach((n) => {
+        if (!n) return
+        n.traverse((o) => {
+          if (!o.isMesh || o.userData.isScanOverlay || !o.material) return
+          const original = o.material
+          restore.push([o, original])
+          o.material = Array.isArray(original) ? original.map(tune) : tune(original)
+        })
+      })
+    return () => {
+      restore.forEach(([o, m]) => { o.material = m })
+      cache.forEach((c) => c.dispose())
+    }
+  }, [nodes])
+
+  // Overlay wireframe pemindai: satu overlay untuk SETIAP mesh di dalam node golem.
+  // Overlay dipasang sebagai CHILD dari mesh aslinya, jadi otomatis ikut semua
+  // animasi (translasi/rotasi/skala/morph) tanpa perlu disinkronkan manual.
+  useEffect(() => {
+    const targets = []
+      ;[nodes?.kepalaatas, nodes?.mulutbawah, nodes?.alis].forEach((n) => {
+        if (!n) return
+        n.traverse((o) => {
+          if (o.isMesh && !o.userData.isScanOverlay) {
+            o.castShadow = true
+            o.receiveShadow = true
+            targets.push(o)
+          }
+        })
+      })
+    if (!WIREFRAME_ENABLED) return
+
+    if (WIREFRAME_INCLUDE_EYES) {
+      ;[eyeRightRef.current, eyeLeftRef.current].forEach((m) => m && targets.push(m))
+    }
+
+    const overlays = targets.map((m) => {
+      const ov = new THREE.Mesh(m.geometry, wireframeMaterial)
+      ov.scale.setScalar(WIREFRAME_SCALE_OFFSET)
+      ov.renderOrder = 1
+      ov.userData.isScanOverlay = true
+      ov.raycast = () => { } // overlay tidak ikut raycast klik/hover
+      if (m.morphTargetInfluences) {
+        ov.morphTargetInfluences = m.morphTargetInfluences
+        ov.morphTargetDictionary = m.morphTargetDictionary
+      }
+      m.add(ov)
+      return ov
+    })
+
+    return () => overlays.forEach((ov) => ov.parent && ov.parent.remove(ov))
+  }, [nodes, wireframeMaterial])
 
   useEffect(() => {
     if (nodes?.matakanan) basePositions.current.right.copy(nodes.matakanan.position)
@@ -327,6 +370,7 @@ export default function GolemModel({
         }
       }
 
+      golemPointerState.overModel = isHovering
       const targetOpacity = isHovering ? WIREFRAME_MAX_OPACITY : 0
       wireframeOpacity.current += (targetOpacity - wireframeOpacity.current) * (1 - Math.exp(-WIREFRAME_FADE_SPEED * delta))
       uniformsRef.current.uOpacity.value = wireframeOpacity.current
@@ -337,9 +381,9 @@ export default function GolemModel({
   return (
     <group ref={pivotRef}>
       <group ref={centeredRef}>
-        <Part node={nodes.kepalaatas} material={stoneMats.kepalaatas} />
-        <Part node={nodes.mulutbawah} material={stoneMats.mulutbawah} />
-        <Part node={nodes.alis} material={stoneMats.alis} />
+        {nodes.kepalaatas && <primitive object={nodes.kepalaatas} />}
+        {nodes.mulutbawah && <primitive object={nodes.mulutbawah} />}
+        {nodes.alis && <primitive object={nodes.alis} />}
 
         <Part
           node={nodes.matakanan}
@@ -357,20 +401,6 @@ export default function GolemModel({
             <pointLight color={EYE_GLOW_COLOR} intensity={EYE_LIGHT_INTENSITY} distance={0.6} decay={2} />
           }
         />
-
-        {WIREFRAME_ENABLED && (
-          <>
-            <WireframePart node={nodes.kepalaatas} material={wireframeMaterial} />
-            <WireframePart node={nodes.mulutbawah} material={wireframeMaterial} />
-            <WireframePart node={nodes.alis} material={wireframeMaterial} />
-            {WIREFRAME_INCLUDE_EYES && (
-              <>
-                <WireframePart node={nodes.matakanan} material={wireframeMaterial} />
-                <WireframePart node={nodes.matakiri} material={wireframeMaterial} />
-              </>
-            )}
-          </>
-        )}
       </group>
     </group>
   )
