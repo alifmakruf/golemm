@@ -151,13 +151,6 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
       onPointerMove={handlePointerMove}
     >
       {/* Efek Garis Angin Kencang (Wind Streaks) saat badai di Section 2 */}
-      <div className="wind-overlay" aria-hidden="true">
-        <span className="wind-gust wind-gust--1" />
-        <span className="wind-gust wind-gust--2" />
-        <span className="wind-gust wind-gust--3" />
-        <span className="wind-gust wind-gust--4" />
-        <span className="wind-gust wind-gust--5" />
-      </div>
 
       {/* Header bar navigasi Section 2 */}
       <header className="section-two__header">
@@ -191,12 +184,11 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
             className="glass-card glass-card--left"
             style={{ transform: leftCardTransform }}
           >
-            <div className="glass-card__specular" />
-            <div className="glass-card__rim-glow" />
+            {/* <div className="glass-card__specular" />
+            <div className="glass-card__rim-glow" /> */}
 
             <div className="glass-card__inner">
               <div className="card-badge">
-                <span className="card-badge__number">01</span>
                 <span className="card-badge__text">Tentang GOLEM.inc</span>
               </div>
 
@@ -210,9 +202,9 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
               </p>
 
               <div className="card-tags">
-                <span className="card-tag">Inti Bebatuan Purba</span>
-                <span className="card-tag">Kristalisasi Abadi</span>
-                <span className="card-tag">Penjaga Pegunungan</span>
+                <span className="card-tag">UI Focused</span>
+                <span className="card-tag">3D WebGL</span>
+                <span className="card-tag">IOT</span>
               </div>
             </div>
           </article>
@@ -237,12 +229,11 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
               className="glass-card glass-card--right"
               style={{ transform: rightCardTransform }}
             >
-              <div className="glass-card__specular" />
-              <div className="glass-card__rim-glow" />
+              {/* <div className="glass-card__specular" />
+              <div className="glass-card__rim-glow" /> */}
 
               <div className="glass-card__inner">
-                <div className="card-badge card-badge--gold">
-                  <span className="card-badge__number">02</span>
+                <div className="card-badge">
                   <span className="card-badge__text">VISI & TUJUAN</span>
                 </div>
 
@@ -286,7 +277,6 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
 
       {/* Footer hint */}
       <footer className="section-two__footer">
-        <span className="footer-hint">...</span>
       </footer>
     </section>
   )

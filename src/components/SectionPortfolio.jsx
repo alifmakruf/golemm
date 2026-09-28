@@ -23,7 +23,7 @@ const SHEET_TRANSITION_DURATION = '0.9s'
 
 // 5. Data Kontak Pribadi (Bisa langsung diubah di sini)
 const CONTACT_DATA = {
-  name: 'Alif Makruf',
+  name: 'MOHAMMAD FIRMAN ALIF MARUF',
   role: 'Creative WebGL & 3D Web Engineer',
   email: 'alifmakruf098@gmail.com',
   phone: '+62 857-0633-6657',
@@ -276,7 +276,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
           onClick={onBackTo3D}
           title="Kembali ke Pengalaman 3D Gunung (Section 3)"
         >
-          <span className="btn-back-to-3d__arrow">←</span>
+          <span className="btn-back-to-3d__arrow">{'<'}</span>
           <span>Back to the Mountain</span>
         </button>
       </nav>
@@ -288,8 +288,8 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
         <div className="section-four__container">
           {/* Headline & Sub-headline Section 4 */}
           <div className="section-four__header" ref={section4HeaderRef}>
-            <span className="section-label">Get IN</span>
-            <h1 className="section-headline">Enaugh!, lets check Our portfolio!</h1>
+            <span className="section-label">Get In</span>
+            <h1 className="section-headline">Cukup!, Saatnya Melihat Hasil Karya Kami.</h1>
             <p className="section-subheadline">
               Karya terpilih dalam rekayasa grafis 3D WebGL, interaksi imersif, dan visualisasi telemetri IoT.
             </p>
@@ -344,7 +344,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
                     onClick={() => handleInterested(proj.title)}
                   >
                     <span>I'm Interested</span>
-                    <span className="btn-interested__arrow">→</span>
+                    <span className="btn-interested__arrow">{'>'}</span>
                   </button>
                 </div>
               </div>
@@ -357,7 +357,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
               <span className="tech-badge">CORE CAPABILITIES</span>
               <h2 className="tech-title">Teknologi & Engine yang Digunakan</h2>
               <p className="tech-subtitle">
-                Fondasi teknologi handal untuk menghadirkan performa 60 FPS dan stabilitas jangka panjang.
+                Fondasi teknologi handal untuk menghadirkan performa yang optimal dan stabilitas jangka panjang.
               </p>
             </div>
 
@@ -417,7 +417,6 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
             {/* Kolom Kiri: Detail Kontak & Sosial Media */}
             <div className="contact-info-card">
               <div className="contact-status-indicator">
-                <span className="status-ping" />
                 <span className="status-text">{CONTACT_DATA.status}</span>
               </div>
 
@@ -529,7 +528,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
 
                   <button type="submit" className="btn-submit-contact">
                     <span>Kirim Pesan Sekarang</span>
-                    <span className="btn-submit__arrow">→</span>
+                    <span className="btn-submit__arrow">{'>'}</span>
                   </button>
                 </form>
               )}

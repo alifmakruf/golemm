@@ -271,7 +271,6 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
                   <div className="card-s3__preview">
                     {item.iconSvg}
                     <div className="card-s3__badge">
-                      <span className="card-s3__badge-num">{item.id}</span>
                       <span className="card-s3__badge-txt">{item.badge}</span>
                     </div>
                   </div>

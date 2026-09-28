@@ -46,13 +46,13 @@ const PARALLAX_CANVAS = 6 // canvas golem bergerak saat mouse move
 const LIGHTS = {
   ambient: {
     color: '#ffffff',
-    intensity: 1.2,
+    intensity: 0.2,
   },
   // Lampu utama (key light): menerangi bentuk & tekstur batu
   key: {
     color: '#fffef5',
     position: [4, 4, 3],
-    intensity: 2.8,
+    intensity: 0.8,
   },
   // Lampu pengisi (fill light): aksen biru langit lembut
   fill: {
