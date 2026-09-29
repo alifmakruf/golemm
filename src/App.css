@@ -166,3 +166,18 @@
     scroll-behavior: smooth;
   }
 }
+
+/* ==========================================================================
+   FIX FUNGSIONAL (tanpa mengubah tampilan): tombol Hero tidak bisa di-tap di HP.
+   Section 2 & 3 selalu ter-mount, position:fixed, dengan z-index (10+) di atas
+   Hero (z-index 4). Di CSS mobile keduanya diberi pointer-events:auto, jadi
+   walau transparan mereka menelan semua tap. Saat Section 1 (Hero) aktif,
+   Section 2 & 3 memang tidak terlihat -> aman dinonaktifkan sentuhannya.
+   Class ini hanya dipasang di App.jsx ketika activeSection === 1.
+   ========================================================================== */
+.app-container--hero .section-two,
+.app-container--hero .section-two *,
+.app-container--hero .section-three,
+.app-container--hero .section-three * {
+  pointer-events: none !important;
+}

@@ -417,7 +417,10 @@ export default function App() {
   const headlineClass = isHeadlineExiting ? 'app-headline-layer--exiting' : ''
 
   return (
-    <div className="app-container" onMouseMove={!isMobile ? handleMouseMove : undefined}>
+    <div
+      className={`app-container ${activeSection === 1 ? 'app-container--hero' : ''}`}
+      onMouseMove={!isMobile ? handleMouseMove : undefined}
+    >
       {/* Loading Screen */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
