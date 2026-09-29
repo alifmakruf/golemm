@@ -275,12 +275,14 @@
   color: #222222;
 }
 
-.btn-interested {
+/* Tombol "Lihat": link <a> yang membuka web asli project di tab baru */
+.btn-visit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
   width: 100%;
+  box-sizing: border-box;
   padding: 0.75rem 1.4rem;
   margin-top: 0.8rem;
   background: #38bdf8;
@@ -290,22 +292,23 @@
   font-family: inherit;
   font-size: 0.92rem;
   font-weight: 800;
+  text-decoration: none;
   cursor: pointer;
   transition: background-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
 }
 
-.btn-interested:hover {
+.btn-visit:hover {
   background: #7dd3fc;
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(56, 189, 248, 0.4);
 }
 
-.btn-interested__arrow {
+.btn-visit__arrow {
   font-size: 1.1rem;
   transition: transform 0.2s ease;
 }
 
-.btn-interested:hover .btn-interested__arrow {
+.btn-visit:hover .btn-visit__arrow {
   transform: translateX(4px);
 }
 

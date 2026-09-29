@@ -64,11 +64,6 @@ function EditorialContent({ animClass, topic1Transform, topic2Transform, animKey
           interaktif, artistik, dan responsif — terutama pada integrasi visual real-time dan IoT.
         </p>
 
-        <div className="topic-tags">
-          <span className="topic-tag">Inti Bebatuan Purba</span>
-          <span className="topic-tag">Kristalisasi Abadi</span>
-          <span className="topic-tag">Penjaga Pegunungan</span>
-        </div>
       </div>
 
       {/* TOPIK 2: Pojok Kanan Bawah (Tujuan & Visi) */}
@@ -92,12 +87,6 @@ function EditorialContent({ animClass, topic1Transform, topic2Transform, animKey
           Menghadirkan eksplorasi karakter interaktif, pencahayaan atmosferik dinamis, serta simulasi cuaca
           yang stabil 60 FPS dan ringan tanpa kompromi kualitas visual.
         </p>
-
-        <div className="topic-tags">
-          <span className="topic-tag topic-tag--highlight">WebGL 60 FPS</span>
-          <span className="topic-tag">Interaktif Parallax</span>
-          <span className="topic-tag">Sinematik Bloom</span>
-        </div>
       </div>
     </>
   )

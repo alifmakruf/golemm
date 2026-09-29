@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import gsap from 'gsap'
 import { EASE } from '../gsap/eases.js'
 import './style/SectionPortfolio.css'
@@ -33,6 +33,7 @@ const CONTACT_DATA = {
 
 // Data 4 Project Portfolio sesuai target.txt
 // Parameter path gambar (src): Anda dapat mengubah path file gambar ini sesuai aset yang diletakkan di src/assets/ atau public/
+// Parameter url: link web asli project (dibuka di tab baru lewat tombol "Lihat"). GANTI dengan link asli Anda.
 const PROJECTS = [
   {
     id: 'proj-1',
@@ -44,6 +45,7 @@ const PROJECTS = [
     accentColor: '#38bdf8',
     // Ganti path gambar berikut sesuai nama file Anda di src/assets/
     image: '/project-1.png',
+    url: 'https://golemm.vercel.app',
   },
   {
     id: 'proj-2',
@@ -54,6 +56,7 @@ const PROJECTS = [
     bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
     accentColor: '#60a5fa',
     image: '/project-2.png',
+    url: 'https://hao-web-lyart.vercel.app',
   },
   {
     id: 'proj-3',
@@ -64,6 +67,7 @@ const PROJECTS = [
     bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
     accentColor: '#34d399',
     image: '/project-3.png',
+    url: 'https://firmanalif.vercel.app',
   },
   {
     id: 'proj-4',
@@ -74,6 +78,7 @@ const PROJECTS = [
     bgGradient: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)',
     accentColor: '#c084fc',
     image: '/project-4.png',
+    url: 'https://agrowatch-seven.vercel.app',
   },
 ]
 
@@ -118,18 +123,6 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
       setShowMoreModal(false)
     }
   }, [isVisible])
-
-  // Handler klik tombol "I'm Interested" pada card portfolio
-  const handleInterested = useCallback((projectName) => {
-    setFormData((prev) => ({
-      ...prev,
-      subject: `Tertarik dengan proyek ${projectName}`,
-    }))
-    // Scroll mulus langsung ke form di Section 5
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -321,7 +314,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
                   </div>
                 </div>
 
-                {/* 2. Tampilan Saat Hover: Reveal Detail Tech Stack, Deskripsi & Tombol I'm Interested */}
+                {/* 2. Tampilan Saat Hover: Reveal Detail Tech Stack, Deskripsi & Tombol Lihat */}
                 <div className="portfolio-card__hover-content">
                   <div className="hover-header">
                     <h3 className="hover-title">{proj.title}</h3>
@@ -338,14 +331,16 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
                     ))}
                   </div>
 
-                  <button
-                    className="btn-interested"
-                    type="button"
-                    onClick={() => handleInterested(proj.title)}
+                  <a
+                    className="btn-visit"
+                    href={proj.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Lihat ${proj.title} (buka di tab baru)`}
                   >
-                    <span>I'm Interested</span>
-                    <span className="btn-interested__arrow">{'>'}</span>
-                  </button>
+                    <span>Lihat</span>
+                    <span className="btn-visit__arrow">{'>'}</span>
+                  </a>
                 </div>
               </div>
             ))}
