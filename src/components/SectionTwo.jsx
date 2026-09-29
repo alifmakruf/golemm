@@ -32,7 +32,7 @@ const SPOTLIGHT_RADIUS_PX = 130         // Radius jangkauan penerangan kursor (p
 const SPOTLIGHT_CORE_PERCENT = 35       // Persentase area pusat cahaya yang paling terang penuh (%)
 
 // Warna & Outline Teks Saat Diterangi Radius:
-const LIT_TEXT_COLOR = '#ff7070ff'        // Warna isi teks saat terkena cahaya radius
+const LIT_TEXT_COLOR = '#ff00ffff'        // Warna isi teks saat terkena cahaya radius
 const LIT_OUTLINE_COLOR_T1 = '#ff0000ff'  // Warna outline teks Topik 1 (Cyan)
 const LIT_OUTLINE_COLOR_T2 = '#ff0000ff'  // Warna outline teks Topik 2 (Gold)
 const LIT_OUTLINE_WIDTH = '.2px'       // Ketebalan outline teks (stroke)
