@@ -158,13 +158,7 @@ const SectionTwo = forwardRef(function SectionTwo({ onBack, onNext, isVisible },
       onPointerMove={handlePointerMove}
     >
       {/* Efek Garis Angin Kencang (Wind Streaks) saat badai di Section 2 */}
-      <div className="wind-overlay" aria-hidden="true">
-        <span className="wind-gust wind-gust--1" />
-        <span className="wind-gust wind-gust--2" />
-        <span className="wind-gust wind-gust--3" />
-        <span className="wind-gust wind-gust--4" />
-        <span className="wind-gust wind-gust--5" />
-      </div>
+
 
       {/* Stage 3D dengan Perspective View */}
       <div className="section-two__stage">
