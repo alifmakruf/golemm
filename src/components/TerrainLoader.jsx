@@ -117,7 +117,7 @@ const S3_LIGHTING = {
 // dan warna langit dipindahkan ke layer CSS terpisah (.app-sky-layer di App.jsx) yang
 // berada di belakang headline text, dan headline text berada di belakang Canvas ini.
 // SKY_COLOR tetap di-export supaya App.jsx bisa memakai warna yang sama persis.
-export const SKY_COLOR = '#15161aff'  // Warna langit abu di belakang gunung
+export const SKY_COLOR = '#0c0c0fff'  // Warna langit abu di belakang gunung
 const TERRAIN_SPAWN_Y = -3.2        // Posisi awal gunung di bawah (world unit)
 const TERRAIN_OFFSET_Y = -0.6       // Posisi akhir (diam) gunung di sumbu Y. 0 = posisi asli, negatif = turun, positif = naik
 const TERRAIN_ANIM_DURATION = 2.5   // Durasi naik gunung saat web dibuka (detik)
