@@ -550,25 +550,20 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
             <div className="more-drawer" ref={moreDrawerRef}>
               <div className="more-drawer__grid">
                 <div className="more-drawer__col">
-                  <h4>Workflow & Standar Mutu</h4>
+                  <h4>Version 2 coming soon</h4>
                   <p>
-                    Setiap pengerjaan dimulai dari riset interaksi, prototipe 3D, pemodelan asset ringan,
-                    hingga integrasi WebGL 60 FPS dan audit performa Lighthouse.
+                    version 2.0 is coming soon, with more features and improvements.
                   </p>
                 </div>
                 <div className="more-drawer__col">
-                  <h4>Optimasi Hardware & Mobile</h4>
+                  <h4>References</h4>
                   <p>
-                    Penggunaan Level-of-Detail (LOD), adaptive pixel ratio, dan dynamic shader quality
-                    menjamin website tetap mulus di smartphone kelas menengah sekalipun.
+                    igloo.inc, lusion.co, reactbits.dev,
                   </p>
                 </div>
                 <div className="more-drawer__col">
-                  <h4>Curriculum Vitae</h4>
-                  <p>Unduh berkas CV lengkap untuk rekapitulasi riwayat pengalaman profesional dan sertifikasi.</p>
-                  <a href="#cv-download" className="btn-cv-download">
-                    Download Resume (PDF)
-                  </a>
+                  <h4>Effect</h4>
+                  <p>wireframe wafe, parallax, Glassmorphism, splash cursor, spotlight, bloom</p>
                 </div>
               </div>
               <footer className="more-drawer__footer">

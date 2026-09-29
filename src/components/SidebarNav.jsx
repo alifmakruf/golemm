@@ -179,7 +179,7 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
 
         <div className="sidebar-footer">
           <span className="sidebar-footer-text">GOLEM.inc 3D Experience</span>
-          <span className="sidebar-version">Version 2.0</span>
+          <span className="sidebar-version">Version 1.9</span>
         </div>
       </aside>
     </>
