@@ -275,6 +275,25 @@ export default function App() {
     }
   }, [activeSection, lockNav])
 
+  // Section 2 & 3 kadang isinya lebih tinggi dari layar di HP (card-card jadi
+  // ditumpuk vertikal), sehingga container-nya punya scroll internal sendiri
+  // (lihat overflow-y:auto di CSS masing-masing pada breakpoint mobile).
+  // Helper ini mengecek apakah container tsb sudah mentok atas/bawah —
+  // dipakai supaya swipe/scroll HANYA memicu pindah section saat pembaca
+  // benar-benar sudah sampai ujung, bukan di tengah membaca isi section.
+  // Di desktop (tanpa overflow, scrollHeight === clientHeight) hasilnya
+  // selalu "sudah mentok kedua sisi", sehingga perilaku lama (langsung
+  // pindah) tetap seperti semula.
+  const getScrollBoundary = (selector) => {
+    const el = document.querySelector(selector)
+    if (!el) return { atTop: true, atBottom: true }
+    const atTop = el.scrollTop <= 1
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+    return { atTop, atBottom }
+  }
+
+  const SCROLLABLE_SECTION_SELECTOR = { 2: '.section-two', 3: '.section-three' }
+
   // Wheel (mouse/trackpad desktop)
   useEffect(() => {
     if (!isLoadingComplete) return
@@ -282,11 +301,24 @@ export default function App() {
     const onWheel = (e) => {
       if (Math.abs(e.deltaY) < SCROLL_WHEEL_THRESHOLD) return
 
-      if (activeSection <= 3) {
-        // Section 1-3: dunia 3D full-screen, scroll SELALU berarti pindah section.
+      if (activeSection === 1) {
+        // Hero: tidak ada scroll internal, scroll SELALU berarti pindah section.
         e.preventDefault()
         if (e.deltaY > 0) goNext()
-        else goBack()
+        return
+      }
+
+      const selector = SCROLLABLE_SECTION_SELECTOR[activeSection]
+      if (selector) {
+        const { atTop, atBottom } = getScrollBoundary(selector)
+        if (e.deltaY > 0 && atBottom) {
+          e.preventDefault()
+          goNext()
+        } else if (e.deltaY < 0 && atTop) {
+          e.preventDefault()
+          goBack()
+        }
+        // Selain itu: biarkan scroll native jalan di dalam section (belum mentok).
         return
       }
 
@@ -321,9 +353,16 @@ export default function App() {
       const dy = startY - endY // positif = swipe ke atas (niat maju)
       if (Math.abs(dy) < SWIPE_THRESHOLD_PX) return
 
-      if (activeSection <= 3) {
+      if (activeSection === 1) {
         if (dy > 0) goNext()
-        else goBack()
+        return
+      }
+
+      const selector = SCROLLABLE_SECTION_SELECTOR[activeSection]
+      if (selector) {
+        const { atTop, atBottom } = getScrollBoundary(selector)
+        if (dy > 0 && atBottom) goNext()
+        else if (dy < 0 && atTop) goBack()
         return
       }
 
