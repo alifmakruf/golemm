@@ -5,6 +5,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { useTerrainWaves } from './TerrainWaves.jsx'
 import VolumetricClouds from './VolumetricClouds.jsx'
+import TerrainFog from './TerrainFog.jsx'
 
 // ================== Parameter Tuning: Animasi Keyframe Model Terrain ==================
 // 1. Play sekali saat pertama buka web setelah fadeinup selesai
@@ -384,6 +385,10 @@ function TerrainModel({ scene, animations, activeSection = 1 }) {
   return (
     <group ref={groupRef} position={[0, TERRAIN_SPAWN_Y, 0]}>
       <primitive object={scene} />
+
+      {/* Kabut asap tipis yang mengalir mengelilingi terrain (parameter: FOG_CONFIG di TerrainFog.jsx).
+          Dipasang di dalam group ini agar ikut naik saat animasi gunung muncul. */}
+      <TerrainFog scene={scene} activeSection={activeSection} />
     </group>
   )
 }
