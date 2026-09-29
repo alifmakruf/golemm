@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import './style/SectionThree.css'
 
 // ================== Tuning Parameter: Section 3 (Tawaran Kami) ==================
@@ -35,7 +35,7 @@ const PARALLAX_TRANSLATION_X = 36        // Geser horizontal maksimum card (px)
 const PARALLAX_TRANSLATION_Y = 29        // Geser vertikal maksimum card (px)
 const PARALLAX_DEPTH_Z = 20              // Jarak kedalaman Z saat parallax (px)
 
-export default function SectionThree({ onBack, onNext, isVisible }) {
+const SectionThree = forwardRef(function SectionThree({ onBack, onNext, isVisible }, ref) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const stageRef = useRef(null)
 
@@ -108,6 +108,13 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
       if (onNext) onNext()
     }, SECTION_EXIT_DELAY_MS)
   }, [isExiting, onNext])
+
+  // Dipanggil dari App.jsx lewat scroll (menggantikan tombol Next/Back lama) —
+  // tetap memainkan animasi keluar yang sama sebelum benar-benar pindah section.
+  useImperativeHandle(ref, () => ({
+    next: handleNext,
+    back: handleBack,
+  }), [handleNext, handleBack])
 
   const showSection = isVisible || isExiting
 
@@ -220,16 +227,6 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
     >
       {/* Header bar navigasi Section 3 */}
       <header className="section-three__header">
-        <button
-          className="btn-back-s3"
-          type="button"
-          onClick={handleBack}
-          title="Kembali ke Latar Belakang & Visi (Section 2)"
-        >
-          <span className="btn-back-s3__arrow">{'<'}</span>
-          <span>Back</span>
-        </button>
-
         {/* Headline & Sub-headline Section 3 sesuai target.txt */}
         <div className="section-three__headings">
           <h2 className="s3-headline">Tawaran kami</h2>
@@ -292,21 +289,10 @@ export default function SectionThree({ onBack, onNext, isVisible }) {
             </div>
           )
         })}
-
-        {/* Tombol Next dipindah ke dalam stage, agar posisinya menempel di bawah
-            card persis seperti pola section-two__center-nav di Section Two */}
-        <footer className={`section-three__footer ${footerReady && !isExiting ? 'section-three__footer--visible' : ''}`}>
-          <button
-            className="btn-s3-action"
-            type="button"
-            onClick={handleNext}
-            title="Lanjut ke Portfolio (Section 4)"
-          >
-            <span className="btn-s3-action__text">Next</span>
-            <span className="btn-s3-action__arrow">{'>'}</span>
-          </button>
-        </footer>
       </div>
     </section>
   )
 }
+)
+
+export default SectionThree

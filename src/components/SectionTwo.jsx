@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import './style/SectionTwo.css'
 
 // ================== Tuning Parameter: Section 2 (Latar Belakang & Tujuan) ==================
@@ -30,7 +30,7 @@ const PARALLAX_TRANSLATION_X = 11       // Geser horizontal maksimum card (px)
 const PARALLAX_TRANSLATION_Y = 9       // Geser vertikal maksimum card (px)
 const PARALLAX_DEPTH_Z = 12             // Jarak kedalaman Z saat parallax (px)
 
-export default function SectionTwo({ onBack, onNext, isVisible }) {
+const SectionTwo = forwardRef(function SectionTwo({ onBack, onNext, isVisible }, ref) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const stageRef = useRef(null)
 
@@ -94,6 +94,13 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
     }, SECTION_EXIT_DELAY_MS)
   }, [isExiting, onNext])
 
+  // Dipanggil dari App.jsx lewat scroll (menggantikan tombol Next/Back lama) —
+  // tetap memainkan animasi keluar yang sama sebelum benar-benar pindah section.
+  useImperativeHandle(ref, () => ({
+    next: handleNext,
+    back: handleBack,
+  }), [handleNext, handleBack])
+
   const showSection = isVisible || isExiting
 
   const entranceClass = isExiting
@@ -151,19 +158,13 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
       onPointerMove={handlePointerMove}
     >
       {/* Efek Garis Angin Kencang (Wind Streaks) saat badai di Section 2 */}
-
-      {/* Header bar navigasi Section 2 */}
-      <header className="section-two__header">
-        <button
-          className="btn-back"
-          type="button"
-          onClick={handleBack}
-          title="Kembali ke Hero Section"
-        >
-          <span className="btn-back__arrow">{'<'}</span>
-          <span>Back</span>
-        </button>
-      </header>
+      <div className="wind-overlay" aria-hidden="true">
+        <span className="wind-gust wind-gust--1" />
+        <span className="wind-gust wind-gust--2" />
+        <span className="wind-gust wind-gust--3" />
+        <span className="wind-gust wind-gust--4" />
+        <span className="wind-gust wind-gust--5" />
+      </div>
 
       {/* Stage 3D dengan Perspective View */}
       <div className="section-two__stage">
@@ -184,8 +185,6 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
             className="glass-card glass-card--left"
             style={{ transform: leftCardTransform }}
           >
-            {/* <div className="glass-card__specular" />
-            <div className="glass-card__rim-glow" /> */}
 
             <div className="glass-card__inner">
               <div className="card-badge">
@@ -202,9 +201,9 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
               </p>
 
               <div className="card-tags">
-                <span className="card-tag">UI Focused</span>
-                <span className="card-tag">3D WebGL</span>
-                <span className="card-tag">IOT</span>
+                <span className="card-tag">Inti Bebatuan Purba</span>
+                <span className="card-tag">Kristalisasi Abadi</span>
+                <span className="card-tag">Penjaga Pegunungan</span>
               </div>
             </div>
           </article>
@@ -229,8 +228,6 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
               className="glass-card glass-card--right"
               style={{ transform: rightCardTransform }}
             >
-              {/* <div className="glass-card__specular" />
-              <div className="glass-card__rim-glow" /> */}
 
               <div className="glass-card__inner">
                 <div className="card-badge">
@@ -259,25 +256,15 @@ export default function SectionTwo({ onBack, onNext, isVisible }) {
           {/* Tombol Next di bawah Card 2 */}
 
         </div>{/* end col2 */}
-        <div
-          key={`center-nav-${animKey}`}
-          className={`section-two__center-nav ${cardsReady && !isExiting ? 'section-two__center-nav--play' : ''} ${isExiting ? 'section-two__center-nav--exit' : ''}`}
-        >
-          <button
-            className="btn-next-step"
-            type="button"
-            onClick={handleNext}
-            title="Lanjut ke Tawaran Kami (Section 3)"
-          >
-            <span className="btn-next-step__text">Next</span>
-            <span className="btn-next-step__arrow">{'>'}</span>
-          </button>
-        </div>
       </div>
 
       {/* Footer hint */}
       <footer className="section-two__footer">
+        <span className="footer-hint">...</span>
       </footer>
     </section>
   )
 }
+)
+
+export default SectionTwo

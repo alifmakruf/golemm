@@ -60,6 +60,11 @@ const HEADLINE_RETURN_DELAY_MS = 600           // Jeda waktu (ms) sebelum headli
 const HEADLINE_ENTRANCE_DURATION = 0.85        // Durasi masuk headline (detik)
 const HEADLINE_EXIT_DURATION = 0.65            // Durasi keluar headline (detik)
 
+// 5. Navigasi Scroll (menggantikan tombol Next/Back manual di Section 2 & 3)
+const SCROLL_NAV_COOLDOWN_MS = 900      // Jeda minimum antar perpindahan section via scroll/swipe
+const SCROLL_WHEEL_THRESHOLD = 35       // Ambang deltaY scroll mouse/trackpad supaya dianggap "niat pindah"
+const SWIPE_THRESHOLD_PX = 60           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
+
 export default function App() {
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
   const [activeSection, setActiveSection] = useState(1)
@@ -67,6 +72,13 @@ export default function App() {
   const { active, progress } = useProgress()
   const timerRef = useRef(null)
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
+
+  // Refs imperative ke Section 2 & 3 (untuk memicu animasi keluar yang sama
+  // seperti tombol Next/Back lama, dipanggil dari handler scroll di bawah)
+  const section2Ref = useRef(null)
+  const section3Ref = useRef(null)
+  const scrollLockRef = useRef(false)   // true selama transisi section berjalan (cegah trigger dobel)
+  const touchStartYRef = useRef(null)
 
   // Refs untuk elemen DOM
   const fogRef = useRef(null)
@@ -215,6 +227,120 @@ export default function App() {
   }, [active, progress, isLoadingComplete])
 
   // Handler pemilihan section dari Sidebar Nav burger menu
+  // Kunci sementara supaya satu gesture scroll/swipe hanya memicu SATU
+  // perpindahan section, walau event wheel/touch terus menerus datang selama
+  // animasi transisi berjalan.
+  const lockNav = useCallback(() => {
+    scrollLockRef.current = true
+    setTimeout(() => {
+      scrollLockRef.current = false
+    }, SCROLL_NAV_COOLDOWN_MS)
+  }, [])
+
+  // ============================================================
+  // NAVIGASI SCROLL — menggantikan tombol Next/Back manual.
+  // Section 1->2->3 dipicu via ref imperative (next/back) supaya animasi
+  // keluar Section 2 & 3 yang sudah ada (card meluncur turun dll) tetap
+  // jalan persis seperti saat tombolnya masih ada. Section 3->4 memakai
+  // jalur yang sama (section3Ref.next() memanggil onNext -> setActiveSection(4)).
+  // Section 4/5 (sheet 2D) discroll biasa lewat browser; hanya saat sheet
+  // berada TEPAT di paling atas dan user scroll ke ATAS lagi, itu dianggap
+  // sebagai niat "kembali ke 3D" (activeSection 3).
+  // ============================================================
+  const goNext = useCallback(() => {
+    if (scrollLockRef.current) return
+    if (activeSection === 1) {
+      lockNav()
+      setActiveSection(2)
+    } else if (activeSection === 2 && section2Ref.current) {
+      lockNav()
+      section2Ref.current.next()
+    } else if (activeSection === 3 && section3Ref.current) {
+      lockNav()
+      section3Ref.current.next()
+    }
+  }, [activeSection, lockNav])
+
+  const goBack = useCallback(() => {
+    if (scrollLockRef.current) return
+    if (activeSection === 2 && section2Ref.current) {
+      lockNav()
+      section2Ref.current.back()
+    } else if (activeSection === 3 && section3Ref.current) {
+      lockNav()
+      section3Ref.current.back()
+    } else if (activeSection === 4 || activeSection === 5) {
+      lockNav()
+      setActiveSection(3)
+    }
+  }, [activeSection, lockNav])
+
+  // Wheel (mouse/trackpad desktop)
+  useEffect(() => {
+    if (!isLoadingComplete) return
+
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaY) < SCROLL_WHEEL_THRESHOLD) return
+
+      if (activeSection <= 3) {
+        // Section 1-3: dunia 3D full-screen, scroll SELALU berarti pindah section.
+        e.preventDefault()
+        if (e.deltaY > 0) goNext()
+        else goBack()
+        return
+      }
+
+      // Section 4/5 (sheet 2D): biarkan scroll normal di dalam sheet, KECUALI
+      // saat sudah mentok di paling atas dan masih scroll ke atas -> balik ke 3D.
+      if (activeSection === 4 || activeSection === 5) {
+        const sheet = document.querySelector('.portfolio-page-2d')
+        if (sheet && e.deltaY < 0 && sheet.scrollTop <= 0) {
+          e.preventDefault()
+          goBack()
+        }
+      }
+    }
+
+    window.addEventListener('wheel', onWheel, { passive: false })
+    return () => window.removeEventListener('wheel', onWheel)
+  }, [isLoadingComplete, activeSection, goNext, goBack])
+
+  // Swipe (layar sentuh mobile)
+  useEffect(() => {
+    if (!isLoadingComplete) return
+
+    const onTouchStart = (e) => {
+      touchStartYRef.current = e.touches[0]?.clientY ?? null
+    }
+
+    const onTouchEnd = (e) => {
+      const startY = touchStartYRef.current
+      touchStartYRef.current = null
+      if (startY == null) return
+      const endY = e.changedTouches[0]?.clientY ?? startY
+      const dy = startY - endY // positif = swipe ke atas (niat maju)
+      if (Math.abs(dy) < SWIPE_THRESHOLD_PX) return
+
+      if (activeSection <= 3) {
+        if (dy > 0) goNext()
+        else goBack()
+        return
+      }
+
+      if (activeSection === 4 || activeSection === 5) {
+        const sheet = document.querySelector('.portfolio-page-2d')
+        if (sheet && dy < 0 && sheet.scrollTop <= 0) goBack()
+      }
+    }
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [isLoadingComplete, activeSection, goNext, goBack])
+
   const handleSelectSection = useCallback((secId) => {
     setActiveSection(secId)
     if (secId === 4) {
@@ -384,6 +510,7 @@ export default function App() {
       {/* Section 2 Layer: 3D Car-Glass Cards (Latar Belakang & Visi) */}
       {isLoadingComplete && (
         <SectionTwo
+          ref={section2Ref}
           isVisible={activeSection === 2}
           onBack={() => setActiveSection(1)}
           onNext={() => setActiveSection(3)}
@@ -393,6 +520,7 @@ export default function App() {
       {/* Section 3 Layer: 3D Car-Glass Cards (Tawaran Kami) */}
       {isLoadingComplete && (
         <SectionThree
+          ref={section3Ref}
           isVisible={activeSection === 3}
           onBack={() => setActiveSection(2)}
           onNext={() => setActiveSection(4)}
