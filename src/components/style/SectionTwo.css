@@ -636,6 +636,10 @@
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    /* Tanpa ini, swipe ke bawah saat sudah mentok di paling atas section bisa
+       memicu pull-to-refresh/navigasi native browser (bukan navigasi section
+       kita sendiri) -- itulah yang menyebabkan halaman ter-refresh. */
+    overscroll-behavior-y: contain;
     display: block;
     /* Mengizinkan scroll vertikal normal di mobile */
     height: 100vh;

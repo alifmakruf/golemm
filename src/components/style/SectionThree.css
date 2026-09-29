@@ -471,6 +471,8 @@
   .section-three {
     padding: 1.2rem 1rem;
     overflow-y: auto;
+    /* Sama seperti Section 2: cegah pull-to-refresh native saat mentok atas. */
+    overscroll-behavior-y: contain;
   }
 
   .section-three__stage {

@@ -23,6 +23,11 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   overflow-x: hidden;
+  /* Jaring pengaman: cegah pull-to-refresh native browser di mobile ikut
+     terpicu saat salah satu section (yang scroll-nya kita kendalikan sendiri
+     lewat App.jsx) mentok di paling atas. Section masing-masing juga sudah
+     diberi overscroll-behavior-y: contain sendiri; ini cadangannya. */
+  overscroll-behavior-y: none;
 }
 
 #root {
