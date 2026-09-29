@@ -427,7 +427,7 @@ export default function GolemHero({ onExplore, isExiting, isActive = true }) {
 
           <div className="hero-actions">
             <button className="btn-primary" type="button" onClick={onExplore}>
-              Jelajahi Sekarang →
+              Jelajahi Sekarang
             </button>
             {/* <button className="btn-secondary" type="button">
               Lihat Demo
