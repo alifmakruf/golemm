@@ -25,14 +25,14 @@ import { golemPointerState } from './pointerState.js'
 // ================== Parameter Tuning: Wave Wireframe ==================
 const WAVE_ENABLED = true
 const WAVE_MAX_SECTION = 3            // Gelombang aktif di Section 1..N (Section 4 & 5 = mode 2D, nonaktif)
-const WAVE_COLOR = '#dcedff'          // Warna garis wireframe (sama dengan wireframe Golem)
+const WAVE_COLOR = '#6e878f'          // Warna garis wireframe (sama dengan wireframe Golem)
 const WAVE_MAX_OPACITY = 0.5          // Opasitas maksimum garis pada puncak gelombang (0-1)
-const WAVE_SPEED = 3.2                // Kecepatan gelombang menyebar (world unit / detik)
+const WAVE_SPEED = 1.2                // Kecepatan gelombang menyebar (world unit / detik)
 const WAVE_WIDTH = 0.2                // Ketebalan cincin gelombang (world unit)
-const WAVE_LIFE = 2.4                 // Berapa lama gelombang hidup sebelum hilang (detik)
+const WAVE_LIFE = 4.4                 // Berapa lama gelombang hidup sebelum hilang (detik)
 const WAVE_LIFT = 0.12                // Tinggi angkatan vertex di puncak gelombang (world unit). 0 = tanpa angkatan
 const WAVE_DEPTH_BIAS = 0.03          // Dorongan kecil ke arah kamera supaya garis tidak "z-fighting" dengan permukaan
-const WAVE_MAX_COUNT = 2              // Maks. gelombang bersamaan (klik beruntun akan menimpa yang paling lama)
+const WAVE_MAX_COUNT = 4              // Maks. gelombang bersamaan (klik beruntun akan menimpa yang paling lama)
 
 // Klik pada elemen-elemen ini TIDAK memicu gelombang (UI interaktif)
 const WAVE_IGNORE_SELECTOR =
