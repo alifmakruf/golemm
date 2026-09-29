@@ -1,402 +1,509 @@
-/* Animasi shake, fall-debris, fadeInUpContent & fadeInUpCanvas sudah dipindah
-   ke GSAP (lihat src/components/GolemHero.jsx & src/gsap/eases.js). */
+/* ==========================================================================
+   Section 2: Editorial Full-Text Typography
+   Fitur: Lampu Sorot Radius Kursor Transparan (Spotlight Mask Reveal)
+   Hanya bagian teks yang terkena radius kursor yang bersinar & memiliki outline.
+   ========================================================================== */
 
-.golem-hero {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  overflow: hidden;
-  background-color: transparent;
-  background-image: none;
-  z-index: 2;
+/* --------------------------------------------------------------------------
+   PARAMETER TUNING CSS
+   -------------------------------------------------------------------------- */
+:root {
+  /* Ukuran Tipografi Desktop */
+  --s2-headline-size: clamp(2.2rem, 4.2vw, 3.8rem);
+  --s2-subheadline-size: clamp(0.95rem, 1.3vw, 1.2rem);
+  --s2-paragraph-size: clamp(0.9rem, 1.5vw, 1.2rem);
+
+  /* Batas Lebar Blok Teks */
+  --s2-block-max-width: 480px;
+
+  /* Jarak dari Tepi Layar */
+  --s2-edge-offset-x: clamp(2.5rem, 6vw, 6rem);
+  --s2-edge-offset-y: clamp(2.5rem, 6.5vh, 5.5rem);
+
+  /* Warna Standar Teks (Kondisi Gelap / Normal Sebelum Disinari Kursor) */
+  --s2-accent-cyan: #38bdf8;
+  --s2-accent-gold: #fde047;
+  --s2-text-primary: #ffffff;
+  --s2-text-secondary: #94a3b8;
+  --s2-text-paragraph: #cbd5e18a;
 }
 
-/* ---------- Debris/Krikil Jatuh ---------- */
-.debris-container {
+/* Container Layar Penuh Section 2 */
+.section-two-editorial {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.section-two-editorial--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------------
+   SISTEM LAYER DUAL (BASE + LIT SPOTLIGHT MASK)
+   -------------------------------------------------------------------------- */
+.editorial-layer {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  overflow: hidden;
-  z-index: 100;
 }
 
-.debris-particle {
-  position: absolute;
-  top: 0;
-  background: linear-gradient(135deg, #94a3b8 0%, #cbd5e1 50%, #e2e8f0 100%);
-  border-radius: 2px;
-  box-shadow:
-    inset -1px -1px 2px rgba(0, 0, 0, 0.3),
-    inset 1px 1px 1px rgba(255, 255, 255, 0.5),
-    0 2px 4px rgba(0, 0, 0, 0.2);
-  /* Animasi jatuh (fall-debris) sekarang dijalankan lewat GSAP per-partikel di GolemHero.jsx */
+.editorial-layer--base {
+  z-index: 11;
 }
 
-/* Susunan lapisan (z-index):
-   0  -> .golem-hero__backdrop (gradasi biru-kuning lembut & grid aksen)
-   1  -> .golem-hero__canvas (model 3D golem)
-   2  -> .golem-hero__content (konten hero di kanan) */
-
-/* ---------- Modern Light Backdrop ---------- */
-.golem-hero__backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
+/* Layer yang bersinar: HANYA terlihat di area yang terpotong radius lingkaran kursor!
+   Radius kursor 100% transparan (tanpa border visual), murni sebagai topeng cahaya (mask) */
+.editorial-layer--lit {
+  z-index: 13;
   pointer-events: none;
-  overflow: hidden;
-  will-change: transform;
-  transition: transform 0.12s ease-out;
+  -webkit-mask-image: radial-gradient(circle var(--spotlight-radius, 160px) at var(--mouse-x, -9999px) var(--mouse-y, -9999px),
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 0.95) var(--spotlight-core, 35%),
+      rgba(0, 0, 0, 0) 100%);
+  mask-image: radial-gradient(circle var(--spotlight-radius, 160px) at var(--mouse-x, -9999px) var(--mouse-y, -9999px),
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 0.95) var(--spotlight-core, 35%),
+      rgba(0, 0, 0, 0) 100%);
 }
 
-.modern-glow {
+/* --------------------------------------------------------------------------
+   BLOK TOPIK (Typography Containers)
+   Default opacity: 0 agar tersembunyi saat transisi kamera
+   -------------------------------------------------------------------------- */
+.topic-block {
   position: absolute;
-  border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.3;
-  /* Reduced dari 0.75 ke 0.3 - agar gunung lebih terlihat */
-  pointer-events: none;
-  /* Animasi melayang (modern-float) sekarang dijalankan lewat GSAP di GolemHero.jsx */
-}
-
-.modern-glow--blue {
-  top: 5%;
-  left: 10%;
-  width: min(50vw, 550px);
-  height: min(50vw, 550px);
-  background: radial-gradient(circle, rgba(186, 230, 253, 0.3) 0%, rgba(186, 230, 253, 0) 70%);
-  /* Reduced opacity */
-}
-
-.modern-glow--yellow {
-  top: 10%;
-  right: 8%;
-  width: min(45vw, 500px);
-  height: min(45vw, 500px);
-  background: radial-gradient(circle, rgba(254, 240, 138, 0.25) 0%, rgba(254, 240, 138, 0) 70%);
-  /* Reduced opacity */
-}
-
-.modern-grid-pattern {
-  position: absolute;
-  inset: 0;
-  background-image: none;
-  display: none;
-}
-
-/* ---------- Golem canvas: diperbesar dari clamp(380px,60vh,560px) supaya
-   golem yang sekarang digeser ke pojok (lihat GolemHero.jsx) punya ruang
-   pandang lebih lega dan tidak terasa mepet ke tepi container. Perhatikan:
-   pencegahan clipping yang sesungguhnya diatur lewat CAMERA_POSITION/FOV
-   di GolemHero.jsx — ukuran container ini hanya memberi "kanvas" visual
-   yang lebih besar. ---------- */
-.golem-hero__canvas-container {
-  width: 100%;
-  height: clamp(460px, 68vh, 660px);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-  /* penting: agar terima pointer events untuk onPointerEnter/Leave */
-  /* Entrance (fadeInUpCanvas) sekarang dijalankan lewat GSAP di GolemHero.jsx */
-  opacity: 0;
-  transform: translateY(100px);
-  will-change: transform;
-  transition: transform 0.12s ease-out;
-}
-
-.golem-hero__canvas-container canvas {
-  background: transparent !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* ---------- Split Hero Layout ----------
-   Kolom kiri (canvas) dibesarkan sedikit (1fr -> 1.15fr) mengikuti canvas
-   yang diperbesar; kolom kanan (teks) tetap diberi porsi nyaman (1.15fr)
-   supaya tetap seimbang meski golem sekarang lebih kecil & di pojok. */
-.golem-hero__content {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 1280px;
-  display: grid;
-  grid-template-columns: 1.15fr 1.15fr;
-  /* sisi kiri untuk model golem, kanan untuk teks */
-  align-items: center;
-  gap: 2.5rem;
-  pointer-events: none;
-}
-
-.golem-hero__content-right {
-  grid-column: 2;
-  margin-left: 30px;
-  text-align: left;
-  pointer-events: auto;
+  max-width: var(--s2-block-max-width);
   display: flex;
   flex-direction: column;
-  gap: 1.4rem;
-  /* Entrance (fadeInUpContent) sekarang dijalankan lewat GSAP di GolemHero.jsx */
+  gap: 0.6rem;
+  will-change: transform, opacity;
+  pointer-events: none;
   opacity: 0;
-  transform: translateY(100px);
 }
 
-/* Badge */
-.hero-badge {
+/* Topik 1: Pojok Kiri Atas */
+.topic-block--top-left {
+  top: var(--s2-edge-offset-y);
+  left: var(--s2-edge-offset-x);
+  text-align: left;
+}
+
+/* Topik 2: Pojok Kanan Bawah */
+.topic-block--bottom-right {
+  bottom: var(--s2-edge-offset-y);
+  right: var(--s2-edge-offset-x);
+  text-align: left;
+}
+
+/* --------------------------------------------------------------------------
+   ELEMEN TIPOGRAFI STANDAR (LAYER DASAR)
+   -------------------------------------------------------------------------- */
+.topic-kicker {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  width: fit-content;
-  padding: 0.4rem 1rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(14, 165, 233, 0.25);
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.08);
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: #0284c7;
-  letter-spacing: 0.02em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--s2-accent-cyan);
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
 }
 
-.hero-badge__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #0284c7;
-  box-shadow: 0 0 8px #38bdf8;
+.topic-kicker--gold {
+  color: var(--s2-accent-gold);
 }
 
-/* Subtitle */
-.hero-subtitle {
+.topic-kicker__label {
+  letter-spacing: 0.14em;
+  opacity: 0.9;
+}
+
+.topic-headline {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: var(--s2-headline-size);
+  font-weight: 850;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   margin: 0;
-  font-family: var(--font-body);
-  font-size: clamp(1rem, 1.3vw, 1.12rem);
-  line-height: 1.7;
-  color: #00b7ff;
-  max-width: 480px;
+  color: var(--s2-text-primary);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
 }
 
-/* Actions / Buttons */
-.hero-actions {
+.topic-headline__accent {
+  background: linear-gradient(135deg, #ffffff 30%, var(--s2-accent-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.topic-headline__accent--gold {
+  background: linear-gradient(135deg, #ffffff 30%, var(--s2-accent-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.topic-subheadline {
+  font-family: inherit;
+  font-size: var(--s2-subheadline-size);
+  font-weight: 600;
+  color: var(--s2-text-secondary);
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.topic-paragraph {
+  font-family: inherit;
+  font-size: var(--s2-paragraph-size);
+  font-weight: 700;
+  line-height: 1.7;
+  color: var(--s2-text-paragraph);
+  margin: 0.35rem 0 0.6rem 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  max-width: 440px;
+}
+
+.topic-tags {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 15.5rem;
-  width: 100%;
-  max-width: 480px;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
 }
 
-.btn-primary {
-  padding: 0.9rem 2.2rem;
-  border-radius: 999px;
-  border: none;
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
-  color: #ffffff;
-  font-family: var(--font-body);
-  font-size: 0.98rem;
+.topic-tag {
+  font-size: 0.76rem;
   font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 10px 24px -6px rgba(14, 165, 233, 0.45);
-  transition: all 0.25s ease;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.btn-primary:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
-  box-shadow: 0 14px 28px -6px rgba(14, 165, 233, 0.55);
-  transform: translateY(-2px);
+.topic-tag--highlight {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #bae6fd;
 }
 
-.btn-secondary {
-  padding: 0.9rem 2rem;
-  border-radius: 999px;
-  border: 1px solid rgba(203, 213, 225, 0.8);
-  background: rgba(255, 255, 255, 0.8);
-  color: #334155;
-  font-family: var(--font-body);
-  font-size: 0.98rem;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  transition: all 0.25s ease;
+/* --------------------------------------------------------------------------
+   STYLING KHUSUS LAYER YANG DISINARI KURSOR (LIT / ILLUMINATED)
+   Hanya muncul pada bagian teks yang terkena radius kursor
+   -------------------------------------------------------------------------- */
+.editorial-layer--lit .topic-block--lit {
+  filter: drop-shadow(0 0 16px rgba(0, 0, 0, 0.8));
 }
 
-.btn-secondary:hover {
-  background: #ffffff;
-  border-color: #94a3b8;
-  color: #0f172a;
-  transform: translateY(-2px);
+/* Topik 1 Saat Disinari (Outline Cyan + Pendaran Cahaya) */
+.editorial-layer--lit .topic-block--top-left .topic-headline,
+.editorial-layer--lit .topic-block--top-left .topic-subheadline,
+.editorial-layer--lit .topic-block--top-left .topic-paragraph,
+.editorial-layer--lit .topic-block--top-left .topic-kicker__label {
+  color: var(--s2-lit-color, #ffffff) !important;
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t1, #38bdf8);
+  text-shadow: var(--s2-lit-glow-spread, 0 0 16px) var(--s2-lit-outline-t1, #38bdf8);
 }
 
-/* Stats Cards */
-.hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.85rem;
-  margin-top: 1rem;
-  max-width: 480px;
+.editorial-layer--lit .topic-block--top-left .topic-headline__accent {
+  -webkit-text-fill-color: var(--s2-lit-color, #ffffff);
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t1, #38bdf8);
 }
 
-.stat-card {
-  padding: 1rem 1.1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.editorial-layer--lit .topic-block--top-left .topic-tag {
+  border-color: var(--s2-lit-outline-t1, #38bdf8) !important;
+  background-color: rgba(56, 189, 248, 0.28) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
 }
 
-.stat-card__val {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: #d8d8d8;
+/* Topik 2 Saat Disinari (Outline Gold + Pendaran Cahaya) */
+.editorial-layer--lit .topic-block--bottom-right .topic-headline,
+.editorial-layer--lit .topic-block--bottom-right .topic-subheadline,
+.editorial-layer--lit .topic-block--bottom-right .topic-paragraph,
+.editorial-layer--lit .topic-block--bottom-right .topic-kicker__label {
+  color: var(--s2-lit-color, #ffffff) !important;
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t2, #fde047);
+  text-shadow: var(--s2-lit-glow-spread, 0 0 16px) var(--s2-lit-outline-t2, #fde047);
 }
 
-.stat-card__lbl {
-  font-family: var(--font-body);
-  font-size: 0.78rem;
-  color: #a8a8a8;
-  font-weight: 500;
+.editorial-layer--lit .topic-block--bottom-right .topic-headline__accent {
+  -webkit-text-fill-color: var(--s2-lit-color, #ffffff);
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t2, #fde047);
 }
 
-/* Responsive: Tablet & Mobile (tetap 100vh & 100vw tanpa scroll) */
-@media (max-width: 960px) {
-  .golem-hero {
-    height: 100vh;
-    width: 100vw;
-    padding: 0;
-    align-items: flex-start;
-    justify-content: flex-start;
-    overflow: hidden;
+.editorial-layer--lit .topic-block--bottom-right .topic-tag {
+  border-color: var(--s2-lit-outline-t2, #fde047) !important;
+  background-color: rgba(254, 240, 138, 0.28) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(254, 240, 138, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+   ANIMASI MASUK (Dimainkan SETELAH kamera selesai transisi)
+   -------------------------------------------------------------------------- */
+.topic-block--top-left.topic-block--play {
+  animation: s2SlideFromTopLeft var(--enter-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1) both;
+  pointer-events: auto;
+}
+
+.topic-block--bottom-right.topic-block--play {
+  animation: s2SlideFromBottomRight var(--enter-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1) var(--stagger-delay, 0.16s) both;
+  pointer-events: auto;
+}
+
+@keyframes s2SlideFromTopLeft {
+  0% {
+    opacity: 0;
+    transform: translate3d(calc(-1 * var(--slide-dist, 28px)), -18px, 0);
   }
 
-  .golem-hero__content {
+  60% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes s2SlideFromBottomRight {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--slide-dist, 28px), 18px, 0);
+  }
+
+  60% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ANIMASI KELUAR (Dimainkan SEBELUM section berganti)
+   -------------------------------------------------------------------------- */
+.topic-block--top-left.topic-block--exit {
+  animation: s2ExitTopLeft var(--exit-dur, 0.55s) cubic-bezier(0.4, 0, 0.7, 0.2) both !important;
+  pointer-events: none;
+}
+
+.topic-block--bottom-right.topic-block--exit {
+  animation: s2ExitBottomRight var(--exit-dur, 0.55s) cubic-bezier(0.4, 0, 0.7, 0.2) both !important;
+  pointer-events: none;
+}
+
+@keyframes s2ExitTopLeft {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  40% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(-1.2 * var(--slide-dist, 28px)), -16px, 0);
+  }
+}
+
+@keyframes s2ExitBottomRight {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  40% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(1.2 * var(--slide-dist, 28px)), 16px, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIF MOBILE & TABLET (max-width: 960px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 960px) {
+
+  /* ========================================================================
+     PARAMETER TUNING RESPONSIF MOBILE (SECTION 2)
+     ======================================================================== */
+  :root {
+    --s2-mobile-pad-top: 5rem;
+    /* Jarak aman dari tombol burger di bagian atas layar (px/rem) */
+    --s2-mobile-pad-bottom: 3.5rem;
+    /* Jarak aman tepi bawah layar (px/rem) */
+    --s2-mobile-pad-x: 1.25rem;
+    /* Jarak tepi kiri & kanan layar (px/rem) */
+    --s2-mobile-gap: 2rem;
+    /* Jarak pemisah vertikal antara Topik 1 & Topik 2 */
+    --s2-mobile-headline-size: clamp(1.75rem, 6.2vw, 2.15rem);
+    /* Ukuran teks judul headline */
+    --s2-mobile-subheadline-size: 0.92rem;
+    /* Ukuran teks sub-judul */
+    --s2-mobile-paragraph-size: 0.85rem;
+    /* Ukuran teks paragraf */
+  }
+
+  /* Di layar sentuh/HP, layer spotlight kursor dimatikan demi efisiensi & performa 60 FPS */
+  .editorial-layer--lit {
+    display: none !important;
+  }
+
+  .section-two-editorial {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    /* pointer-events: auto;  <- DIHAPUS: membuat Section 2 (transparan) menutupi
+       hero & menelan semua tap saat tidak aktif. Diatur ulang di bawah. */
+  }
+
+  /* Layer dasar mengalir fleksibel dengan padding aman dari header / burger */
+  .editorial-layer--base {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: flex-start;
-    width: 100%;
-    height: 100%;
-    padding: 0 1.25rem;
-    gap: 0.5rem;
-    margin: 0;
+    padding: var(--s2-mobile-pad-top) var(--s2-mobile-pad-x) var(--s2-mobile-pad-bottom) var(--s2-mobile-pad-x);
+    box-sizing: border-box;
+    gap: var(--s2-mobile-gap);
+    pointer-events: auto;
   }
 
-  /* Golem ditaruh di atas, di tengah, dengan rasio 1:1 proporsional agar tidak gepeng */
-  .golem-hero__canvas-container {
-    margin-top: 14vh;
-    width: min(85vw, 280px);
-    height: min(85vw, 280px);
-    aspect-ratio: 1 / 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: auto;
-    margin-right: auto;
-    flex-shrink: 0;
+  .topic-block {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    right: auto !important;
+    max-width: 100% !important;
+    transform: none !important;
+    pointer-events: auto;
+    opacity: 0;
   }
 
-  /* Hero headline berada rapi di bawah golem */
-  .golem-hero__content-right {
-    grid-column: unset;
-    margin-left: 0;
-    margin-top: 30vh;
-    /* geser turun 30% tinggi layar */
-    width: 100%;
-    max-width: 480px;
-    text-align: center;
-    align-items: center;
-    gap: 0.75rem;
+  /* Topik 1 diberi padding kanan agar tidak menabrak tombol burger */
+  .topic-block--top-left {
+    margin-bottom: 0;
+    padding-right: 3.5rem;
   }
 
-  .hero-subtitle {
-    margin: 0 auto;
-    font-size: 0.95rem;
+  .topic-block--bottom-right {
+    margin-top: 0;
   }
 
-  .hero-actions {
-    justify-content: center;
-    margin-top: 0.2rem;
+  .topic-headline {
+    font-size: var(--s2-mobile-headline-size);
+    line-height: 1.12;
   }
 
-  .btn-primary {
-    padding: 0.75rem 1.8rem;
-    font-size: 0.92rem;
+  .topic-subheadline {
+    font-size: var(--s2-mobile-subheadline-size);
+    line-height: 1.35;
   }
 
-  .hero-stats {
-    margin: 0.4rem auto 0;
-    gap: 0.5rem;
-    width: 100%;
-    max-width: 380px;
+  .topic-paragraph {
+    font-size: var(--s2-mobile-paragraph-size);
+    line-height: 1.62;
+    max-width: 100%;
+    color: rgba(226, 232, 240, 0.85);
   }
 
-  .stat-card {
-    padding: 0.5rem 0.6rem;
-    border-radius: 12px;
-    gap: 0.15rem;
+  .topic-tags {
+    gap: 0.4rem;
+    margin-top: 0.35rem;
   }
 
-  .stat-card__val {
-    font-size: 0.88rem;
+  .topic-tag {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.65rem;
   }
 
-  .stat-card__lbl {
-    font-size: 0.7rem;
-  }
-}
-
-/* Smartphone kecil (<= 480px) */
-@media (max-width: 500px) {
-  .golem-hero__canvas-container {
-    margin-top: 22vh;
-    width: min(75vw, 230px);
-    height: min(75vw, 230px);
-    aspect-ratio: 1 / 1;
+  /* Animasi entrance mobile: transisi fade-up vertikal yang halus & natural */
+  .topic-block--top-left.topic-block--play,
+  .topic-block--bottom-right.topic-block--play {
+    animation-name: s2FadeUpMobile !important;
+    animation-duration: 0.65s !important;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+    animation-fill-mode: both !important;
   }
 
-  .golem-hero__content-right {
-    margin-top: calc(17vh + 10px);
-    /* 30vh + 10px bawaanmu */
+  .topic-block--bottom-right.topic-block--play {
+    animation-delay: 0.12s !important;
   }
 
-  .hero-stats {
-    max-width: 320px;
-    gap: 0.35rem;
+  @keyframes s2FadeUpMobile {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
   }
 
-  .stat-card {
-    padding: 0.4rem 0.45rem;
+  .topic-block--top-left.topic-block--exit,
+  .topic-block--bottom-right.topic-block--exit {
+    animation-name: s2FadeDownMobile !important;
+    animation-duration: 0.45s !important;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.7, 0.2) !important;
+    animation-fill-mode: both !important;
   }
 
-  .stat-card__val {
-    font-size: 0.8rem;
+  @keyframes s2FadeDownMobile {
+    0% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0);
+    }
   }
 
-  .stat-card__lbl {
-    font-size: 0.64rem;
+  /* FIX TOMBOL "JELAJAHI SEKARANG" DI MOBILE:
+     Saat Section 2 tidak aktif, seluruh elemen di dalamnya tidak boleh
+     menangkap sentuhan (termasuk anak yang punya pointer-events: auto). */
+  .section-two-editorial:not(.section-two-editorial--visible),
+  .section-two-editorial:not(.section-two-editorial--visible) * {
+    pointer-events: none !important;
   }
-}
 
-/* ==========================================================================
-/* ==========================================================================
-   Tuning: Animasi Transisi Hero Exit & Re-enter dikendalikan 100% oleh GSAP
-   di GolemHero.jsx agar bebas tabrakan CSS dan gerakannya smooth 60fps.
-   ========================================================================== */
-.golem-hero--exiting {
-  pointer-events: none !important;
-}
-
-.golem-hero--waiting {
-  pointer-events: none !important;
-}
-
-.golem-hero--entering {
-  pointer-events: auto;
+  .section-two-editorial--visible {
+    pointer-events: auto;
+  }
 }
