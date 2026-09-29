@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { useTerrainWaves } from './TerrainWaves.jsx'
+import VolumetricClouds from './VolumetricClouds.jsx'
 
 // ================== Parameter Tuning: Animasi Keyframe Model Terrain ==================
 // 1. Play sekali saat pertama buka web setelah fadeinup selesai
@@ -52,6 +53,60 @@ const S3_CAMERA_TARGET = [
 
 // Kecepatan gerak kamera antar section (lerp) — 2.6 agar kamera sampai tepat waktu saat kartu terbit
 const CAMERA_TRANSITION_SPEED = 2.6
+
+// ================== Parameter Tuning: Pencahayaan Terrain (Section 1, 2, 3) ==================
+// Kecepatan transisi perubahan intensitas & warna cahaya saat berpindah section (lerp)
+const LIGHT_TRANSITION_SPEED = 2.4
+
+// Posisi sumber cahaya 3D di dunia [X, Y, Z]
+const LIGHT_DIR_POS = [5.00, 6.00, 4.00]      // Arah datang cahaya utama matahari
+const LIGHT_SPOT_POS = [0.00, 4.00, -6.00]    // Titik sorot lampu atas gunung
+const LIGHT_FILL_POS = [-8.00, 3.00, 2.00]    // Cahaya isi/pantulan samping kiri
+
+// --- PENCAHAYAAN SECTION 1 (Hero - Terang, Segar, Kontras Alami) ---
+const S1_LIGHTING = {
+  ambientIntensity: 1.,       // Terang cahaya lingkungan merata
+  ambientColor: '#8aa2be',     // Warna ambient (biru abu sejuk)
+  dirIntensity: .8,           // Kekuatan matahari utama
+  dirColor: '#fff4d0',         // Warna matahari (kuning hangat lembut)
+  hemiIntensity: .5,          // Cahaya kubah langit
+  hemiSkyColor: '#b0e0ff',     // Warna langit atas
+  hemiGroundColor: '#1e293b',  // Warna pantulan tanah/dasar
+  spotIntensity: 30,           // Lampu sorot puncak
+  spotColor: '#e8f4ff',        // Warna lampu sorot
+  fillIntensity: .5,          // Lampu pengisi samping
+  fillColor: '#8ec5fc',        // Warna pengisi samping
+}
+
+// --- PENCAHAYAAN SECTION 2 (Explore / Gunung Zoom - Tegas & Kontras) ---
+const S2_LIGHTING = {
+  ambientIntensity: .8,       // Terang cahaya lingkungan merata
+  ambientColor: '#8aa2be',
+  dirIntensity: .8,           // Kekuatan matahari utama
+  dirColor: '#fff4d0',
+  hemiIntensity: .5,          // Cahaya kubah langit
+  hemiSkyColor: '#b0e0ff',
+  hemiGroundColor: '#1e293b',
+  spotIntensity: 30,           // Lampu sorot puncak
+  spotColor: '#e8f4ff',
+  fillIntensity: .5,          // Lampu pengisi samping
+  fillColor: '#8ec5fc',
+}
+
+// --- PENCAHAYAAN SECTION 3 (Malam / Tebing - Gelap, Mistis, Sinar Bulan) ---
+const S3_LIGHTING = {
+  ambientIntensity: 0.75,      // Redup syahdu suasana malam
+  ambientColor: '#4a607a',
+  dirIntensity: 1.1,           // Sinar bulan redup
+  dirColor: '#c5d8ea',
+  hemiIntensity: 0.6,          // Langit malam pekat
+  hemiSkyColor: '#4f729b',
+  hemiGroundColor: '#0f172a',
+  spotIntensity: 15,           // Sorot lembut
+  spotColor: '#9ec4e8',
+  fillIntensity: 0.8,          // Pengisi malam redup
+  fillColor: '#4d7ea8',
+}
 
 // ================== Parameter Tuning: Langit & Animasi Naik ==================
 // CATATAN PENTING: SKY_COLOR TIDAK lagi dipasang sebagai scene.background di Canvas.
@@ -384,41 +439,72 @@ function CameraController({ activeSection = 1 }) {
   )
 }
 
-// Dynamic Atmospheric Lighting: Gelap & mistis di Section 3, terang di Section 1 & 2
+// Dynamic Atmospheric Lighting: lerp dinamis antar Section 1, 2, dan 3
 function DynamicLighting({ activeSection = 1 }) {
   const ambRef = useRef()
   const dirRef = useRef()
   const hemiRef = useRef()
   const spotRef = useRef()
+  const fillRef = useRef()
+
+  // Target warna (dibuat sekali untuk mencegah GC spike / lag)
+  const targetColors = useMemo(() => ({
+    amb: new THREE.Color(),
+    dir: new THREE.Color(),
+    hemiSky: new THREE.Color(),
+    hemiGround: new THREE.Color(),
+    spot: new THREE.Color(),
+    fill: new THREE.Color(),
+  }), [])
 
   useFrame((_, delta) => {
-    const isDarkSection = activeSection === 3
-    const targetAmb = isDarkSection ? 0.75 : 1.8
-    const targetDir = isDarkSection ? 1.1 : 2.8
-    const targetHemi = isDarkSection ? 0.6 : 1.5
-    const targetSpot = isDarkSection ? 15 : 30
-    const lerpRate = 1 - Math.exp(-2.2 * delta)
+    // Ambil konfigurasi pencahayaan sesuai section aktif
+    const cfg = activeSection === 3 ? S3_LIGHTING : activeSection === 2 ? S2_LIGHTING : S1_LIGHTING
+    const lerpRate = 1 - Math.exp(-LIGHT_TRANSITION_SPEED * delta)
 
-    if (ambRef.current) ambRef.current.intensity = THREE.MathUtils.lerp(ambRef.current.intensity, targetAmb, lerpRate)
-    if (dirRef.current) dirRef.current.intensity = THREE.MathUtils.lerp(dirRef.current.intensity, targetDir, lerpRate)
-    if (hemiRef.current) hemiRef.current.intensity = THREE.MathUtils.lerp(hemiRef.current.intensity, targetHemi, lerpRate)
-    if (spotRef.current) spotRef.current.intensity = THREE.MathUtils.lerp(spotRef.current.intensity, targetSpot, lerpRate)
+    if (ambRef.current) {
+      ambRef.current.intensity = THREE.MathUtils.lerp(ambRef.current.intensity, cfg.ambientIntensity, lerpRate)
+      targetColors.amb.set(cfg.ambientColor)
+      ambRef.current.color.lerp(targetColors.amb, lerpRate)
+    }
+    if (dirRef.current) {
+      dirRef.current.intensity = THREE.MathUtils.lerp(dirRef.current.intensity, cfg.dirIntensity, lerpRate)
+      targetColors.dir.set(cfg.dirColor)
+      dirRef.current.color.lerp(targetColors.dir, lerpRate)
+    }
+    if (hemiRef.current) {
+      hemiRef.current.intensity = THREE.MathUtils.lerp(hemiRef.current.intensity, cfg.hemiIntensity, lerpRate)
+      targetColors.hemiSky.set(cfg.hemiSkyColor)
+      targetColors.hemiGround.set(cfg.hemiGroundColor)
+      hemiRef.current.color.lerp(targetColors.hemiSky, lerpRate)
+      hemiRef.current.groundColor.lerp(targetColors.hemiGround, lerpRate)
+    }
+    if (spotRef.current) {
+      spotRef.current.intensity = THREE.MathUtils.lerp(spotRef.current.intensity, cfg.spotIntensity, lerpRate)
+      targetColors.spot.set(cfg.spotColor)
+      spotRef.current.color.lerp(targetColors.spot, lerpRate)
+    }
+    if (fillRef.current) {
+      fillRef.current.intensity = THREE.MathUtils.lerp(fillRef.current.intensity, cfg.fillIntensity, lerpRate)
+      targetColors.fill.set(cfg.fillColor)
+      fillRef.current.color.lerp(targetColors.fill, lerpRate)
+    }
   })
 
   return (
     <>
-      <ambientLight ref={ambRef} intensity={1.8} color="#8aa2be" />
-      <hemisphereLight ref={hemiRef} skyColor="#b0e0ff" groundColor="#1e293b" intensity={1.5} />
-      <directionalLight ref={dirRef} intensity={2.8} color="#fff4d0" position={[5.00, 6.00, 4.00]} />
+      <ambientLight ref={ambRef} intensity={S1_LIGHTING.ambientIntensity} color={S1_LIGHTING.ambientColor} />
+      <hemisphereLight ref={hemiRef} skyColor={S1_LIGHTING.hemiSkyColor} groundColor={S1_LIGHTING.hemiGroundColor} intensity={S1_LIGHTING.hemiIntensity} />
+      <directionalLight ref={dirRef} intensity={S1_LIGHTING.dirIntensity} color={S1_LIGHTING.dirColor} position={LIGHT_DIR_POS} />
       <spotLight
         ref={spotRef}
-        intensity={30}
-        color="#e8f4ff"
-        position={[0.00, 4.00, -6.00]}
+        intensity={S1_LIGHTING.spotIntensity}
+        color={S1_LIGHTING.spotColor}
+        position={LIGHT_SPOT_POS}
         angle={THREE.MathUtils.degToRad(89)}
         penumbra={0.2}
       />
-      <directionalLight intensity={1.5} color="#8ec5fc" position={[-8, 3, 2]} />
+      <directionalLight ref={fillRef} intensity={S1_LIGHTING.fillIntensity} color={S1_LIGHTING.fillColor} position={LIGHT_FILL_POS} />
     </>
   )
 }
@@ -447,6 +533,9 @@ export default function TerrainLoader({ activeSection = 1 }) {
 
       {/* Lighting dinamis: meredup gelap malam di Section 3 */}
       <DynamicLighting activeSection={activeSection} />
+
+      {/* Awan Volumetrik 3D Realistis dengan Gaussian Blur di Langit */}
+      <VolumetricClouds activeSection={activeSection} />
 
       {/* Gunung 3D dengan keyframe animasi */}
       <TerrainModel scene={scene} animations={animations} activeSection={activeSection} />

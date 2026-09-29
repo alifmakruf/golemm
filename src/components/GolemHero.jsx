@@ -437,15 +437,15 @@ export default function GolemHero({ onExplore, isExiting, isActive = true }) {
           <div className="hero-stats">
             <div className="stat-card">
               <span className="stat-card__val">WebGL</span>
-              <span className="stat-card__lbl">Enchant Your Website</span>
+              <span className="stat-card__lbl">Tingkatkan Visual Websitmu</span>
             </div>
             <div className="stat-card">
               <span className="stat-card__val">Parallax</span>
-              <span className="stat-card__lbl">Interactive cursor moving</span>
+              <span className="stat-card__lbl">Buat Website Lebih Interaktif</span>
             </div>
             <div className="stat-card">
               <span className="stat-card__val">Post-Processing</span>
-              <span className="stat-card__lbl">Visual Encahant</span>
+              <span className="stat-card__lbl">Visual yang Lebih Menarik</span>
             </div>
           </div>
         </div>

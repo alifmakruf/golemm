@@ -84,7 +84,7 @@ const HEADLINE_AUTOROTATE_SPEED = 0
 // wrapper-nya; ini menambah rotasi 3D sungguhan di dalam scene-nya sendiri,
 // jadi terasa lebih ada "kedalaman" (depth).
 // ----------------------------------------------------------------------------
-const HEADLINE_PARALLAX_ENABLED = true
+const HEADLINE_PARALLAX_ENABLED = false
 const HEADLINE_PARALLAX_TILT_X = 0.1        // radian, tilt naik/turun mengikuti mouse Y (atas-bawah)
 const HEADLINE_PARALLAX_TILT_Y = 0.16       // radian, tilt kiri/kanan mengikuti mouse X
 const HEADLINE_PARALLAX_LERP = 0.05         // kehalusan easing (kecil = lambat & fluid, besar = responsif tapi kaku)
@@ -136,10 +136,10 @@ const HEADLINE_BLOOM_RADIUS = 0.55        // radius blur/sebaran cahaya
 
 // Pencahayaan (Lighting) untuk model headline
 const HEADLINE_LIGHTS = {
-  ambient: { color: '#ffffff', intensity: 1.4 },
-  key: { color: '#fffef5', position: [4, 4, 3], intensity: 2.2 },
-  fill: { color: '#bae6fd', position: [-3, 1, 2], intensity: 1.2 },
-  rim: { color: '#fef08a', position: [0, 4, -2], intensity: 1.4 },
+  ambient: { color: '#ffffff', intensity: .4 },
+  key: { color: '#fffef5', position: [4, 4, 3], intensity: 1 },
+  fill: { color: '#bae6fd', position: [-3, 1, 2], intensity: 1 },
+  rim: { color: '#fef08a', position: [0, 4, -2], intensity: .4 },
 }
 
 function TextGolemModel({ isMobile, mouseRef }) {

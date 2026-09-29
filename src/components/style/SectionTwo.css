@@ -1,728 +1,494 @@
 /* ==========================================================================
-   Section 2: Latar Belakang & Tujuan
-   Card 3D Kaca Mobil (Tinted Glass) + Inner Blur + Rim Light Bloom + Parallax
+   Section 2: Editorial Full-Text Typography
+   Fitur: Lampu Sorot Radius Kursor Transparan (Spotlight Mask Reveal)
+   Hanya bagian teks yang terkena radius kursor yang bersinar & memiliki outline.
    ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   PARAMETER TUNING CSS
+   -------------------------------------------------------------------------- */
 :root {
-  /* ---- Tuning Parameter CSS: Efek Kaca Mobil & Bloom ---- */
-  --glass-blur: 1px;
-  /* Kekuatan inner frosted blur */
-  --glass-tint: rgba(10, 15, 29, 0.65);
-  /* Warna gelap kaca mobil mewah */
-  --glass-border: rgba(255, 255, 255, 0.18);
-  /* Garis bingkai kaca */
-  --glow-cyan: #ffffff;
-  /* Warna kilau cyan (Bloom) */
-  --glow-gold: #ffffff;
-  /* Warna kilau emas (Bloom) */
-  --glass-specular-opacity: 0.35;
-  /* Terang kilap pantulan cahaya di permukaan kaca */
+  /* Ukuran Tipografi Desktop */
+  --s2-headline-size: clamp(2.2rem, 4.2vw, 3.8rem);
+  --s2-subheadline-size: clamp(0.95rem, 1.3vw, 1.2rem);
+  --s2-paragraph-size: clamp(0.9rem, 1.5vw, 1.2rem);
+
+  /* Batas Lebar Blok Teks */
+  --s2-block-max-width: 480px;
+
+  /* Jarak dari Tepi Layar */
+  --s2-edge-offset-x: clamp(2.5rem, 6vw, 6rem);
+  --s2-edge-offset-y: clamp(2.5rem, 6.5vh, 5.5rem);
+
+  /* Warna Standar Teks (Kondisi Gelap / Normal Sebelum Disinari Kursor) */
+  --s2-accent-cyan: #38bdf8;
+  --s2-accent-gold: #fde047;
+  --s2-text-primary: #ffffff;
+  --s2-text-secondary: #94a3b8;
+  --s2-text-paragraph: #cbd5e18a;
 }
 
-/* Container utama Section 2 */
-.section-two {
+/* Container Layar Penuh Section 2 */
+.section-two-editorial {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 2.5rem 3.5rem;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
   box-sizing: border-box;
   opacity: 0;
-  pointer-events: none;
-  transform: scale(0.95);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 10;
-  overflow: hidden;
+  transition: opacity 0.4s ease;
 }
 
-.section-two--visible {
+.section-two-editorial--visible {
   opacity: 1;
   pointer-events: auto;
-  transform: scale(1);
 }
 
-/* ---------- Efek Badai Angin Kencang (Wind Streaks) ---------- */
-.wind-overlay {
+/* --------------------------------------------------------------------------
+   SISTEM LAYER DUAL (BASE + LIT SPOTLIGHT MASK)
+   -------------------------------------------------------------------------- */
+.editorial-layer {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 1;
-}
-
-.wind-gust {
-  position: absolute;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), rgba(56, 189, 248, 0.8), transparent);
-  border-radius: 999px;
-  filter: blur(0.5px);
-  animation: windDrift 1.2s linear infinite;
-}
-
-.wind-gust--1 {
-  top: 18%;
-  width: 45vw;
-  left: -50vw;
-  animation-delay: 0s;
-  animation-duration: 1.0s;
-}
-
-.wind-gust--2 {
-  top: 38%;
-  width: 60vw;
-  left: -60vw;
-  animation-delay: 0.4s;
-  animation-duration: 1.2s;
-}
-
-.wind-gust--3 {
-  top: 58%;
-  width: 50vw;
-  left: -50vw;
-  animation-delay: 0.2s;
-  animation-duration: 0.9s;
-}
-
-.wind-gust--4 {
-  top: 78%;
-  width: 65vw;
-  left: -70vw;
-  animation-delay: 0.6s;
-  animation-duration: 1.1s;
-}
-
-.wind-gust--5 {
-  top: 88%;
-  width: 40vw;
-  left: -40vw;
-  animation-delay: 0.8s;
-  animation-duration: 1.3s;
-}
-
-@keyframes windDrift {
-  0% {
-    transform: translateX(0);
-    opacity: 0;
-  }
-
-  15% {
-    opacity: 0.8;
-  }
-
-  85% {
-    opacity: 0.8;
-  }
-
-  100% {
-    transform: translateX(180vw);
-    opacity: 0;
-  }
-}
-
-/* ---------- Header Navigasi ---------- */
-.section-two__header {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   width: 100%;
-  animation: fadeInDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.btn-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.65rem 1.4rem;
-  background: rgba(15, 23, 42, 0.6);
-  color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 9999px;
-  font-family: inherit;
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.btn-back__arrow {
-  transition: transform 0.25s ease;
-}
-
-.btn-back:hover {
-  background: rgba(56, 189, 248, 0.2);
-  border-color: rgba(56, 189, 248, 0.6);
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
-  transform: translateX(-3px);
-}
-
-.btn-back:hover .btn-back__arrow {
-  transform: translateX(-4px);
-}
-
-.section-two__status {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1.1rem;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  font-size: 0.85rem;
-  color: #cbd5e1;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--glow-cyan);
-  box-shadow: 0 0 10px var(--glow-cyan);
-  animation: pulseDot 2s infinite ease-in-out;
-}
-
-.status-tag {
-  background: rgba(56, 189, 248, 0.15);
-  color: var(--glow-cyan);
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.76rem;
-  font-weight: 600;
-}
-
-@keyframes pulseDot {
-
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.3);
-  }
-}
-
-/* ---------- Stage 3D Perspective ---------- */
-.section-two__stage {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  max-width: 1040px;
-  /* Disesuaikan agar proporsional dengan card 0.7x */
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  /* Jarak antar card yang lebih rapat dan pas */
-  perspective: 1400px;
-  transform-style: preserve-3d;
-}
-
-/* ---------- 3D Glass Card (Efek Kaca Mobil) ---------- */
-.glass-card {
-  position: relative;
-  width: 100%;
-  min-height: 400px;
-  border-radius: 24px;
-  background: var(--glass-tint);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur)) saturate(180%) contrast(105%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%) contrast(105%);
-  box-sizing: border-box;
-  transform-style: preserve-3d;
-  will-change: transform;
-  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.3s ease;
-  overflow: hidden;
-}
-
-/* Efek Kilau Pinggir (Rim Light Bloom) */
-.glass-card--left {
-  box-shadow:
-    0 20px 45px rgba(0, 0, 0, 0.45),
-    0 0 30px rgba(255, 255, 255, 0.3),
-    inset 0 1px 1px rgba(255, 255, 255, 0.5),
-    inset 0 0 25px rgba(56, 189, 248, 0.12);
-}
-
-.glass-card--right {
-  box-shadow:
-    0 20px 45px rgba(0, 0, 0, 0.45),
-    0 0 30px rgba(255, 255, 255, 0.25),
-    inset 0 1px 1px rgba(255, 255, 255, 0.5),
-    inset 0 0 25px rgba(254, 240, 138, 0.1);
-}
-
-.glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.glass-card--left:hover {
-  box-shadow:
-    0 25px 60px rgba(0, 0, 0, 0.55),
-    0 0 45px rgba(255, 255, 255, 0.5),
-    inset 0 1px 2px rgba(255, 255, 255, 0.7),
-    inset 0 0 35px rgba(56, 189, 248, 0.2);
-}
-
-.glass-card--right:hover {
-  box-shadow:
-    0 25px 60px rgba(0, 0, 0, 0.55),
-    0 0 45px rgba(255, 255, 255, 0.45),
-    inset 0 1px 2px rgba(255, 255, 255, 0.7),
-    inset 0 0 35px rgba(254, 240, 138, 0.18);
-}
-
-/* Kilauan diagonal pantulan kaca mobil (Specular Sheen) */
-.glass-card__specular {
-  position: absolute;
-  inset: 0;
+  height: 100%;
   pointer-events: none;
-  background: linear-gradient(115deg,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.05) 30%,
-      transparent 55%,
-      rgba(56, 189, 248, 0.08) 100%);
-  z-index: 2;
-  transition: opacity 0.3s ease;
 }
 
-/* Garis rim mengkilap di tepi atas & samping card */
-.glass-card__rim-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), var(--glow-cyan), transparent);
+.editorial-layer--base {
+  z-index: 11;
+}
+
+/* Layer yang bersinar: HANYA terlihat di area yang terpotong radius lingkaran kursor!
+   Radius kursor 100% transparan (tanpa border visual), murni sebagai topeng cahaya (mask) */
+.editorial-layer--lit {
+  z-index: 13;
   pointer-events: none;
-  z-index: 3;
+  -webkit-mask-image: radial-gradient(circle var(--spotlight-radius, 160px) at var(--mouse-x, -9999px) var(--mouse-y, -9999px),
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 0.95) var(--spotlight-core, 35%),
+      rgba(0, 0, 0, 0) 100%);
+  mask-image: radial-gradient(circle var(--spotlight-radius, 160px) at var(--mouse-x, -9999px) var(--mouse-y, -9999px),
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 0.95) var(--spotlight-core, 35%),
+      rgba(0, 0, 0, 0) 100%);
 }
 
-.glass-card--right .glass-card__rim-glow {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), var(--glow-gold), transparent);
-}
-
-/* Isi teks di dalam card */
-.glass-card__inner {
-  position: relative;
-  z-index: 4;
-  padding: 2.4rem 2.2rem;
+/* --------------------------------------------------------------------------
+   BLOK TOPIK (Typography Containers)
+   Default opacity: 0 agar tersembunyi saat transisi kamera
+   -------------------------------------------------------------------------- */
+.topic-block {
+  position: absolute;
+  max-width: var(--s2-block-max-width);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  color: #f8fafc;
+  gap: 0.6rem;
+  will-change: transform, opacity;
+  pointer-events: none;
+  opacity: 0;
 }
 
-/* Badge Nomor */
-.card-badge {
+/* Topik 1: Pojok Kiri Atas */
+.topic-block--top-left {
+  top: var(--s2-edge-offset-y);
+  left: var(--s2-edge-offset-x);
+  text-align: left;
+}
+
+/* Topik 2: Pojok Kanan Bawah */
+.topic-block--bottom-right {
+  bottom: var(--s2-edge-offset-y);
+  right: var(--s2-edge-offset-x);
+  text-align: left;
+}
+
+/* --------------------------------------------------------------------------
+   ELEMEN TIPOGRAFI STANDAR (LAYER DASAR)
+   -------------------------------------------------------------------------- */
+.topic-kicker {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  width: fit-content;
-  padding: 0.35rem 0.9rem;
-  border-radius: 9999px;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--glow-cyan);
+  letter-spacing: 0.12em;
+  color: var(--s2-accent-cyan);
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
 }
 
-.card-badge--gold {
-  background: rgba(254, 240, 138, 0.15);
-  border-color: rgba(254, 240, 138, 0.35);
-  color: #fde047;
+.topic-kicker--gold {
+  color: var(--s2-accent-gold);
 }
 
-.card-badge__number {
-  font-weight: 800;
+.topic-kicker__label {
+  letter-spacing: 0.14em;
+  opacity: 0.9;
 }
 
-/* Judul & Subjudul */
-.card-title {
+.topic-headline {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 2.1rem;
-  font-weight: 800;
+  font-size: var(--s2-headline-size);
+  font-weight: 850;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   margin: 0;
-  line-height: 1.15;
-  background: linear-gradient(135deg, #ffffff 40%, #bae6fd 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.02em;
+  color: var(--s2-text-primary);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
 }
 
-.glass-card--right .card-title {
-  background: linear-gradient(135deg, #ffffff 40%, #fef08a 100%);
+.topic-headline__accent {
+  background: linear-gradient(135deg, #ffffff 30%, var(--s2-accent-cyan) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.card-subtitle {
-  font-size: 1.5rem;
+.topic-headline__accent--gold {
+  background: linear-gradient(135deg, #ffffff 30%, var(--s2-accent-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.topic-subheadline {
+  font-family: inherit;
+  font-size: var(--s2-subheadline-size);
   font-weight: 600;
-  color: #94a3b8;
-  margin: -0.3rem 0 0.5rem 0;
+  color: var(--s2-text-secondary);
   letter-spacing: -0.01em;
-}
-
-/* Paragraf Kaca */
-.card-paragraph {
-  font-size: 1.1rem;
-  line-height: 1.68;
-  color: #cbd5e1;
   margin: 0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  line-height: 1.35;
 }
 
-/* Tag Poin Bawah */
-.card-tags {
+.topic-paragraph {
+  font-family: inherit;
+  font-size: var(--s2-paragraph-size);
+  font-weight: 700;
+  line-height: 1.7;
+  color: var(--s2-text-paragraph);
+  margin: 0.35rem 0 0.6rem 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  max-width: 440px;
+}
+
+.topic-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.5rem;
+  margin-top: 0.4rem;
 }
 
-.card-tag {
-  font-size: 0.78rem;
+.topic-tag {
+  font-size: 0.76rem;
   font-weight: 600;
-  padding: 0.3rem 0.8rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #e2e8f0;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* ---------- Footer ---------- */
-.section-two__footer {
-  position: relative;
-  z-index: 10;
-  text-align: center;
-  padding-top: 1rem;
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-  pointer-events: none;
-  /* biar klik tembus ke elemen di bawahnya (tombol Next) */
+.topic-tag--highlight {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #bae6fd;
 }
 
-.footer-hint {
-  font-size: 0.82rem;
-  color: #64748b;
-  letter-spacing: 0.02em;
+/* --------------------------------------------------------------------------
+   STYLING KHUSUS LAYER YANG DISINARI KURSOR (LIT / ILLUMINATED)
+   Hanya muncul pada bagian teks yang terkena radius kursor
+   -------------------------------------------------------------------------- */
+.editorial-layer--lit .topic-block--lit {
+  filter: drop-shadow(0 0 16px rgba(0, 0, 0, 0.8));
 }
 
-/* Keyframes */
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Topik 1 Saat Disinari (Outline Cyan + Pendaran Cahaya) */
+.editorial-layer--lit .topic-block--top-left .topic-headline,
+.editorial-layer--lit .topic-block--top-left .topic-subheadline,
+.editorial-layer--lit .topic-block--top-left .topic-paragraph,
+.editorial-layer--lit .topic-block--top-left .topic-kicker__label {
+  color: var(--s2-lit-color, #ffffff) !important;
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t1, #38bdf8);
+  text-shadow: var(--s2-lit-glow-spread, 0 0 16px) var(--s2-lit-outline-t1, #38bdf8);
 }
 
-/* ---------- Animasi Entrance Card: Naik dari bawah + berputar ---------- */
-/* Parameter dikontrol dari JS via CSS custom properties:
-   --entrance-ty  : jarak translateY awal naik (px)
-   --exit-ty      : jarak translateY keluar meluncur ke bawah (px)
-   --entrance-rot : derajat putaran saat naik
-   --entrance-dur : durasi animasi masuk
-   --exit-dur     : durasi animasi keluar */
-.card-entrance {
-  opacity: 0;
-  transform: translateY(var(--entrance-ty, 220px)) rotate(var(--entrance-rot, 25deg));
-  transform-style: preserve-3d;
+.editorial-layer--lit .topic-block--top-left .topic-headline__accent {
+  -webkit-text-fill-color: var(--s2-lit-color, #ffffff);
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t1, #38bdf8);
 }
 
-.card-entrance--play {
-  animation: cardSpinUp var(--entrance-dur, 1.2s) cubic-bezier(0.16, 1, 0.3, 1) both;
+.editorial-layer--lit .topic-block--top-left .topic-tag {
+  border-color: var(--s2-lit-outline-t1, #38bdf8) !important;
+  background-color: rgba(56, 189, 248, 0.28) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
 }
 
-/* Animasi keluar: meluncur turun ke bawah (translateY) sambil berputar */
-.card-entrance--exit {
-  animation: cardSpinDown var(--exit-dur, 0.75s) cubic-bezier(0.5, 0, 0.75, 0) both !important;
+/* Topik 2 Saat Disinari (Outline Gold + Pendaran Cahaya) */
+.editorial-layer--lit .topic-block--bottom-right .topic-headline,
+.editorial-layer--lit .topic-block--bottom-right .topic-subheadline,
+.editorial-layer--lit .topic-block--bottom-right .topic-paragraph,
+.editorial-layer--lit .topic-block--bottom-right .topic-kicker__label {
+  color: var(--s2-lit-color, #ffffff) !important;
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t2, #fde047);
+  text-shadow: var(--s2-lit-glow-spread, 0 0 16px) var(--s2-lit-outline-t2, #fde047);
 }
 
-@keyframes cardSpinUp {
-  0% {
-    opacity: 0;
-    transform: translateY(var(--entrance-ty, 220px)) rotate(var(--entrance-rot, 25deg));
-  }
-
-  60% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0) rotate(0deg);
-  }
+.editorial-layer--lit .topic-block--bottom-right .topic-headline__accent {
+  -webkit-text-fill-color: var(--s2-lit-color, #ffffff);
+  -webkit-text-stroke: var(--s2-lit-outline-width, 1.2px) var(--s2-lit-outline-t2, #fde047);
 }
 
-@keyframes cardSpinDown {
-  0% {
-    opacity: 1;
-    transform: translateY(0) rotate(0deg);
-  }
-
-  30% {
-    opacity: 0.9;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(var(--exit-ty, 380px)) rotate(var(--entrance-rot, 25deg));
-  }
+.editorial-layer--lit .topic-block--bottom-right .topic-tag {
+  border-color: var(--s2-lit-outline-t2, #fde047) !important;
+  background-color: rgba(254, 240, 138, 0.28) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(254, 240, 138, 0.6);
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Kolom 2: Card 2 + Tombol Next tersusun vertikal */
-.section-two__col2 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.2rem;
-}
-
-/* ---------- Tombol Next di bawah Card 2 ---------- */
-.section-two__center-nav {
-  display: flex;
-  position: absolute;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  pointer-events: none;
-  left: 50%;
-  bottom: -60px;
-}
-
-.section-two__center-nav--play {
-  opacity: 1;
+/* --------------------------------------------------------------------------
+   ANIMASI MASUK (Dimainkan SETELAH kamera selesai transisi)
+   -------------------------------------------------------------------------- */
+.topic-block--top-left.topic-block--play {
+  animation: s2SlideFromTopLeft var(--enter-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1) both;
   pointer-events: auto;
-  animation: nextBtnSpinUp var(--entrance-dur, 1.2s) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.section-two__center-nav--exit {
-  animation: nextBtnSpinDown var(--exit-dur, 0.65s) cubic-bezier(0.5, 0, 0.75, 0) both !important;
+.topic-block--bottom-right.topic-block--play {
+  animation: s2SlideFromBottomRight var(--enter-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1) var(--stagger-delay, 0.16s) both;
+  pointer-events: auto;
 }
 
-@keyframes nextBtnSpinUp {
+@keyframes s2SlideFromTopLeft {
   0% {
     opacity: 0;
-    transform: translate(-50%, calc(-50% + var(--entrance-ty, 180px))) scale(0.85);
+    transform: translate3d(calc(-1 * var(--slide-dist, 28px)), -18px, 0);
   }
 
   60% {
-    opacity: 1;
+    opacity: 0.85;
   }
 
   100% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate3d(0, 0, 0);
   }
 }
 
-@keyframes nextBtnSpinDown {
+@keyframes s2SlideFromBottomRight {
   0% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+    transform: translate3d(var(--slide-dist, 28px), 18px, 0);
   }
 
-  30% {
-    opacity: 0.9;
+  60% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ANIMASI KELUAR (Dimainkan SEBELUM section berganti)
+   -------------------------------------------------------------------------- */
+.topic-block--top-left.topic-block--exit {
+  animation: s2ExitTopLeft var(--exit-dur, 0.55s) cubic-bezier(0.4, 0, 0.7, 0.2) both !important;
+  pointer-events: none;
+}
+
+.topic-block--bottom-right.topic-block--exit {
+  animation: s2ExitBottomRight var(--exit-dur, 0.55s) cubic-bezier(0.4, 0, 0.7, 0.2) both !important;
+  pointer-events: none;
+}
+
+@keyframes s2ExitTopLeft {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  40% {
+    opacity: 0.6;
   }
 
   100% {
     opacity: 0;
-    transform: translate(-50%, calc(-50% + var(--exit-ty, 300px))) scale(0.85);
+    transform: translate3d(calc(-1.2 * var(--slide-dist, 28px)), -16px, 0);
   }
 }
 
-.btn-next-step {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1.8rem;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  border-radius: 9999px;
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 189, 248, 0.35);
-  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+@keyframes s2ExitBottomRight {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  40% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(1.2 * var(--slide-dist, 28px)), 16px, 0);
+  }
 }
 
-.btn-next-step:hover {
-  background: rgba(56, 189, 248, 0.25);
-  border-color: rgba(56, 189, 248, 0.9);
-  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.6), 0 0 35px rgba(56, 189, 248, 0.65);
-  transform: scale(1.05);
-}
-
-.btn-next-step__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(56, 189, 248, 0.3);
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: #38bdf8;
-}
-
-.btn-next-step__arrow {
-  font-size: 1.15rem;
-  transition: transform 0.25s ease;
-}
-
-.btn-next-step:hover .btn-next-step__arrow {
-  transform: translateX(4px);
-}
-
-/* ==========================================================================
+/* --------------------------------------------------------------------------
    RESPONSIF MOBILE & TABLET (max-width: 960px)
-   Ditempatkan di baris paling akhir agar meng-override seluruh styling desktop
-   ========================================================================== */
+   -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   RESPONSIF MOBILE & TABLET (max-width: 960px)
+   -------------------------------------------------------------------------- */
 @media (max-width: 960px) {
 
-  /* ================== Parameter Tuning Responsif HP: Section 2 ==================
-     Sesuaikan parameter di bawah ini agar pas di layar HP: */
+  /* ========================================================================
+     PARAMETER TUNING RESPONSIF MOBILE (SECTION 2)
+     ======================================================================== */
   :root {
-    --s2-mobile-next-gap-top: 2rem;
-    /* Jarak antara Card 2 dengan tombol Next */
-    --s2-mobile-next-bottom-margin: 4.5rem;
-    /* Jarak aman tombol Next ke tepi paling bawah */
-    --s2-mobile-stage-gap: 1.5rem;
-    /* Jarak vertikal antara Card 1 dan Card 2 */
+    --s2-mobile-pad-top: 5rem;
+    --s2-mobile-pad-bottom: 3.5rem;
+    --s2-mobile-pad-x: 1.25rem;
+    --s2-mobile-gap: 5rem;
+    /* DIUBAH: sebelumnya 0rem. Atur jarak antar topik di sini */
+    --s2-mobile-headline-size: clamp(1.75rem, 6.2vw, 2.15rem);
+    --s2-mobile-subheadline-size: 0.92rem;
+    --s2-mobile-paragraph-size: 0.85rem;
   }
 
-  .section-two {
-    padding: 1.2rem 1rem;
+  /* Di layar sentuh/HP, layer spotlight kursor dimatikan demi efisiensi & performa 60 FPS */
+  .editorial-layer--lit {
+    display: none !important;
+  }
+
+  .section-two-editorial {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    /* Tanpa ini, swipe ke bawah saat sudah mentok di paling atas section bisa
-       memicu pull-to-refresh/navigasi native browser (bukan navigasi section
-       kita sendiri) -- itulah yang menyebabkan halaman ter-refresh. */
     overscroll-behavior-y: contain;
-    display: block;
-    /* Mengizinkan scroll vertikal normal di mobile */
-    height: 100vh;
-  }
-
-  .section-two__header {
-    margin-bottom: 1.2rem;
-  }
-
-  /* Grid 1 Kolom: Card 1 di atas, Card 2 di bawah */
-  .section-two__stage {
-    grid-template-columns: 1fr;
-    gap: var(--s2-mobile-stage-gap, 1.5rem);
-    perspective: none;
-    /* Hilangkan perspective 3D yang bisa memotong card di layar sempit */
-    margin: 0 auto;
-    width: 100%;
-    max-width: 440px;
-  }
-
-  .card-entrance {
-    width: 100%;
-    margin: 0 auto;
-  }
-
-  .section-two__col2 {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .glass-card {
-    width: 100%;
-    min-height: auto;
-    transform: none !important;
-    /* Di HP card tegak lurus dan full width agar tidak terpotong */
-  }
-
-  .glass-card__inner {
-    padding: 1.6rem 1.3rem;
-  }
-
-  .card-title {
-    font-size: 1.65rem;
-  }
-
-  .card-subtitle {
-    font-size: 0.92rem;
-  }
-
-  .card-paragraph {
-    font-size: 0.88rem;
-    line-height: 1.6;
-  }
-
-  /* Tombol Next mengalir natural di bawah Card 2 dengan posisi relative */
-  .section-two__center-nav {
-    position: relative;
-    left: auto;
-    right: auto;
-    top: auto;
-    bottom: auto;
-    transform: none;
-    margin-top: var(--s2-mobile-next-gap-top, 2rem);
-    margin-bottom: var(--s2-mobile-next-bottom-margin, 4.5rem);
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
-  .section-two__center-nav--play {
-    animation: fadeInUp 0.6s ease both;
-    opacity: 1;
     pointer-events: auto;
   }
 
-  .section-two__center-nav--exit {
-    animation: cardSpinDown 0.5s ease both !important;
+  /* Layer dasar mengalir fleksibel dengan padding aman dari header / burger */
+  .editorial-layer--base {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* DIUBAH: sebelumnya space-between */
+    padding: var(--s2-mobile-pad-top) var(--s2-mobile-pad-x) var(--s2-mobile-pad-bottom) var(--s2-mobile-pad-x);
+    box-sizing: border-box;
+    gap: var(--s2-mobile-gap);
+    pointer-events: auto;
   }
 
-  .section-two__footer {
-    display: none;
-    /* Sembunyikan footer dots di HP agar tidak menabrak tombol */
+  .topic-block {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    right: auto !important;
+    max-width: 100% !important;
+    transform: none !important;
+    pointer-events: auto;
+    opacity: 0;
+  }
+
+  /* Topik 1 diberi padding kanan agar tidak menabrak tombol burger */
+  .topic-block--top-left {
+    margin-bottom: 0;
+    padding-right: 3.5rem;
+  }
+
+  .topic-block--bottom-right {
+    margin-top: 0;
+  }
+
+  .topic-headline {
+    font-size: var(--s2-mobile-headline-size);
+    line-height: 1.12;
+  }
+
+  .topic-subheadline {
+    font-size: var(--s2-mobile-subheadline-size);
+    line-height: 1.35;
+  }
+
+  .topic-paragraph {
+    font-size: var(--s2-mobile-paragraph-size);
+    line-height: 1.62;
+    max-width: 100%;
+    color: rgba(226, 232, 240, 0.85);
+  }
+
+  .topic-tags {
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+  }
+
+  .topic-tag {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.65rem;
+  }
+
+  /* Animasi entrance mobile: transisi fade-up vertikal yang halus & natural */
+  .topic-block--top-left.topic-block--play,
+  .topic-block--bottom-right.topic-block--play {
+    animation-name: s2FadeUpMobile !important;
+    animation-duration: 0.65s !important;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+    animation-fill-mode: both !important;
+  }
+
+  .topic-block--bottom-right.topic-block--play {
+    animation-delay: 0.12s !important;
+  }
+
+  @keyframes s2FadeUpMobile {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .topic-block--top-left.topic-block--exit,
+  .topic-block--bottom-right.topic-block--exit {
+    animation-name: s2FadeDownMobile !important;
+    animation-duration: 0.45s !important;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.7, 0.2) !important;
+    animation-fill-mode: both !important;
+  }
+
+  @keyframes s2FadeDownMobile {
+    0% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0);
+    }
   }
 }
