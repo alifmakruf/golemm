@@ -178,6 +178,8 @@
 .app-container--hero .section-two,
 .app-container--hero .section-two *,
 .app-container--hero .section-three,
-.app-container--hero .section-three * {
+.app-container--hero .section-three *,
+.app-container--hero .section-why-us,
+.app-container--hero .section-why-us * {
   pointer-events: none !important;
 }

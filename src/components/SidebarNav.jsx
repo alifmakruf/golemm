@@ -68,6 +68,7 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
     { id: 1, num: '01', title: 'Home', desc: 'Halaman Utama' },
     { id: 2, num: '02', title: 'Latar Belakang & Visi', desc: 'Tentang GOLEM.inc' },
     { id: 3, num: '03', title: 'Produk Kami', desc: 'Penawaran Eksklusif' },
+    { id: 3.5, num: '✦', title: 'Kenapa Kami?', desc: 'Galaxy 3D Experience' },
     { id: 4, num: '04', title: 'Portfolio & Client', desc: 'Selected Works & Tech Stack' },
     { id: 5, num: '05', title: 'Kontak & Kolaborasi', desc: 'Mulai Diskusi Proyek' },
   ]
@@ -76,6 +77,7 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
   const heroNavItems = [
     { id: 2, label: 'Tentang' },
     { id: 3, label: 'Produk' },
+    { id: 3.5, label: 'Kenapa Kami' },
     { id: 4, label: 'Portfolio' },
     { id: 5, label: 'Kontak' },
   ]

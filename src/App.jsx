@@ -6,6 +6,8 @@ import { EASE } from './gsap/eases.js'
 import GolemHero from './components/GolemHero.jsx'
 import SectionTwo from './components/SectionTwo.jsx'
 import SectionThree from './components/SectionThree.jsx'
+import SectionWhyUs from './components/SectionWhyUs.jsx'
+import FrostTransition from './components/FrostTransition.jsx'
 import SectionPortfolio from './components/SectionPortfolio.jsx'
 import SidebarNav from './components/SidebarNav.jsx'
 import TerrainLoader, { SKY_COLOR } from './components/TerrainLoader.jsx'
@@ -65,9 +67,32 @@ const SCROLL_NAV_COOLDOWN_MS = 900      // Jeda minimum antar perpindahan sectio
 const SCROLL_WHEEL_THRESHOLD = 35       // Ambang deltaY scroll mouse/trackpad supaya dianggap "niat pindah"
 const SWIPE_THRESHOLD_PX = 60           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
 
+// 6. Frost Transition (Section 3 ↔ 3.5 ↔ 4)
+// Frost merambat dalam 3 step scroll sebelum masuk/keluar Section 3.5
+const FROST_STEP_COOLDOWN_MS = 380      // Jeda antar step frost (ms) — lebih responsif & halus
+
+// 7. Section 3.5: keluar dengan SATU kali scroll (ke Section 3 atau 4)
+// FROST_COVER_MS   : waktu frost menutup layar penuh sebelum section diganti (selaras FROST_CONFIG.animDuration)
+// FROST_REVEAL_MS  : waktu frost mencair membuka section tujuan
+// WHYUS_GESTURE_GAP_MS : jeda "tenang" minimum antar event wheel supaya dianggap gesture BARU.
+//   Mencegah inersia trackpad dari scroll sebelumnya langsung memicu pindah section lagi.
+const FROST_COVER_MS = 900
+const FROST_REVEAL_MS = 900
+const WHYUS_GESTURE_GAP_MS = 140
+
 export default function App() {
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
   const [activeSection, setActiveSection] = useState(1)
+
+  // Frost transition state: mengelola 6 step frost (3 masuk + 3 keluar)
+  // frostPhase: 'none' | 'entering' (3→3.5) | 'exiting' (3.5→4)
+  // frostStep: 0-3 (jumlah scroll step dalam fase frost saat ini)
+  const [frostPhase, setFrostPhase] = useState('none')
+  const [frostStep, setFrostStep] = useState(0)
+  const frostLockRef = useRef(false)
+  const transitionLockRef = useRef(false)   // true selama transisi frost 3 <-> 3.5 <-> 4 berjalan penuh
+  const transitionTimersRef = useRef([])
+  const lastWheelTimeRef = useRef(0)
 
   const { active, progress } = useProgress()
   const timerRef = useRef(null)
@@ -77,6 +102,7 @@ export default function App() {
   // seperti tombol Next/Back lama, dipanggil dari handler scroll di bawah)
   const section2Ref = useRef(null)
   const section3Ref = useRef(null)
+  const sectionWhyUsRef = useRef(null)
   const scrollLockRef = useRef(false)   // true selama transisi section berjalan (cegah trigger dobel)
   const touchStartYRef = useRef(null)
 
@@ -247,22 +273,121 @@ export default function App() {
   // berada TEPAT di paling atas dan user scroll ke ATAS lagi, itu dianggap
   // sebagai niat "kembali ke 3D" (activeSection 3).
   // ============================================================
+  // Jalankan transisi frost penuh (otomatis, 1 gesture) dari Section 3.5 ke Section lain.
+  // Urutan: frost menutup layar -> section diganti saat layar tertutup -> frost mencair
+  // membuka section tujuan -> frost dilepas. Semua timer dilacak supaya bisa dibersihkan.
+  const jumpFrom35 = useCallback((target) => {
+    if (transitionLockRef.current) return
+    transitionLockRef.current = true
+
+    // target 4 memakai kurva 'out', target 3 memakai kurva 'in' (keduanya step 3 = 100% tertutup)
+    setFrostPhase(target === 4 ? 'exiting' : 'entering')
+    setFrostStep(3)
+
+    const t1 = setTimeout(() => {
+      setActiveSection(target)
+      // 'inside' = target progress 0 -> frost mencair mulus menyingkap section tujuan
+      setFrostPhase('inside')
+      setFrostStep(0)
+    }, FROST_COVER_MS)
+
+    const t2 = setTimeout(() => {
+      setFrostPhase('none')
+      transitionLockRef.current = false
+    }, FROST_COVER_MS + FROST_REVEAL_MS)
+
+    transitionTimersRef.current.push(t1, t2)
+  }, [])
+
+  useEffect(() => () => {
+    transitionTimersRef.current.forEach(clearTimeout)
+  }, [])
+
   const goNext = useCallback(() => {
-    if (scrollLockRef.current) return
+    if (scrollLockRef.current || transitionLockRef.current) return
+
+    // Section 3.5 aktif -> SATU scroll langsung menuju Section 4, TANPA animasi frost.
+    // Section 3.5 fade out sendiri (CSS), sheet 2D Section 4 masuk. Kunci input sebentar
+    // supaya inersia scroll tidak memicu perpindahan ganda.
+    if (activeSection === 3.5) {
+      transitionLockRef.current = true
+      setFrostPhase('none')
+      setFrostStep(0)
+      setActiveSection(4)
+      const t = setTimeout(() => { transitionLockRef.current = false }, SCROLL_NAV_COOLDOWN_MS)
+      transitionTimersRef.current.push(t)
+      return
+    }
+
+    // Frost entering: Section 3 -> Section 3.5 (3 step scroll, tetap seperti semula)
+    // 1 scroll = 20%, 2 scroll = 40%, 3 scroll = 100%
+    if (activeSection === 3 && frostPhase === 'entering') {
+      if (frostLockRef.current) return
+      frostLockRef.current = true
+      setTimeout(() => { frostLockRef.current = false }, FROST_STEP_COOLDOWN_MS)
+      const nextStep = frostStep + 1
+      setFrostStep(nextStep)
+      if (nextStep >= 3) {
+        // Kunci semua input sampai frost menutup penuh, section 3.5 masuk, lalu frost mencair
+        transitionLockRef.current = true
+        const t1 = setTimeout(() => {
+          setActiveSection(3.5)
+          setFrostPhase('inside')
+          setFrostStep(0)
+        }, 750)
+        const t2 = setTimeout(() => {
+          transitionLockRef.current = false
+        }, 750 + FROST_REVEAL_MS)
+        transitionTimersRef.current.push(t1, t2)
+      }
+      return
+    }
+
     if (activeSection === 1) {
       lockNav()
       setActiveSection(2)
     } else if (activeSection === 2 && section2Ref.current) {
       lockNav()
       section2Ref.current.next()
-    } else if (activeSection === 3 && section3Ref.current) {
-      lockNav()
-      section3Ref.current.next()
+    } else if (activeSection === 3) {
+      // Langsung picu frost entering di atas Section 3 tanpa animasi out card
+      if (frostPhase === 'none') {
+        if (frostLockRef.current) return
+        frostLockRef.current = true
+        setTimeout(() => { frostLockRef.current = false }, FROST_STEP_COOLDOWN_MS)
+        setFrostPhase('entering')
+        setFrostStep(1) // Step 1: 20% frost langsung merambat di atas Section 3
+        return
+      }
     }
-  }, [activeSection, lockNav])
+  }, [activeSection, lockNav, frostPhase, frostStep, jumpFrom35])
 
   const goBack = useCallback(() => {
-    if (scrollLockRef.current) return
+    if (scrollLockRef.current || transitionLockRef.current) return
+
+    // Section 3.5 aktif -> SATU scroll langsung kembali ke Section 3.
+    // (Cabang ini HARUS dicek lebih dulu dari cabang frost 'entering' di bawah — sebelumnya
+    // urutannya terbalik sehingga activeSection tidak pernah kembali ke 3.)
+    if (activeSection === 3.5) {
+      jumpFrom35(3)
+      return
+    }
+
+    // Section 3: user scroll balik saat frost sedang merambat masuk (batalkan frost)
+    if (activeSection === 3 && frostPhase === 'entering') {
+      if (frostLockRef.current) return
+      frostLockRef.current = true
+      setTimeout(() => { frostLockRef.current = false }, FROST_STEP_COOLDOWN_MS)
+      const prevStep = frostStep - 1
+      if (prevStep <= 0) {
+        setFrostPhase('none')
+        setFrostStep(0)
+      } else {
+        setFrostStep(prevStep)
+      }
+      return
+    }
+
     if (activeSection === 2 && section2Ref.current) {
       lockNav()
       section2Ref.current.back()
@@ -271,9 +396,11 @@ export default function App() {
       section3Ref.current.back()
     } else if (activeSection === 4 || activeSection === 5) {
       lockNav()
-      setActiveSection(3)
+      setActiveSection(3.5)
+      setFrostPhase('inside')
+      setFrostStep(0)
     }
-  }, [activeSection, lockNav])
+  }, [activeSection, lockNav, frostPhase, frostStep, jumpFrom35])
 
   // Section 2 & 3 kadang isinya lebih tinggi dari layar di HP (card-card jadi
   // ditumpuk vertikal), sehingga container-nya punya scroll internal sendiri
@@ -285,6 +412,9 @@ export default function App() {
   // selalu "sudah mentok kedua sisi", sehingga perilaku lama (langsung
   // pindah) tetap seperti semula.
   const getScrollBoundary = (selector) => {
+    // Section 3.5 tidak punya scroll internal (konten fixed + layer dekoratif yang boleh
+    // melebihi layar). Jangan baca scrollHeight-nya, kalau tidak "mentok bawah" tak pernah terpenuhi.
+    if (selector === '.section-why-us') return { atTop: true, atBottom: true }
     const el = document.querySelector(selector)
     if (!el) return { atTop: true, atBottom: true }
     const atTop = el.scrollTop <= 1
@@ -292,13 +422,25 @@ export default function App() {
     return { atTop, atBottom }
   }
 
-  const SCROLLABLE_SECTION_SELECTOR = { 2: '.section-two', 3: '.section-three' }
+  const SCROLLABLE_SECTION_SELECTOR = { 2: '.section-two', 3: '.section-three', 3.5: '.section-why-us' }
 
   // Wheel (mouse/trackpad desktop)
   useEffect(() => {
     if (!isLoadingComplete) return
 
     const onWheel = (e) => {
+      // Catat waktu event wheel terakhir (dipakai gesture-gate Section 3.5)
+      const now = performance.now()
+      const quietGap = now - lastWheelTimeRef.current
+      lastWheelTimeRef.current = now
+
+      // Section 3.5: transisi frost sedang jalan / inersia gesture sebelumnya -> telan event
+      if (activeSection === 3.5) {
+        e.preventDefault()
+        if (transitionLockRef.current) return
+        if (quietGap < WHYUS_GESTURE_GAP_MS) return // masih gesture yang sama (inersia)
+      }
+
       if (Math.abs(e.deltaY) < SCROLL_WHEEL_THRESHOLD) return
 
       if (activeSection === 1) {
@@ -380,7 +522,14 @@ export default function App() {
     }
   }, [isLoadingComplete, activeSection, goNext, goBack])
 
+  // Handler navigasi dari SidebarNav & TopNav
   const handleSelectSection = useCallback((secId) => {
+    // Batalkan transisi frost yang sedang berjalan supaya timer lama tidak menimpa pilihan ini
+    transitionTimersRef.current.forEach(clearTimeout)
+    transitionTimersRef.current = []
+    transitionLockRef.current = false
+    setFrostPhase(secId === 3.5 ? 'inside' : 'none')
+    setFrostStep(0)
     setActiveSection(secId)
     if (secId === 4) {
       setTimeout(() => {
@@ -396,6 +545,7 @@ export default function App() {
   }, [])
 
   const is2DMode = activeSection >= 4 // Section 4 & 5 beralih ke website 2D
+  const isSection35 = activeSection === 3.5
 
   // [OPTIMASI FPS] Saat Section 4 & 5 (sheet putih menutupi layar), canvas terrain sudah
   // transparan (fade out) tapi dulu tetap dirender penuh tiap frame di belakang sheet.
@@ -513,7 +663,7 @@ export default function App() {
           }}
         >
           <Canvas
-            frameloop={terrainPaused ? 'never' : 'always'}
+            frameloop={(terrainPaused || isSection35) ? 'never' : 'always'}
             camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
             dpr={isMobile ? [1, 1.25] : [1, 1.5]}
             gl={{
@@ -565,7 +715,37 @@ export default function App() {
           ref={section3Ref}
           isVisible={activeSection === 3}
           onBack={() => setActiveSection(2)}
-          onNext={() => setActiveSection(4)}
+          onNext={() => {
+            // Mulai frost entering dari Section 3 → Section 3.5 (1 scroll = 20%)
+            setFrostPhase('entering')
+            setFrostStep(1)
+          }}
+        />
+      )}
+
+      {/* Frost Transition Overlay (Section 3 ↔ 3.5 ↔ 4) */}
+      {frostPhase !== 'none' && (
+        <FrostTransition
+          scrollStep={frostStep}
+          direction={frostPhase === 'entering' ? 'in' : frostPhase === 'inside' ? 'inside' : 'out'}
+        />
+      )}
+
+      {/* Section 3.5 Layer: Kenapa Kami? (Golem mengambang + Galaxy) */}
+      {isLoadingComplete && (
+        <SectionWhyUs
+          ref={sectionWhyUsRef}
+          isVisible={isSection35}
+          onBack={() => {
+            setActiveSection(3)
+            setFrostPhase('none')
+            setFrostStep(0)
+          }}
+          onNext={() => {
+            // Mulai frost exiting dari Section 3.5 → Section 4
+            setFrostPhase('exiting')
+            setFrostStep(1)
+          }}
         />
       )}
 
@@ -573,7 +753,11 @@ export default function App() {
       {isLoadingComplete && (
         <SectionPortfolio
           isVisible={is2DMode}
-          onBackTo3D={() => setActiveSection(3)}
+          onBackTo3D={() => {
+            setActiveSection(3.5)
+            setFrostPhase('inside')
+            setFrostStep(0)
+          }}
         />
       )}
     </div>

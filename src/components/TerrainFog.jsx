@@ -70,7 +70,7 @@ export const FOG_CONFIG = {
 
   // --- WARNA & OPASITAS PER SECTION ---
   sections: {
-    1: { opacity: 0.2, colorLow: '#00ccff', colorHigh: '#2ca5d5' },
+    1: { opacity: 0.2, colorLow: '#00ccff', colorHigh: '#d5b62c' },
     2: { opacity: 0.2, colorLow: '#00aeff', colorHigh: '#3fb0d2' },
     3: { opacity: 0.28, colorLow: '#00a2ff', colorHigh: '#2f7c93' }, // malam: lebih biru & gelap
   },
