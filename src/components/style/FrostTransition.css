@@ -6,7 +6,7 @@
 
 :root {
   /* Glow lembut di balik lipatan kertas */
-  --frost-glow-color: rgba(56, 189, 248, 0.25);
+  --frost-glow-color: rgba(0, 179, 255, 0.788);
   /* Kekuatan blur kaca beku di belakang kertas */
   --frost-max-blur: 10px;
 }

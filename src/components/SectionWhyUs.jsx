@@ -101,7 +101,7 @@ const MULTI_LIGHTS = [
   // 4. Gold Starlight (kanan-belakang)
   { color: '#ffffffff', position: [3.6, 2.4, -3.4], intensity: 1.6, distance: 18 },
   // 5. Caustic Glint (depan, rendah — kilau tajam di wajah golem & lantai)
-  { color: '#e0f2fe', position: [0.0, 0.9, 2.4], intensity: 2.2, distance: 9 },
+  { color: '#e0f2fe', position: [0.0, 0.9, 2.4], intensity: 5.2, distance: 20 },
   // 6. Under-Glow (tepat di bawah golem, menyorot ke atas)
   // { color: '#25bdeb', position: [0.0, 0.25, 0.0], intensity: 3.6, distance: 12 },
 ]
@@ -109,7 +109,7 @@ const MULTI_LIGHTS = [
 // --- Animasi "Pembatuan" Dr. Stone (Scan dari Bawah ke Atas) ---
 // Rentang scan (SCAN_Y_START/END) sekarang dihitung otomatis dari ukuran golem.
 const HOLOGRAM_ENABLED = true              // Aktifkan/matikan animasi entrance
-const HOLOGRAM_DURATION_SEC = 3.2          // Durasi total animasi pembatuan (detik)
+const HOLOGRAM_DURATION_SEC = 2.2          // Durasi total animasi pembatuan (detik)
 const HOLOGRAM_WIRE_COLOR = '#93f8ff'      // Warna wireframe scan hologram
 const HOLOGRAM_WIRE_OPACITY = 0.05         // Opasitas wireframe saat aktif
 const SCAN_WIRE_LEAD = 0                // Seberapa jauh wireframe lebih maju dari scanline solid (0-1 normalized)

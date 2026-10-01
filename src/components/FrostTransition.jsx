@@ -5,13 +5,13 @@ import './style/FrostTransition.css'
 // ================== Parameter Tuning: Crumpled Paper Wireframe Frost ==================
 export const FROST_CONFIG = {
   // --- Kehalusan Animasi GSAP ---
-  animDuration: 0.85,
+  animDuration: 0.5,
   animEase: 'power2.out',
 
   // --- Step Persentase Transisi ---
   // Arah masuk (Section 3 → 3.5): 2 scroll
   // Step 1 = 10%, Step 2 = 100%
-  inSteps: [0, 0.10, 1.00],
+  inSteps: [-0.3, 0.10, 1.00],
 
   restProgress: -0.30,
 
@@ -19,21 +19,21 @@ export const FROST_CONFIG = {
   outSteps: [0.00, 0.30, 0.65, 1.00],
 
   // --- Parameter Visual Wireframe Kertas Kusut ---
-  gridCols: 50,
+  gridCols: 30,
   gridRows: 30,
   jitterAmount: 0.92,
   creaseDepth: 50,
 
-  feather: 0.35,                 // Kelembutan tepi rambatan saat diam
+  feather: 0.4,                 // Kelembutan tepi rambatan saat diam
 
-  lineWidth: 0.2,
-  lineColor: 'rgba(103, 232, 249, ',
-  lineBaseOpacity: 0.25,
+  lineWidth: 0.1,
+  lineColor: 'rgba(255, 255, 255, ',          // garis wireframe: putih
+  lineBaseOpacity: 0.35,                      // naikkan sedikit, putih di atas latar terang cepat "hilang"
 
-  facetColor: 'rgba(186, 230, 253, ',
-  facetMaxOpacity: 0.10,
+  facetColor: 'rgba(255, 255, 255, ',         // bayangan faset: putih
+  facetMaxOpacity: 0.24,
 
-  nodeDotSize: 1,
+  nodeDotSize: 0.1,
   nodeDotColor: 'rgba(255, 255, 255, 0.85)',
 
   edgeGlowColor: 'rgba(255, 255, 255, 0.55)',
@@ -42,8 +42,8 @@ export const FROST_CONFIG = {
   motionBlur: {
     enabled: true,
     featherBoost: 0.9,           // Tambahan kelembutan tepi saat paling cepat
-    zoomTrail: 0.10,             // Panjang jejak zoom-blur maksimum (selisih skala, 0.10 = 10%)
-    samples: 5,                  // Jumlah lapisan blur (makin banyak makin halus, makin berat)
+    zoomTrail: 0.60,             // Panjang jejak zoom-blur maksimum (selisih skala, 0.10 = 10%)
+    samples: 3,                  // Jumlah lapisan blur (makin banyak makin halus, makin berat)
     distRef: 0.6,                // Jarak progress yang dianggap "lompatan penuh" (kecil = lebih sensitif)
   },
 }

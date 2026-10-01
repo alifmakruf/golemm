@@ -95,6 +95,7 @@ export default function App() {
   const [frostPhase, setFrostPhase] = useState('none')
   const [frostStep, setFrostStep] = useState(0)
   const frostLockRef = useRef(false)
+  const frostCancelTimerRef = useRef(null)  // [BARU] timer unmount frost setelah animasi batal selesai
   const transitionLockRef = useRef(false)   // true selama transisi frost 3 <-> 3.5 <-> 4 berjalan penuh
   const transitionTimersRef = useRef([])
   const lastWheelTimeRef = useRef(0)
@@ -307,6 +308,7 @@ export default function App() {
 
   useEffect(() => () => {
     transitionTimersRef.current.forEach(clearTimeout)
+    clearTimeout(frostCancelTimerRef.current)
   }, [])
 
   const goNext = useCallback(() => {
@@ -329,6 +331,8 @@ export default function App() {
     // Jumlah scroll = IN_LAST_STEP (dari FROST_CONFIG.inSteps).
     // Dengan inSteps [0, 0.10, 1.00]: 1 scroll = 10%, 2 scroll = 100% lalu masuk Section 3.5.
     if (activeSection === 3 && frostPhase === 'entering') {
+      // [BARU] User maju lagi saat frost sedang surut (batal) -> jangan di-unmount
+      clearTimeout(frostCancelTimerRef.current)
       if (frostLockRef.current) return
       frostLockRef.current = true
       setTimeout(() => { frostLockRef.current = false }, FROST_STEP_COOLDOWN_MS)
@@ -387,8 +391,14 @@ export default function App() {
       setTimeout(() => { frostLockRef.current = false }, FROST_STEP_COOLDOWN_MS)
       const prevStep = frostStep - 1
       if (prevStep <= 0) {
-        setFrostPhase('none')
+        // [BARU] Surutkan frost ke 0 dengan animasi mulus. Phase TETAP 'entering' supaya
+        // komponen tidak di-unmount seketika; baru dilepas setelah tween selesai.
         setFrostStep(0)
+        clearTimeout(frostCancelTimerRef.current)
+        frostCancelTimerRef.current = setTimeout(() => {
+          setFrostPhase('none')
+        }, FROST_CONFIG.animDuration * 1000 + 100)
+        transitionTimersRef.current.push(frostCancelTimerRef.current)
       } else {
         setFrostStep(prevStep)
       }
@@ -534,6 +544,7 @@ export default function App() {
     // Batalkan transisi frost yang sedang berjalan supaya timer lama tidak menimpa pilihan ini
     transitionTimersRef.current.forEach(clearTimeout)
     transitionTimersRef.current = []
+    clearTimeout(frostCancelTimerRef.current)
     transitionLockRef.current = false
     setFrostPhase(secId === 3.5 ? 'inside' : 'none')
     setFrostStep(0)
