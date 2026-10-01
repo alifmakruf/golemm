@@ -77,7 +77,7 @@ export default function SidebarNav({ activeSection, onSelectSection }) {
   const heroNavItems = [
     { id: 2, label: 'Tentang' },
     { id: 3, label: 'Produk' },
-    { id: 3.5, label: 'Kenapa Kami' },
+    { id: 3.5, label: 'Keunggulan' },
     { id: 4, label: 'Portfolio' },
     { id: 5, label: 'Kontak' },
   ]

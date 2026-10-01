@@ -939,19 +939,15 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
 
       {/* Konten teks overlay */}
       <div className="section-why-us__content">
-        <h2 className="section-why-us__headline">Kenapa Kami?</h2>
+        <h2 className="section-why-us__headline">Kenapa memilih Kami?</h2>
         <span className="section-why-us__divider" />
         <p className="section-why-us__subtitle">
           Kami menghadirkan pengalaman visual 3D interaktif yang memukau,
-          dibangun dengan teknologi terdepan dan perhatian pada setiap detail.
+          dibangun dengan teknologi yang terupdate atau terbaru dan perhatian pada setiap detail.
         </p>
       </div>
 
       {/* Petunjuk scroll: 1 kali scroll cukup untuk pindah section */}
-      <div className="section-why-us__hint" aria-hidden="true">
-        <span className="section-why-us__hint-mouse"><i /></span>
-        <span className="section-why-us__hint-text">Scroll untuk melanjutkan</span>
-      </div>
     </section>
   )
 })

@@ -7,7 +7,7 @@ import GolemHero from './components/GolemHero.jsx'
 import SectionTwo from './components/SectionTwo.jsx'
 import SectionThree from './components/SectionThree.jsx'
 import SectionWhyUs from './components/SectionWhyUs.jsx'
-import FrostTransition from './components/FrostTransition.jsx'
+import FrostTransition, { FROST_CONFIG } from './components/FrostTransition.jsx'
 import SectionPortfolio from './components/SectionPortfolio.jsx'
 import SidebarNav from './components/SidebarNav.jsx'
 import TerrainLoader, { SKY_COLOR } from './components/TerrainLoader.jsx'
@@ -68,7 +68,12 @@ const SCROLL_WHEEL_THRESHOLD = 35       // Ambang deltaY scroll mouse/trackpad s
 const SWIPE_THRESHOLD_PX = 60           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
 
 // 6. Frost Transition (Section 3 ↔ 3.5 ↔ 4)
-// Frost merambat dalam 3 step scroll sebelum masuk/keluar Section 3.5
+// Jumlah scroll frost MENGIKUTI panjang array di FROST_CONFIG (FrostTransition.jsx):
+//   inSteps  [0, 0.10, 1.00]       -> IN_LAST_STEP  = 2 (2 scroll sebelum masuk Section 3.5)
+//   outSteps [0, 0.30, 0.65, 1.00] -> OUT_LAST_STEP = 3
+// Ubah array di FROST_CONFIG saja; App.jsx otomatis menyesuaikan.
+const IN_LAST_STEP = FROST_CONFIG.inSteps.length - 1
+const OUT_LAST_STEP = FROST_CONFIG.outSteps.length - 1
 const FROST_STEP_COOLDOWN_MS = 380      // Jeda antar step frost (ms) — lebih responsif & halus
 
 // 7. Section 3.5: keluar dengan SATU kali scroll (ke Section 3 atau 4)
@@ -84,9 +89,9 @@ export default function App() {
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
   const [activeSection, setActiveSection] = useState(1)
 
-  // Frost transition state: mengelola 6 step frost (3 masuk + 3 keluar)
-  // frostPhase: 'none' | 'entering' (3→3.5) | 'exiting' (3.5→4)
-  // frostStep: 0-3 (jumlah scroll step dalam fase frost saat ini)
+  // Frost transition state
+  // frostPhase: 'none' | 'entering' (3→3.5) | 'exiting' (3.5→4) | 'inside' (di dalam 3.5, frost mencair)
+  // frostStep: 0..IN_LAST_STEP (entering) atau 0..OUT_LAST_STEP (exiting)
   const [frostPhase, setFrostPhase] = useState('none')
   const [frostStep, setFrostStep] = useState(0)
   const frostLockRef = useRef(false)
@@ -280,9 +285,10 @@ export default function App() {
     if (transitionLockRef.current) return
     transitionLockRef.current = true
 
-    // target 4 memakai kurva 'out', target 3 memakai kurva 'in' (keduanya step 3 = 100% tertutup)
+    // target 4 memakai kurva 'out', target 3 memakai kurva 'in'.
+    // Step terakhir tiap kurva = 100% tertutup (dibaca dari panjang array di FROST_CONFIG).
     setFrostPhase(target === 4 ? 'exiting' : 'entering')
-    setFrostStep(3)
+    setFrostStep(target === 4 ? OUT_LAST_STEP : IN_LAST_STEP)
 
     const t1 = setTimeout(() => {
       setActiveSection(target)
@@ -319,15 +325,16 @@ export default function App() {
       return
     }
 
-    // Frost entering: Section 3 -> Section 3.5 (3 step scroll, tetap seperti semula)
-    // 1 scroll = 20%, 2 scroll = 40%, 3 scroll = 100%
+    // Frost entering: Section 3 -> Section 3.5
+    // Jumlah scroll = IN_LAST_STEP (dari FROST_CONFIG.inSteps).
+    // Dengan inSteps [0, 0.10, 1.00]: 1 scroll = 10%, 2 scroll = 100% lalu masuk Section 3.5.
     if (activeSection === 3 && frostPhase === 'entering') {
       if (frostLockRef.current) return
       frostLockRef.current = true
       setTimeout(() => { frostLockRef.current = false }, FROST_STEP_COOLDOWN_MS)
       const nextStep = frostStep + 1
       setFrostStep(nextStep)
-      if (nextStep >= 3) {
+      if (nextStep >= IN_LAST_STEP) {
         // Kunci semua input sampai frost menutup penuh, section 3.5 masuk, lalu frost mencair
         transitionLockRef.current = true
         const t1 = setTimeout(() => {
@@ -356,7 +363,7 @@ export default function App() {
         frostLockRef.current = true
         setTimeout(() => { frostLockRef.current = false }, FROST_STEP_COOLDOWN_MS)
         setFrostPhase('entering')
-        setFrostStep(1) // Step 1: 20% frost langsung merambat di atas Section 3
+        setFrostStep(1) // Step 1: frost langsung merambat di atas Section 3 (persentase = inSteps[1])
         return
       }
     }
@@ -716,7 +723,7 @@ export default function App() {
           isVisible={activeSection === 3}
           onBack={() => setActiveSection(2)}
           onNext={() => {
-            // Mulai frost entering dari Section 3 → Section 3.5 (1 scroll = 20%)
+            // Mulai frost entering dari Section 3 → Section 3.5 (step 1 = inSteps[1])
             setFrostPhase('entering')
             setFrostStep(1)
           }}
