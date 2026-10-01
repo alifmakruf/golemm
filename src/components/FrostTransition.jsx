@@ -5,7 +5,7 @@ import './style/FrostTransition.css'
 // ================== Parameter Tuning: Crumpled Paper Wireframe Frost ==================
 export const FROST_CONFIG = {
   // --- Kehalusan Animasi GSAP ---
-  animDuration: 0.7,
+  animDuration: 0.9,
   animEase: 'power2.out',
 
   // --- Step Persentase Transisi ---
