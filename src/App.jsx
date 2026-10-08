@@ -68,7 +68,7 @@ const HEADLINE_EXIT_DURATION = 0.65            // Durasi keluar headline (detik)
 // 5. Navigasi Scroll (menggantikan tombol Next/Back manual di Section 2 & 3)
 const SCROLL_NAV_COOLDOWN_MS = 900      // Jeda minimum antar perpindahan section via scroll/swipe
 const SCROLL_WHEEL_THRESHOLD = 35       // Ambang deltaY scroll mouse/trackpad supaya dianggap "niat pindah"
-const SWIPE_THRESHOLD_PX = 60           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
+const SWIPE_THRESHOLD_PX = 10           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
 
 // 6. Frost Veil (Section 3 <-> 3.5)
 // Lembar es naik/turun menutupi layar (konsep sama dengan sheet Section 4), section diganti saat tertutup.

@@ -12,7 +12,7 @@ import './style/SectionWhyUs.css'
 
 // --- Model Golem (Content 0) ---
 // Golem di-FIT otomatis ke ukuran target dan dipusatkan.
-const GOLEM_TARGET_SIZE = 1.7              // Ukuran sisi terpanjang golem di desktop (world unit)
+const GOLEM_TARGET_SIZE = 2.7              // Ukuran sisi terpanjang golem di desktop (world unit)
 const GOLEM_TARGET_SIZE_MOBILE = 1.4       // Ukuran di HP/tablet
 const GOLEM_SCALE = 1.0                    // Pengali tambahan di atas auto-fit (1 = pas, 1.2 = 20% lebih besar)
 
@@ -187,7 +187,7 @@ const CONTENT_ENTRANCE_OFFSET_Y = 35        // Jarak slide ke atas (px) untuk ef
 
 // --- Rotasi Scroll-Driven (Sumbu Vertikal Y) ---
 // Berputar dinamis sesuai putaran scroll user (scroll dikit = putar dikit, scroll balik = putar balik)
-const SCROLL_SPIN_Y = Math.PI * 2.0         // Total putaran sumbu vertikal (radian: 2*PI = 360° putaran penuh)
+const SCROLL_SPIN_Y = Math.PI * 1.0         // Total putaran sumbu vertikal (radian: 2*PI = 360° putaran penuh)
 const SCROLL_SPIN_X = 0.0                   // Putaran sumbu X (tumble vertikal jika diinginkan, default 0 untuk putaran vertikal murni)
 
 // --- Pergerakan Model (Jarak diperjauh agar konten 1 dan 2 tidak bertumpuk) ---
@@ -196,7 +196,7 @@ const GOLEMHAND_TRAVEL_Y = 5.8              // Jarak model GolemHand meluncur da
 const TRAVEL_SCALE_DROP = 0.15              // Pengurangan skala saat model meluncur menjauh (0.15 = mengecil 15%)
 
 // --- Model 3D GolemHand (/golemhand.glb) ---
-const GOLEMHAND_MODEL_SIZE = 3.9            // Ukuran sisi terpanjang model tangan di desktop (world unit)
+const GOLEMHAND_MODEL_SIZE = 5.9            // Ukuran sisi terpanjang model tangan di desktop (world unit)
 const GOLEMHAND_MODEL_SIZE_MOBILE = 1.35    // Ukuran model tangan di HP/tablet
 const GOLEMHAND_MODEL_SCALE = 1.0           // Pengali skala tambahan di atas auto-fit
 const GOLEMHAND_MODEL_Y = 0.45              // Posisi ketinggian tangan di tengah panggung (world unit)
@@ -206,7 +206,7 @@ const GOLEMHAND_MODEL_ROT_Z = -.5           // Kemiringan roll (radian)
 const GOLEMHAND_BOB_AMPLITUDE = 0.08        // Jarak naik-turun tangan mengambang
 const GOLEMHAND_BOB_SPEED = 0.85            // Kecepatan mengambang tangan
 const GOLEMHAND_PLAY_ANIMATION = true       // Mainkan animasi gerak jari tangan dari file GLB
-const GOLEMHAND_ANIM_SPEED = 0.65           // Kecepatan animasi gerakan jari tangan
+const GOLEMHAND_ANIM_SPEED = 0.3           // Kecepatan animasi gerakan jari tangan
 const GOLEMHAND_CRACK_GLOW_COLOR = '#4ae0ff' // Warna glow retakan biru kristal tangan
 const GOLEMHAND_CRACK_GLOW_INTENSITY = 0.25 // Intensitas cahaya retakan tangan
 
@@ -253,7 +253,7 @@ const ARRIVAL_INPUT_LOCK_MS = 100           // Abaikan scroll sesaat setelah kon
 // Di HP dimatikan (hemat GPU) — shader tetap dikompilasi lewat gl.compile.
 // [PERFORMA] Default MATI: merender canvas 3.5 bersamaan dengan canvas terrain + mask + frost adalah
 // beban terbesar saat gelombang menyapu. Pemanasan shader tetap dilakukan (lihat `warm` di bawah).
-const PREVIEW_RENDER_DESKTOP = false
+const PREVIEW_RENDER_DESKTOP = true
 const PREVIEW_RENDER_MOBILE = false
 
 // Datang dari sheet 2D (scroll ke atas dari Section 4)? true = buka langsung di konten terakhir
