@@ -1,0 +1,37 @@
+/* ============================================================================
+   Frost Veil — kabut glitch ala igloo.inc (canvas WebGL beresolusi rendah).
+   Taruh di: src/components/style/FrostHaze.css (diimpor oleh FrostTransition.jsx)
+
+   Canvas ini menggambar SELURUH kabut (abu-susu + blok glitch + pecahan warna RGB) plus mist tipis di atas
+   lembar 3.5. Begitu shader siap, FrostTransition menambah class `frost-veil--gl` yang menyembunyikan kabut CSS
+   lama supaya tidak dobel. Bila WebGL gagal, class itu TIDAK ditambah => kabut lama tetap dipakai.
+   Mau tetap pakai kabut CSS lama? set FROST_VEIL_CONFIG.glFog = false.
+   ============================================================================ */
+.frost-veil__gl {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  /* diset ulang oleh JS: tinggi kabut + mist di bawah tepi lembar */
+  display: block;
+  pointer-events: none;
+}
+
+.frost-veil--gl {
+  background: none !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  filter: none !important;
+  overflow: visible !important;
+  /* mist di bawah tepi lembar harus boleh keluar dari kotak kabut */
+  contain: none !important;
+}
+
+.frost-veil--gl::before,
+.frost-veil--gl::after {
+  display: none !important;
+}

@@ -32,6 +32,8 @@ export const FROST_VEIL_CONFIG = {
   cancelDuration: 2.0,     // Durasi membatalkan transisi dari progress 1 ke 0 (detik, dikali jarak) — makin besar makin pelan
   minSettleDuration: 0.8,  // Durasi minimum lanjut/batal (detik), agar sisa jarak yang pendek tetap terlihat halus
   reducedMotionDuration: 0.3,
+  completeMinDuration: 0.45,   // Saat scroll sudah menyentuh 100% tapi lembar masih tertinggal: durasi MINIMUM meluncur sisa jaraknya (detik). Makin besar = makin lembut, tidak "snap"
+  completePerUnit: 1.4,        // Durasi tambahan per sisa jarak (detik x sisa 0..1). Makin besar = sisa jarak yang jauh makin pelan
 }
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
@@ -43,9 +45,11 @@ const FrostVeil = forwardRef(function FrostVeil(_props, ref) {
   const shownRef = useRef({ p: 0 })      // progress yang TAMPIL di layar (mengikuti target dengan halus)
   const targetRef = useRef(0)            // progress tujuan (hasil akumulasi scroll)
   const dirRef = useRef(null)            // 'up' | 'down' | null (null = tidak ada gesture)
+  const completingRef = useRef(false)    // true selama lembar meluncur lembut menuju 100% (input tambahan jangan memulai ulang tween)
   const cbRef = useRef({})
 
   const reset = () => {
+    completingRef.current = false
     const el = elRef.current
     if (!el) return
     el.classList.remove('frost-veil--active')
@@ -127,6 +131,13 @@ const FrostVeil = forwardRef(function FrostVeil(_props, ref) {
         return false
       }
 
+      // Lembar sedang meluncur lembut ke 100%: input maju (termasuk ekor inersia) cukup diserap, JANGAN
+      // memulai ulang tween. Input berlawanan arah membatalkan peluncuran & menarik lembar balik.
+      if (completingRef.current) {
+        if (deltaProgress >= 0) return 'completing'
+        completingRef.current = false
+      }
+
       const nextTarget = clamp01(targetRef.current + deltaProgress)
       targetRef.current = nextTarget
 
@@ -148,9 +159,13 @@ const FrostVeil = forwardRef(function FrostVeil(_props, ref) {
           return 'committed'
         }
         // Jika tampilan masih meluncur menuju 1.0: biarkan animasi selesai mulus lalu commit
+        // [FIX "snap"] Dulu durasi = max(0.1, sisa * 0.5) => bila lembar masih tertinggal di belakang scroll,
+        // sisa jarak ditempuh dalam ~0.1-0.2 dtk (terlihat seperti tersentak/dikunci ke Section 3.5).
+        // Sekarang sisa jarak ditempuh lembut dengan durasi minimum + ease 'sine.out' (ujungnya melandai).
         const remaining = 1 - shownRef.current.p
-        const dur = Math.max(0.1, remaining * FROST_VEIL_CONFIG.followDuration)
-        animateTo(1, dur, 'power2.out', () => {
+        const dur = FROST_VEIL_CONFIG.completeMinDuration + remaining * FROST_VEIL_CONFIG.completePerUnit
+        completingRef.current = true
+        animateTo(1, dur, 'sine.out', () => {
           const done = cbRef.current.onDone
           dirRef.current = null
           cbRef.current = {}
@@ -181,6 +196,7 @@ const FrostVeil = forwardRef(function FrostVeil(_props, ref) {
     // Scroll berhenti (+ jeda): threshold menentukan lanjut (true) atau batal (false)
     release: () => {
       if (!dirRef.current) return false
+      if (completingRef.current) return true   // sudah meluncur ke 100%, biarkan selesai sendiri
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const committed = targetRef.current >= FROST_VEIL_CONFIG.commitThreshold
       const from = shownRef.current.p

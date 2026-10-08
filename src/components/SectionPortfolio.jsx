@@ -16,7 +16,7 @@ const CARD_ENTRANCE_STAGGER_SEC = 0.1   // Jeda antar card yang muncul bersamaan
 const CARD_INIT_SCALE = 0.92            // Skala awal card (desktop saja)
 const CARD_INIT_ROTATE_DEG = 2          // Rotasi awal card (desktop saja; mobile tanpa rotasi)
 const ENTRANCE_START_DELAY_FRAC = 0.5   // Mulai animasi konten setelah sheet meluncur sekian % (0-1). Kurva sheet kini
-                                        // easeInOut (pelan di awal), jadi konten baru mulai saat sheet sudah ~setengah jalan.
+// easeInOut (pelan di awal), jadi konten baru mulai saat sheet sudah ~setengah jalan.
 const MOBILE_BREAKPOINT_PX = 960        // <= lebar ini dianggap mobile: animasi dibuat lebih ringan
 
 // 3. Durasi Transisi Sheet Putih dari bawah (detik)
@@ -274,7 +274,7 @@ export default function SectionPortfolio({ isVisible, onBackTo3D }) {
           title="Kembali ke Pengalaman 3D Gunung (Section 3)"
         >
           <span className="btn-back-to-3d__arrow">{'<'}</span>
-          <span>Back to the Mountain</span>
+          <span>Back</span>
         </button>
       </nav>
 

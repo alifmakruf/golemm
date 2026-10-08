@@ -508,6 +508,14 @@
   pointer-events: auto;
 }
 
+/* Menonaktifkan semua pointer-events pada konten yang sedang tidak aktif agar tidak menimpa / memblokir hover */
+.section-why-us__content--inactive,
+.section-why-us__content--inactive *,
+.section-why-us__golemhand--inactive,
+.section-why-us__golemhand--inactive * {
+  pointer-events: none !important;
+}
+
 /* ---- Track Indikator Scroll 200vh (Minimalis & Modern di Sisi Kanan) ---- */
 .section-why-us__scroll-track {
   position: absolute;
@@ -729,5 +737,115 @@
   100% {
     transform: scale(3.2);
     opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   Panel Paragraf Kiri & Kanan (StrokeText & Cyber Cards)
+   ========================================================================== */
+.section-why-us__side-panel {
+  position: absolute;
+  top: var(--side-panel-top, 50%);
+  transform: translateY(-50%);
+  width: var(--side-panel-width, clamp(240px, 22vw, 340px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--side-panel-gap, 1.75rem);
+  pointer-events: auto;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.section-why-us__side-panel--left {
+  left: var(--side-panel-left, clamp(1.5rem, 3.8vw, 4.5rem));
+}
+
+.section-why-us__side-panel--right {
+  right: var(--side-panel-right, clamp(1.5rem, 3.8vw, 4.5rem));
+}
+
+/* Blok Teks Samping Mengambang (Floating Ambient Text - Tanpa Card/Border) */
+.section-why-us__side-card {
+  position: relative;
+  background: var(--card-bg, transparent);
+  border: var(--card-border, none);
+  border-radius: var(--card-radius, 0);
+  padding: var(--card-padding, 0.4rem 0);
+  box-shadow: var(--card-shadow, none);
+  overflow: visible;
+  animation: var(--card-float-anim, none);
+  will-change: transform;
+  transition: opacity 0.3s ease;
+}
+
+/* Animasi Mengambang Organik (Micro-Gravity Float) */
+@keyframes s35TextFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, calc(var(--float-amp, 8px) * -1), 0);
+  }
+}
+
+.section-why-us__side-card:hover .section-why-us__card-desc {
+  color: #ffffff;
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.45);
+}
+
+.section-why-us__side-card:hover .section-why-us__card-divider {
+  width: 56px;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.95);
+}
+
+/* Badge Tag / Nomor Kategori */
+.section-why-us__card-tag {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: var(--tag-size, 0.72rem);
+  letter-spacing: 0.16em;
+  color: var(--tag-color, #67e8f9);
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+  display: block;
+  font-weight: 600;
+  opacity: 0.92;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+/* Wrapper Judul StrokeText */
+.section-why-us__card-title {
+  width: 100%;
+  margin: 0.1rem 0 0.45rem 0;
+  display: flex;
+  align-items: center;
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3));
+}
+
+/* Garis Aksen Glowing Pemisah */
+.section-why-us__card-divider {
+  width: 42px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.85), transparent);
+  margin: 0.4rem 0 0.7rem 0;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+  transition: width 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Paragraf Isi */
+.section-why-us__card-desc {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: var(--desc-size, 0.88rem);
+  color: var(--desc-color, rgba(215, 228, 245, 0.85));
+  line-height: var(--desc-line-height, 1.65);
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 12, 0.9), 0 0 2px rgba(0, 0, 0, 0.95);
+  letter-spacing: 0.01em;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* Penyesuaian Mobile: Sembunyikan atau posisikan ringkas agar tidak menutupi 3D model */
+@media (max-width: 960px) {
+  .section-why-us__side-panel {
+    display: var(--side-panel-mobile-display, none);
   }
 }

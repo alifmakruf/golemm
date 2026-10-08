@@ -13,7 +13,7 @@ import SidebarNav from './components/SidebarNav.jsx'
 import TerrainLoader, { SKY_COLOR } from './components/TerrainLoader.jsx'
 import HeadlineModel, { HEADLINE_LAYER_HEIGHT_FRACTION } from './components/HeadlineModel.jsx'
 import LoadingScreen from './components/LoadingScreen.jsx'
-import SplashCursor from './components/SplashCursor.jsx'
+import RippleDistortion from './components/RippleDistortion.jsx'
 import './App.css'
 import './perf.css' // override ringan khusus mobile (lihat isi file)
 
@@ -47,15 +47,28 @@ const FOG_HEIGHT = '100%'                      // Tinggi kabut
 const FOG_BOTTOM = '-25%'                      // Posisi vertikal dari bawah viewport
 const FOG_DRIFT_DURATION = '1s'                // Kecepatan animasi kabut
 
-// 4. Tuning SplashCursor (efek fluid cursor trail)
-const SPLASH_ENABLED = true                    // Aktifkan/nonaktifkan efek cursor trail
-const SPLASH_DENSITY_DISSIPATION = 7.5         // Kecepatan warna menghilang (7.5 = cepat, bersih)
-const SPLASH_VELOCITY_DISSIPATION = 7.5        // Kecepatan aliran berhenti
-const SPLASH_PRESSURE = 0.35                   // Tekanan fluid (0.0–1.0)
-const SPLASH_CURL = 40                         // Intensitas pusaran (semakin tinggi = lebih swirl)
-const SPLASH_SPLAT_RADIUS = 0.11               // Ukuran percikan fluid
-const SPLASH_COLOR = '#174a4a'                 // Warna fluid (teal gelap)
-const SPLASH_RAINBOW = false                   // true = warna pelangi acak, false = pakai SPLASH_COLOR
+// 4. Tuning RippleDistortion (efek riak air mengikuti kursor, lapisan PALING ATAS di semua section)
+// Canvas transparan fixed seluruh layar (z-index RIPPLE_Z_INDEX), pointer-events: none => tidak mengganggu klik/scroll.
+const RIPPLE_ENABLED = true                    // Aktifkan/nonaktifkan efek riak
+const RIPPLE_Z_INDEX = 9999                    // Di atas semua section, Frost Veil, sheet 2D, & sidebar
+const RIPPLE_BRUSH_SIZE = 70                   // Diameter tiap riak (px)
+const RIPPLE_STRENGTH = 0.1                    // Dorongan distorsi gambar
+const RIPPLE_SWIRL = 1                         // Putaran arah dorongan; 0 = datar, makin tinggi makin berlipat
+const RIPPLE_RINGS = 0                         // Jumlah cincin gelombang di tiap riak (0 = satu blob polos)
+const RIPPLE_SPREAD = 1.25                     // Seberapa kali ukuran awal riak membesar sebelum hilang
+const RIPPLE_FADE = 1.2                        // Lama riak bertahan (detik)
+const RIPPLE_SPACING = 0                       // Jarak gerak kursor antar riak (px) — makin besar jejak makin jarang
+const RIPPLE_GLINT = 0.1                         // Kilau di bahu riak (0 = mati)
+const RIPPLE_TINT = 'transparent'                  // Warna air (ungu)
+const RIPPLE_HIGHLIGHT = 'transparent'             // Warna kilau
+const RIPPLE_OPACITY = 0.1                       // Kepekatan maksimum riak (0–1). 1 = gambar tampil penuh di pusat riak
+const RIPPLE_TRIGGER = 'hover'                 // 'hover' | 'click' | 'both'
+const RIPPLE_CLICK_STRENGTH = 2                // Riak klik dimulai sekian kali lebih besar dari riak hover
+const RIPPLE_QUALITY = 'high'                   // 'low' | 'medium' | 'high' — resolusi buffer displacement
+const RIPPLE_DISPERSION = 0                     // Pemisahan kanal merah/biru (hanya berlaku bila RIPPLE_SRC diisi)
+const RIPPLE_TINT_AMOUNT = 0                 // Kekuatan tint pada gambar (hanya berlaku bila RIPPLE_SRC diisi)
+const RIPPLE_GRAYSCALE = true                  // Gambar jadi hitam-putih (hanya berlaku bila RIPPLE_SRC diisi)
+const RIPPLE_SRC = undefined                 // Gambar yang tampil terdistorsi DI DALAM riak (taruh file di public/hero.jpg). undefined = riak polos berwarna tint
 
 // ================== Parameter Tuning: Headline Belakang Terrain ==================
 // Headline sekarang berupa model 3D (textgolem.glb) menggantikan teks "GOLEM".
@@ -76,6 +89,11 @@ const SWIPE_THRESHOLD_PX = 1           // Jarak minimum swipe layar sentuh (px) 
 // (commitThreshold) menentukan dilanjutkan atau dibatalkan. Semua pengaturan ada di FROST_VEIL_CONFIG (FrostTransition.jsx).
 const FROST_GESTURE_GAP_MS = 140   // Jeda tenang antar event wheel agar dianggap gesture BARU (tolak ekor inersia)
 const FROST_TOUCH_DEADZONE_PX = 1  // Geseran jari minimum (px) sebelum kabut mulai bergerak
+// [PERFORMA] Saat lembar 3.5 sudah menutupi sebagian besar layar, terrain 3D di belakangnya DIBEKUKAN (tidak dirender)
+// supaya GPU tidak merender 2 canvas WebGL + bloom sekaligus (penyebab patah-patah di kisaran 50%+).
+// Nilai = posisi tepi atas lembar (vh dari atas layar). 100 = lembar baru mulai muncul, 0 = menutup penuh.
+// Makin BESAR = terrain dibekukan lebih awal (lebih ringan, tapi salju di belakang berhenti lebih cepat).
+const FROST_PAUSE_TERRAIN_BELOW_VH = 85
 
 // 9. [BARU] Section 4/5 -> kembali ke 3.5 lewat scroll ke atas
 // Dulu SATU tick wheel saat sheet berada di atas langsung membuang sheet (termasuk sisa
@@ -92,6 +110,8 @@ export default function App() {
   // frostPhase: 'none' | 'entering' (3→3.5) | 'exiting' (3.5→4) | 'inside' (di dalam 3.5, frost mencair)
   // frostStep: 0..IN_LAST_STEP (entering) atau 0..OUT_LAST_STEP (exiting)
   const [frostPhase, setFrostPhase] = useState('none')
+  const [veilCovered, setVeilCovered] = useState(false)   // true = lembar sudah menutupi cukup luas => terrain dibekukan
+  const veilCoveredRef = useRef(false)
   const frostCancelTimerRef = useRef(null)  // timer unmount frost (cadangan)
   const transitionLockRef = useRef(false)   // true selama transisi frost 3 <-> 3.5 <-> 4 berjalan penuh
   const transitionTimersRef = useRef([])
@@ -181,6 +201,8 @@ export default function App() {
     if (transitionLockRef.current || !frostRef.current) return false
     transitionLockRef.current = true
     frostScrubRef.current = direction
+    veilCoveredRef.current = false
+    setVeilCovered(false)
     // [FIX] Watchdog dari gesture sebelumnya tidak boleh "membunuh" gesture baru
     clearTimeout(frostWatchdogRef.current)
     clearTimeout(frostReleaseTimerRef.current)
@@ -188,7 +210,15 @@ export default function App() {
     setFrostPhase(direction === 'up' ? 'entering' : 'returning')
     frostRef.current.begin(direction, {
       // Lembar Section 3.5 digeser mengikuti scroll; kabut menyatu di tepi atasnya
-      onSheet: (yVh) => sectionWhyUsRef.current?.setSheetY(yVh),
+      onSheet: (yVh) => {
+        sectionWhyUsRef.current?.setSheetY(yVh)
+        // Hanya setState saat melewati ambang (bukan tiap frame) => nol re-render berlebih
+        const covered = yVh < FROST_PAUSE_TERRAIN_BELOW_VH
+        if (covered !== veilCoveredRef.current) {
+          veilCoveredRef.current = covered
+          setVeilCovered(covered)
+        }
+      },
       onDone: (committed, instant) => {
         // [FIX] Gesture SELESAI: bersihkan semua sisa state. Sebelumnya frostScrubRef & watchdog tidak
         // dibersihkan di jalur 'completing' (scroll sampai 100%), sehingga event wheel pertama di 3.5 termakan
@@ -205,6 +235,8 @@ export default function App() {
             setActiveSection(3)
           }
         }
+        veilCoveredRef.current = false
+        setVeilCovered(false)
         setFrostPhase('none')
         transitionLockRef.current = false
         // Kunci singkat agar sisa inersia scroll tidak langsung memicu pindah lagi
@@ -747,19 +779,7 @@ export default function App() {
   // Jadi saat gelombang menyapu balik 3.5 -> 3, latar di belakang kartu sama persis dengan sebelum
   // gelombang masuk — tidak ada "lonjakan" kamera/cahaya saat Section 3 tersibak lagi.
   const terrainSection = isSection35 ? 3 : activeSection
-  const terrainFrameloop = (terrainPaused || (isSection35 && frostPhase !== 'returning')) ? 'never' : 'always'
-
-  // SplashCursor dilepas SETELAH sheet putih menutup layar (bukan tepat saat sheet mulai naik),
-  // supaya percikan kursor tidak hilang mendadak di tengah transisi.
-  const [splashAllowed, setSplashAllowed] = useState(true)
-  useEffect(() => {
-    if (!is2DMode) {
-      setSplashAllowed(true)
-      return undefined
-    }
-    const t = setTimeout(() => setSplashAllowed(false), SHEET_TRANSITION_MS + 100)
-    return () => clearTimeout(t)
-  }, [is2DMode])
+  const terrainFrameloop = (terrainPaused || (isSection35 && frostPhase !== 'returning') || (veilCovered && frostPhase !== 'none')) ? 'never' : 'always'
 
   const headlineClass = isHeadlineExiting ? 'app-headline-layer--exiting' : ''
 
@@ -772,18 +792,32 @@ export default function App() {
       {/* Loading Screen */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
-      {/* SplashCursor: Efek fluid cursor trail (desktop only, skip di mobile) */}
-      {/* [PERFORMA] Simulasi fluid kursor (WebGL) DIJEDA selama gelombang & di Section 3.5 — tidak terlihat
-          di sana, tapi sebelumnya tetap memakan GPU berdampingan dengan terrain + canvas 3.5. */}
-      {isLoadingComplete && !isMobile && SPLASH_ENABLED && splashAllowed && frostPhase === 'none' && !isSection35 && (
-        <SplashCursor
-          DENSITY_DISSIPATION={SPLASH_DENSITY_DISSIPATION}
-          VELOCITY_DISSIPATION={SPLASH_VELOCITY_DISSIPATION}
-          PRESSURE={SPLASH_PRESSURE}
-          CURL={SPLASH_CURL}
-          SPLAT_RADIUS={SPLASH_SPLAT_RADIUS}
-          COLOR={SPLASH_COLOR}
-          RAINBOW_MODE={SPLASH_RAINBOW}
+      {/* RippleDistortion: riak air mengikuti kursor (desktop only, skip di mobile).
+          Lapisan overlay transparan di PALING ATAS semua section (z-index RIPPLE_Z_INDEX), aktif terus
+          di Section 1–5 termasuk saat Frost Veil & sheet 2D. Saat tidak ada riak aktif, komponen
+          berhenti merender (nol beban GPU), jadi tidak bersaing dengan terrain 3D. */}
+      {isLoadingComplete && !isMobile && RIPPLE_ENABLED && (
+        <RippleDistortion
+          overlay
+          zIndex={RIPPLE_Z_INDEX}
+          src={RIPPLE_SRC}
+          brushSize={RIPPLE_BRUSH_SIZE}
+          strength={RIPPLE_STRENGTH}
+          swirl={RIPPLE_SWIRL}
+          rings={RIPPLE_RINGS}
+          spread={RIPPLE_SPREAD}
+          fade={RIPPLE_FADE}
+          spacing={RIPPLE_SPACING}
+          dispersion={RIPPLE_DISPERSION}
+          tintAmount={RIPPLE_TINT_AMOUNT}
+          grayscale={RIPPLE_GRAYSCALE}
+          glint={RIPPLE_GLINT}
+          tint={RIPPLE_TINT}
+          highlightColor={RIPPLE_HIGHLIGHT}
+          overlayOpacity={RIPPLE_OPACITY}
+          trigger={RIPPLE_TRIGGER}
+          clickStrength={RIPPLE_CLICK_STRENGTH}
+          quality={RIPPLE_QUALITY}
         />
       )}
 

@@ -4,6 +4,7 @@ import { useGLTF, MeshReflectorMaterial, useAnimations, Html } from '@react-thre
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import TechText from './TechText'
+import StrokeText from './StrokeText'
 import { useModelWaves } from './TerrainWaves.jsx'
 import { useGolemClone } from './useGolemClone.js'
 import './style/SectionWhyUs.css'
@@ -65,10 +66,10 @@ const ROCK_EMISSIVE = '#0a2a44'            // Cahaya samar dari dalam batu (biru
 // rock = nomor batu (0 .. ROCK_COUNT-1). Tata letak batu deterministik, jadi nomor yang sama = batu yang sama.
 const ROCK_HOTSPOTS_ENABLED = true
 const ROCK_HOTSPOTS = [
-  { rock: 0, label: 'Build For Interactive' },
-  { rock: 2, label: 'Purpose Driven Creativity' },
-  { rock: 4, label: 'More Than Just Digital' },
-  { rock: 6, label: 'Design Meet Technology' },
+  { rock: 0, label: 'const MODEL_3D = true' },
+  { rock: 2, label: 'function FOG_EFFECT(){}' },
+  { rock: 4, label: 'useEffect(() => {})' },
+  { rock: 6, label: 'import { Canvas, useFrame, useThree } from @react - three / fiber' },
 ]
 const ROCK_HOTSPOT_HIDE_ON_MOBILE = false  // true = sembunyikan hotspot batu di layar mobile
 const ROCK_HOTSPOT_DOT_SIZE = 2            // Diameter dot (px)
@@ -76,7 +77,7 @@ const ROCK_HOTSPOT_DOT_COLOR = 'transparent'   // Warna dot, glow & cincin denyu
 const ROCK_HOTSPOT_RING_PULSE = false       // Cincin berdenyut di sekeliling dot
 const ROCK_HOTSPOT_TEXT_SIZE = 12          // Ukuran teks (px)
 const ROCK_HOTSPOT_TEXT_SIZE_MOBILE = 10   // Ukuran teks di mobile (px)
-const ROCK_HOTSPOT_TEXT_COLOR = '#e6fbff5b'  // Warna teks
+const ROCK_HOTSPOT_TEXT_COLOR = '#e6fbff1f'  // Warna teks
 const ROCK_HOTSPOT_TEXT_BG = 'transparent' // Latar teks ('transparent' = tanpa latar)
 const ROCK_HOTSPOT_TEXT_GAP = 4            // Jarak teks ke dot (px)
 const ROCK_HOTSPOT_ANCHOR_Y = 0.1         // Posisi dot di batu: 0 = pusat, 1 = puncak batu
@@ -179,10 +180,7 @@ const STAR_COUNT = 80                       // Jumlah bintang di background gala
 
 // --- Glitch Text ---
 const GLITCH_TEXTS = [
-  'COMPILE', 'RENDER_3D', '0x4F2A', 'SYSTEM_READY',
-  'DEBUG', 'VERTEX_SHADER', 'GPU_INIT', 'MESH_LOAD',
-  'FRAGMENT', 'PIPELINE', 'BUFFER_OK', 'WEBGL_2.0',
-  'TEXTURE_MAP', 'RAYTRACE', 'MATRIX_4X4', 'FPS_60',
+
 ]
 const GLITCH_COUNT = 14                     // Jumlah teks glitch yang tampil sekaligus
 
@@ -257,7 +255,7 @@ const CONTENT_0_SHOW_SUBTITLE = false              // Subtitle dimatikan sesuai 
 const CONTENT_0_SUBTITLE = 'Pengalaman visual 3D interaktif yang dibangun dengan teknologi mutakhir dan perhatian pada setiap detail.'
 
 // --- Parameter TechText GolemHand (Content 1) ---
-const GOLEMHAND_TEXT = 'Hand To Hand'          // Teks headline interaktif
+const GOLEMHAND_TEXT = 'Our Hands'          // Teks headline interaktif
 const GOLEMHAND_FONT_SIZE = 79              // Ukuran font (px) — proporsional di tengah atas
 const GOLEMHAND_FONT_WEIGHT = 700           // Ketebalan huruf
 const GOLEMHAND_LETTER_SPACING = -0.04      // Spasi antar huruf (em)
@@ -292,6 +290,123 @@ const PREVIEW_RENDER_MOBILE = false
 // Datang dari sheet 2D (scroll ke atas dari Section 4)? true = buka langsung di konten terakhir
 // ("Hand To Hand") agar terasa kontinu; false = selalu mulai dari Golem.
 const RETURN_FROM_SHEET_TO_LAST_CONTENT = true
+
+// ================== Parameter Tuning: Paragraf Kiri & Kanan (StrokeText) ==================
+// Anda dapat menyesuaikan teks, posisi, warna, dan animasi teks samping di bawah ini:
+
+// --- Kontrol Tampilan Panel Samping ---
+const SIDE_PANELS_ENABLED = true              // true = aktifkan panel teks kiri & kanan di samping model 3D
+const SIDE_PANELS_SHOW_ON_MOBILE = false       // false = sembunyikan di HP/tablet (layar <= 960px) agar model 3D tidak tertutup
+const SIDE_PANEL_TOP_PERCENT = 52             // Posisi vertikal tengah panel (% dari atas layar, 50 = pas di tengah)
+const SIDE_PANEL_WIDTH = 'clamp(240px, 22vw, 340px)' // Lebar kolom teks samping
+const SIDE_PANEL_LEFT_OFFSET = 'clamp(1.5rem, 3.8vw, 4.5rem)' // Jarak panel kiri dari tepi kiri layar
+const SIDE_PANEL_RIGHT_OFFSET = 'clamp(1.5rem, 3.8vw, 4.5rem)' // Jarak panel kanan dari tepi kanan layar
+const SIDE_PANEL_GAP = '1.75rem'              // Jarak vertikal antar kartu paragraf di sisi yang sama
+const SIDE_PANEL_REPLAY_ON_HOVER = true       // Replay animasi melukis saat kursor diarahkan (hover) ke teks
+
+// --- Parameter Animasi StrokeText: Content 0 (Kenapa Memilih Kami? / Golem) ---
+const C0_STROKE_COLOR = '#ffffff'             // Warna garis outline melukis (cyan neon)
+const C0_FILL_COLOR = '#ffffff'               // Warna isi huruf setelah garis selesai terlukis (putih)
+const C0_STROKE_WIDTH = .5                   // Ketebalan garis lukis SVG
+const C0_DRAW_DURATION = .1                  // Detik durasi melukis garis per huruf
+const C0_FILL_DELAY = 0.9                     // Detik jeda sebelum warna isi menyapu
+const C0_STAGGER = 0.04                       // Jeda antar huruf (detik)
+const C0_FONT_SIZE = 35                       // Ukuran font judul kartu StrokeText (px)
+const C0_FONT_WEIGHT = 600                    // Ketebalan font judul
+const C0_LETTER_SPACING = .5                // Jarak antar huruf (px)
+const C0_FILL_MODE = 'wipe'                   // Mode isi: 'wipe' (menyapu dari kiri) | 'fade' (memudar) | 'none'
+const C0_EASE = 'power2.out'                  // Kurva percepatan GSAP untuk garis
+
+// --- Parameter Animasi StrokeText: Content 1 (Hand To Hand / GolemHand) ---
+const C1_STROKE_COLOR = '#ffffff'             // Warna garis outline melukis Content 1 (violet neon)
+const C1_FILL_COLOR = '#ffffff'               // Warna isi huruf Content 1 (putih kristal)
+const C1_STROKE_WIDTH = .5                   // Ketebalan garis lukis SVG
+const C1_DRAW_DURATION = .1                  // Detik durasi melukis garis per huruf
+const C1_FILL_DELAY = 0.9                     // Detik jeda sebelum warna isi menyapu
+const C1_STAGGER = 0.04                       // Jeda antar huruf (detik)
+const C1_FONT_SIZE = 35                       // Ukuran font judul kartu StrokeText (px)
+const C1_FONT_WEIGHT = 600                    // Ketebalan font judul
+const C1_LETTER_SPACING = .5                // Jarak antar huruf (px)
+const C1_FILL_MODE = 'wipe'                   // Mode isi: 'wipe' | 'fade' | 'none'
+const C1_EASE = 'power2.out'                  // Kurva percepatan GSAP
+
+// --- Gaya Teks & Paragraf (Floating Ambient / Tanpa Card) ---
+const CARD_BG = 'transparent'                 // 'transparent' = tanpa latar belakang kotak/card
+const CARD_BORDER_COLOR = 'transparent'       // 'transparent' = tanpa garis tepi kotak/card
+const CARD_BORDER_RADIUS = '0px'              // Kelengkungan sudut
+const CARD_PADDING = '0.35rem 0'              // Ruang padding minimalis tanpa kotak
+const CARD_BLUR = '0px'                       // Tanpa blur kotak
+const CARD_BOX_SHADOW = 'none'                // Tanpa bayangan kotak
+const DESC_FONT_SIZE = 'clamp(0.85rem, 0.95vw, 0.95rem)' // Ukuran font isi deskripsi paragraf
+const DESC_COLOR = 'rgba(215, 228, 245, 0.85)' // Warna teks isi paragraf
+const DESC_LINE_HEIGHT = 1.68                 // Jarak spasi baris deskripsi paragraf
+const TAG_FONT_SIZE = '0.72rem'               // Ukuran font badge tag kecil di atas judul
+const TAG_COLOR = '#67e8f9'                   // Warna teks badge tag
+
+// --- Animasi Mengambang (Floating Effect seperti Model 3D) ---
+const TEXT_FLOAT_ENABLED = true               // true = teks ikut melayang naik-turun secara organik
+const TEXT_FLOAT_AMPLITUDE = 15                // Jarak mengambang naik-turun (px)
+const TEXT_FLOAT_DURATION = 4.6               // Durasi satu siklus mengambang (detik). Makin besar = makin tenang & lambat
+const TEXT_FLOAT_STAGGER = 0.8                // Selisih jeda mengambang antar elemen (detik) agar tidak serempak kaku
+
+// --- Konten Teks: Content 0 (Golem - Kenapa Memilih Kami / Our Advantages) ---
+// Teks KIRI Model Golem
+const CONTENT_0_LEFT_PANELS = [
+  {
+    tag: '01 // HIGH FIDELITY',
+    title: 'Design Meets Technology',
+    desc: 'We blend creative design with technical expertise to create seamless digital experiences.',
+  },
+  {
+    tag: '02 // INTERACTIVE',
+    title: 'Built for Better Interaction',
+    desc: 'We create interactive experiences that encourage users to explore, engage, and connect.',
+  },
+]
+
+// Teks KANAN Model Golem
+const CONTENT_0_RIGHT_PANELS = [
+  {
+    tag: '03 // PERFORMANCE',
+    title: 'Purpose-Driven Creativity',
+    desc: 'Every detail is designed with intention, balancing creative vision with meaningful results.',
+  },
+  {
+    tag: '04 // IMMERSIVE',
+    title: 'Built to Perform like a pro',
+    desc: 'We combine visual quality with performance, ensuring every experience feels as good as it looks.',
+  },
+]
+
+// --- Konten Teks: Content 1 (GolemHand - Hand To Hand) ---
+// Teks KIRI Model Tangan Golem
+const CONTENT_1_LEFT_PANELS = [
+  {
+    tag: '01 // SEE FIRST',
+    title: 'See First',
+    desc: 'We believe that seeing is believing, which is why we offer free consultations to discuss your project needs in detail.',
+  },
+  {
+    tag: '02 // ORGANIC FLOW',
+    title: 'Pay Later',
+    desc: 'We don\'t require upfront payments. You can see the final result and pay only when you are completely satisfied.',
+  },
+]
+
+// Teks KANAN Model Tangan Golem
+const CONTENT_1_RIGHT_PANELS = [
+  {
+    tag: '03 // BELIEVE IN   ',
+    title: 'Believe in us',
+    desc: 'We believe in transparent collaboration. You’re part of the creative process every step of the way.',
+  },
+  {
+    tag: '04 // FUTURE READY',
+    title: '3 Months Warranty',
+    desc: 'We offer a 3-month warranty on all our projects. If you encounter any issues within the first three months, we’ll fix them for free.',
+  },
+]
+
 
 
 // ========== Three.js Sub-Components ==========
@@ -1338,6 +1453,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
   // Status kesiapan konten: konten disembunyikan sampai gelombang tiba di kanan atas (bukan preview)
   const [isContentEntered, setIsContentEntered] = useState(false)
   const [isContentEntering, setIsContentEntering] = useState(false)
+  const [activeContent, setActiveContent] = useState(0) // 0 = Golem, 1 = GolemHand
   const isContentEnteredRef = useRef(false)
   const contentEnteredAtRef = useRef(0)
   const boundaryHitTimeRef = useRef(0)
@@ -1379,12 +1495,30 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
   const sheetYRef = useRef(0)
   const [sheetOwned, setSheetOwned] = useState(false)
   if (veilActive && !sheetOwned) setSheetOwned(true)
+  // [FIX "lock"] Dulu begitu kabut selesai, kepemilikan inline dilepas SEKETIKA & kelas CSS mengambil alih
+  // (transform/opacity/transition/z-index berganti dalam satu frame => terasa tersentak/terkunci saat tiba di 3.5).
+  // Sekarang bila 3.5 tiba LEWAT kabut, gaya inline (translate 0, opacity 1) dipertahankan apa adanya —
+  // tidak ada perubahan visual sama sekali di momen serah-terima. Dilepas baru saat sheet 2D naik atau 3.5 ditinggalkan.
+  const arrivedViaVeilRef = useRef(false)
   useLayoutEffect(() => {
-    if (!veilActive && sheetOwned && isVisible) {
+    if (veilActive) { arrivedViaVeilRef.current = true; return }
+    // [FIX] Sheet 2D naik (Section 4): isVisible sudah false, tapi 3.5 harus tetap tampil "mundur" di bawah sheet.
+    // Lepas kepemilikan inline SEKARANG (gaya inline berisi visibility hidden bila isVisible false) agar kelas CSS
+    // `--behind` yang mengatur recede. Hanya bila 3.5 tadi tiba lewat kabut; jalur lain tidak berubah.
+    if (is2D) {
+      if (sheetOwned && arrivedViaVeilRef.current) {
+        sheetYRef.current = 0
+        setSheetOwned(false)
+      }
+      arrivedViaVeilRef.current = false
+      return
+    }
+    if (!isVisible) { arrivedViaVeilRef.current = false; return }
+    if (sheetOwned && !arrivedViaVeilRef.current) {
       sheetYRef.current = 0
       setSheetOwned(false)
     }
-  }, [veilActive, sheetOwned, isVisible])
+  }, [veilActive, sheetOwned, isVisible, is2D])
   const behindSheet = is2D && !receded
   // Selama ombak menyapu balik ke Section 3 ATAU sheet masih naik, konten dipertahankan apa adanya
   // (tertutup oleh ombak / sheet), bukan di-reset lebih dulu.
@@ -1402,6 +1536,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
         targetProgRef.current = startP
         scrollProgRef.current = startP
         entryProgRef.current = 1   // model langsung di posisi akhir (tanpa naik/membesar/memutar/fade)
+        setActiveContent(startP)
         if (sectionDomRef.current) sectionDomRef.current.style.setProperty('--scroll-p', String(startP))
       }
       isContentEnteredRef.current = true
@@ -1417,6 +1552,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
     isContentEnteredRef.current = false
     setIsContentEntered(false)
     setIsContentEntering(false)
+    setActiveContent(0)
     targetProgRef.current = 0
     scrollProgRef.current = 0
     entryProgRef.current = 0
@@ -1471,6 +1607,13 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
 
     targetProgRef.current = next
 
+    // Sinkronisasi activeContent untuk pemicu animasi StrokeText saat menyeberang titik tengah
+    if (prev < 0.5 && next >= 0.5) {
+      setActiveContent(1)
+    } else if (prev >= 0.5 && next < 0.5) {
+      setActiveContent(0)
+    }
+
     const atTop = prev <= 0 && delta < 0       // mentok atas (konten 0) & terus scroll ke atas
     const atBottom = prev >= 1 && delta > 0    // mentok bawah (konten 1) & terus scroll ke bawah
     if (atTop || atBottom) {
@@ -1507,6 +1650,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
   const next = useCallback(() => {
     if (targetProgRef.current < 0.95) {
       targetProgRef.current = 1
+      setActiveContent(1)
     } else {
       if (onNext) onNext()
     }
@@ -1515,10 +1659,31 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
   const back = useCallback(() => {
     if (targetProgRef.current > 0.05) {
       targetProgRef.current = 0
+      setActiveContent(0)
     } else {
       if (onBack) onBack()
     }
   }, [onBack])
+
+  // Style objek CSS variabel untuk penyesuaian dinamis side panels & kartu
+  const sidePanelStyles = useMemo(() => ({
+    '--side-panel-top': `${SIDE_PANEL_TOP_PERCENT}%`,
+    '--side-panel-width': SIDE_PANEL_WIDTH,
+    '--side-panel-left': SIDE_PANEL_LEFT_OFFSET,
+    '--side-panel-right': SIDE_PANEL_RIGHT_OFFSET,
+    '--side-panel-gap': SIDE_PANEL_GAP,
+    '--side-panel-mobile-display': SIDE_PANELS_SHOW_ON_MOBILE ? 'flex' : 'none',
+  }), [])
+
+  const cardStyles = useMemo(() => ({
+    '--card-bg': CARD_BG,
+    '--card-border': CARD_BORDER_COLOR,
+    '--card-radius': CARD_BORDER_RADIUS,
+    '--card-padding': CARD_PADDING,
+    '--card-blur': CARD_BLUR,
+    '--card-shadow': CARD_BOX_SHADOW,
+    '--float-amp': `${TEXT_FLOAT_AMPLITUDE}px`,
+  }), [])
 
   // Mask gelombang (komplemen mask Section 3): Section 3.5 hanya terlihat DI DALAM elips gelombang.
   // Diatur imperatif dari App.jsx per frame (nol re-render).
@@ -1592,7 +1757,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
           transition: 'none',
           transform: `translate3d(0, ${sheetYRef.current}vh, 0)`,
           pointerEvents: veilActive ? 'none' : undefined,
-          visibility: (veilActive || isVisible) ? 'visible' : 'hidden',
+          visibility: (veilActive || isVisible || (behindSheet && arrivedViaVeilRef.current)) ? 'visible' : 'hidden',
         } : {}),
       }}
     >
@@ -1675,7 +1840,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
       <div className="section-why-us__grain" />
 
       {/* Konten teks overlay — content 0 (tengah atas, Scroll-Driven) */}
-      <div className={`section-why-us__content ${!isContentEntered ? 'section-why-us__content--hidden' : isContentEntering ? 'section-why-us__content--entering' : ''}`}>
+      <div className={`section-why-us__content ${!isContentEntered ? 'section-why-us__content--hidden' : isContentEntering ? 'section-why-us__content--entering' : ''} ${activeContent !== 0 ? 'section-why-us__content--inactive' : ''}`}>
         <div className="section-why-us__headline-techtext">
           <TechText
             text={WHYUS_HEADLINE_TEXT}
@@ -1697,10 +1862,111 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
             <p className="section-why-us__subtitle">{CONTENT_0_SUBTITLE}</p>
           </>
         )}
+
+        {/* Panel Teks Kiri & Kanan (Content 0: Golem) */}
+        {SIDE_PANELS_ENABLED && (
+          <>
+            <div
+              className="section-why-us__side-panel section-why-us__side-panel--left"
+              style={sidePanelStyles}
+            >
+              {CONTENT_0_LEFT_PANELS.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="section-why-us__side-card"
+                  style={{
+                    ...cardStyles,
+                    animation: TEXT_FLOAT_ENABLED
+                      ? `s35TextFloat ${TEXT_FLOAT_DURATION}s ease-in-out ${idx * TEXT_FLOAT_STAGGER}s infinite`
+                      : 'none',
+                  }}
+                >
+                  {item.tag && (
+                    <span className="section-why-us__card-tag" style={{ fontSize: TAG_FONT_SIZE, color: TAG_COLOR }}>
+
+                    </span>
+                  )}
+                  <div className="section-why-us__card-title">
+                    <StrokeText
+                      key={`c0-l-${idx}-${isContentEntered ? 'entered' : 'hidden'}-${activeContent === 0 ? 'active' : 'idle'}`}
+                      text={item.title}
+                      strokeColor={C0_STROKE_COLOR}
+                      fillColor={C0_FILL_COLOR}
+                      strokeWidth={C0_STROKE_WIDTH}
+                      drawDuration={C0_DRAW_DURATION}
+                      fillDelay={C0_FILL_DELAY}
+                      stagger={C0_STAGGER}
+                      ease={C0_EASE}
+                      fontSize={C0_FONT_SIZE}
+                      fontWeight={C0_FONT_WEIGHT}
+                      letterSpacing={C0_LETTER_SPACING}
+                      fillMode={C0_FILL_MODE}
+                      trigger="mount"
+                      preserveAspectRatio="xMinYMid meet"
+                      replayOnHover={SIDE_PANEL_REPLAY_ON_HOVER}
+                    />
+                  </div>
+
+                  <p className="section-why-us__card-desc" style={{ fontSize: DESC_FONT_SIZE, color: DESC_COLOR, lineHeight: DESC_LINE_HEIGHT }}>
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div
+              className="section-why-us__side-panel section-why-us__side-panel--right"
+              style={sidePanelStyles}
+            >
+              {CONTENT_0_RIGHT_PANELS.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="section-why-us__side-card"
+                  style={{
+                    ...cardStyles,
+                    animation: TEXT_FLOAT_ENABLED
+                      ? `s35TextFloat ${TEXT_FLOAT_DURATION}s ease-in-out ${(idx + 0.5) * TEXT_FLOAT_STAGGER}s infinite`
+                      : 'none',
+                  }}
+                >
+                  {item.tag && (
+                    <span className="section-why-us__card-tag" style={{ fontSize: TAG_FONT_SIZE, color: TAG_COLOR }}>
+
+                    </span>
+                  )}
+                  <div className="section-why-us__card-title">
+                    <StrokeText
+                      key={`c0-r-${idx}-${isContentEntered ? 'entered' : 'hidden'}-${activeContent === 0 ? 'active' : 'idle'}`}
+                      text={item.title}
+                      strokeColor={C0_STROKE_COLOR}
+                      fillColor={C0_FILL_COLOR}
+                      strokeWidth={C0_STROKE_WIDTH}
+                      drawDuration={C0_DRAW_DURATION}
+                      fillDelay={C0_FILL_DELAY}
+                      stagger={C0_STAGGER}
+                      ease={C0_EASE}
+                      fontSize={C0_FONT_SIZE}
+                      fontWeight={C0_FONT_WEIGHT}
+                      letterSpacing={C0_LETTER_SPACING}
+                      fillMode={C0_FILL_MODE}
+                      trigger="mount"
+                      preserveAspectRatio="xMinYMid meet"
+                      replayOnHover={SIDE_PANEL_REPLAY_ON_HOVER}
+                    />
+                  </div>
+
+                  <p className="section-why-us__card-desc" style={{ fontSize: DESC_FONT_SIZE, color: DESC_COLOR, lineHeight: DESC_LINE_HEIGHT }}>
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Content 1: GolemHand — TechText headline di tengah atas (Scroll-Driven) */}
-      <div className={`section-why-us__golemhand ${!isContentEntered ? 'section-why-us__content--hidden' : isContentEntering ? 'section-why-us__golemhand--entering' : ''}`}>
+      <div className={`section-why-us__golemhand ${!isContentEntered ? 'section-why-us__content--hidden' : isContentEntering ? 'section-why-us__golemhand--entering' : ''} ${activeContent !== 1 ? 'section-why-us__golemhand--inactive' : ''}`}>
         <div className="section-why-us__golemhand-techtext">
           <TechText
             text={GOLEMHAND_TEXT}
@@ -1716,6 +1982,107 @@ const SectionWhyUs = forwardRef(function SectionWhyUs(
             sweep={true}
           />
         </div>
+
+        {/* Panel Teks Kiri & Kanan (Content 1: GolemHand) */}
+        {SIDE_PANELS_ENABLED && (
+          <>
+            <div
+              className="section-why-us__side-panel section-why-us__side-panel--left"
+              style={sidePanelStyles}
+            >
+              {CONTENT_1_LEFT_PANELS.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="section-why-us__side-card"
+                  style={{
+                    ...cardStyles,
+                    animation: TEXT_FLOAT_ENABLED
+                      ? `s35TextFloat ${TEXT_FLOAT_DURATION}s ease-in-out ${idx * TEXT_FLOAT_STAGGER}s infinite`
+                      : 'none',
+                  }}
+                >
+                  {item.tag && (
+                    <span className="section-why-us__card-tag" style={{ fontSize: TAG_FONT_SIZE, color: C1_STROKE_COLOR }}>
+
+                    </span>
+                  )}
+                  <div className="section-why-us__card-title">
+                    <StrokeText
+                      key={`c1-l-${idx}-${activeContent === 1 ? 'active' : 'idle'}`}
+                      text={item.title}
+                      strokeColor={C1_STROKE_COLOR}
+                      fillColor={C1_FILL_COLOR}
+                      strokeWidth={C1_STROKE_WIDTH}
+                      drawDuration={C1_DRAW_DURATION}
+                      fillDelay={C1_FILL_DELAY}
+                      stagger={C1_STAGGER}
+                      ease={C1_EASE}
+                      fontSize={C1_FONT_SIZE}
+                      fontWeight={C1_FONT_WEIGHT}
+                      letterSpacing={C1_LETTER_SPACING}
+                      fillMode={C1_FILL_MODE}
+                      trigger="mount"
+                      preserveAspectRatio="xMinYMid meet"
+                      replayOnHover={SIDE_PANEL_REPLAY_ON_HOVER}
+                    />
+                  </div>
+
+                  <p className="section-why-us__card-desc" style={{ fontSize: DESC_FONT_SIZE, color: DESC_COLOR, lineHeight: DESC_LINE_HEIGHT }}>
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div
+              className="section-why-us__side-panel section-why-us__side-panel--right"
+              style={sidePanelStyles}
+            >
+              {CONTENT_1_RIGHT_PANELS.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="section-why-us__side-card"
+                  style={{
+                    ...cardStyles,
+                    animation: TEXT_FLOAT_ENABLED
+                      ? `s35TextFloat ${TEXT_FLOAT_DURATION}s ease-in-out ${(idx + 0.5) * TEXT_FLOAT_STAGGER}s infinite`
+                      : 'none',
+                  }}
+                >
+                  {item.tag && (
+                    <span className="section-why-us__card-tag" style={{ fontSize: TAG_FONT_SIZE, color: C1_STROKE_COLOR }}>
+
+                    </span>
+                  )}
+                  <div className="section-why-us__card-title">
+                    <StrokeText
+                      key={`c1-r-${idx}-${activeContent === 1 ? 'active' : 'idle'}`}
+                      text={item.title}
+                      strokeColor={C1_STROKE_COLOR}
+                      fillColor={C1_FILL_COLOR}
+                      strokeWidth={C1_STROKE_WIDTH}
+                      drawDuration={C1_DRAW_DURATION}
+                      fillDelay={C1_FILL_DELAY}
+                      stagger={C1_STAGGER}
+                      ease={C1_EASE}
+                      fontSize={C1_FONT_SIZE}
+                      fontWeight={C1_FONT_WEIGHT}
+                      letterSpacing={C1_LETTER_SPACING}
+                      fillMode={C1_FILL_MODE}
+                      trigger="mount"
+                      preserveAspectRatio="xMinYMid meet"
+                      replayOnHover={SIDE_PANEL_REPLAY_ON_HOVER}
+                    />
+                  </div>
+
+                  <p className="section-why-us__card-desc" style={{ fontSize: DESC_FONT_SIZE, color: DESC_COLOR, lineHeight: DESC_LINE_HEIGHT }}>
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Track Indikator Scroll 200vh di Samping Kanan */}
