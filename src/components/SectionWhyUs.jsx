@@ -237,7 +237,8 @@ const GOLEMHAND_MODEL_ROT_Z = -.5           // Kemiringan roll (radian)
 const GOLEMHAND_BOB_AMPLITUDE = 0.08        // Jarak naik-turun tangan mengambang
 const GOLEMHAND_BOB_SPEED = 0.85            // Kecepatan mengambang tangan
 const GOLEMHAND_PLAY_ANIMATION = true       // Mainkan animasi gerak jari tangan dari file GLB
-const GOLEMHAND_ANIM_SPEED = 0.3           // Kecepatan animasi gerakan jari tangan
+const GOLEMHAND_ANIM_SPEED = 0.7           // Kecepatan animasi gerakan jari tangan
+const GOLEMHAND_ANIM_DELAY_SEC = 3.0        // Jeda diam (detik) antar pengulangan animasi jari tangan. 0 = loop terus tanpa jeda
 const GOLEMHAND_CRACK_GLOW_COLOR = '#4ae0ff' // Warna glow retakan biru kristal tangan
 const GOLEMHAND_CRACK_GLOW_INTENSITY = 0.25 // Intensitas cahaya retakan tangan
 
@@ -776,6 +777,7 @@ function GolemHandModel({ scrollProgRef, entryRef, isMobile }) {
   const layoutRef = useRef({ fit: 1 })
   const handMatsRef = useRef([])
   const lastOpacityRef = useRef(1)
+  const animState = useRef({ playing: true, resumeAt: 0 })
   const { scene, animations } = useGLTF('/golemhand.glb')
   const { actions } = useAnimations(animations, outerRef)
 
@@ -789,8 +791,13 @@ function GolemHandModel({ scrollProgRef, entryRef, isMobile }) {
   // Mainkan animasi gerak jari tangan dari file GLB jika ada
   useEffect(() => {
     if (!GOLEMHAND_PLAY_ANIMATION || !actions) return
+    animState.current = { playing: true, resumeAt: 0 }
     Object.values(actions).forEach((action) => {
       if (action) {
+        if (GOLEMHAND_ANIM_DELAY_SEC > 0) {
+          action.setLoop(THREE.LoopOnce, 1)
+          action.clampWhenFinished = true
+        }
         action.reset().fadeIn(0.5).play()
         action.setEffectiveTimeScale(GOLEMHAND_ANIM_SPEED)
       }
@@ -858,6 +865,23 @@ function GolemHandModel({ scrollProgRef, entryRef, isMobile }) {
     const outer = outerRef.current
     if (!outer) return
 
+    const t = state.clock.elapsedTime
+
+    // Jeda antar pengulangan animasi gerak jari tangan
+    if (GOLEMHAND_PLAY_ANIMATION && GOLEMHAND_ANIM_DELAY_SEC > 0 && actions) {
+      const list = Object.values(actions).filter(Boolean)
+      const st = animState.current
+      if (list.length) {
+        if (st.playing && !list.some((a) => a.isRunning())) {
+          st.playing = false
+          st.resumeAt = t + GOLEMHAND_ANIM_DELAY_SEC
+        } else if (!st.playing && t >= st.resumeAt) {
+          list.forEach((a) => { a.reset(); a.setEffectiveTimeScale(GOLEMHAND_ANIM_SPEED); a.play() })
+          st.playing = true
+        }
+      }
+    }
+
     // Scroll-Driven Animation: posisi & rotasi mengikuti langsung scrollProgress (0.0 .. 1.0)
     const p = scrollProgRef.current
 
@@ -872,7 +896,6 @@ function GolemHandModel({ scrollProgRef, entryRef, isMobile }) {
 
     outer.visible = true
     const factor = 1 - p
-    const t = state.clock.elapsedTime
     const fit = layoutRef.current.fit || 1
 
     // Posisi Y: meluncur naik dari bawah layar ke posisi tengah panggung (+ naik halus saat baru tiba)
