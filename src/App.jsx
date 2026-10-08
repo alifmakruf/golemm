@@ -66,16 +66,16 @@ const HEADLINE_ENTRANCE_DURATION = 0.85        // Durasi masuk headline (detik)
 const HEADLINE_EXIT_DURATION = 0.65            // Durasi keluar headline (detik)
 
 // 5. Navigasi Scroll (menggantikan tombol Next/Back manual di Section 2 & 3)
-const SCROLL_NAV_COOLDOWN_MS = 900      // Jeda minimum antar perpindahan section via scroll/swipe
+const SCROLL_NAV_COOLDOWN_MS = 500      // Jeda minimum antar perpindahan section via scroll/swipe
 const SCROLL_WHEEL_THRESHOLD = 35       // Ambang deltaY scroll mouse/trackpad supaya dianggap "niat pindah"
-const SWIPE_THRESHOLD_PX = 10           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
+const SWIPE_THRESHOLD_PX = 1           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
 
 // 6. Frost Veil (Section 3 <-> 3.5)
 // Lembar es naik/turun menutupi layar (konsep sama dengan sheet Section 4), section diganti saat tertutup.
 // Transisi DIGERAKKAN SCROLL: posisi kabut mengikuti jarak scroll/swipe. Saat scroll berhenti, threshold
 // (commitThreshold) menentukan dilanjutkan atau dibatalkan. Semua pengaturan ada di FROST_VEIL_CONFIG (FrostTransition.jsx).
 const FROST_GESTURE_GAP_MS = 140   // Jeda tenang antar event wheel agar dianggap gesture BARU (tolak ekor inersia)
-const FROST_TOUCH_DEADZONE_PX = 8  // Geseran jari minimum (px) sebelum kabut mulai bergerak
+const FROST_TOUCH_DEADZONE_PX = 1  // Geseran jari minimum (px) sebelum kabut mulai bergerak
 
 // 9. [BARU] Section 4/5 -> kembali ke 3.5 lewat scroll ke atas
 // Dulu SATU tick wheel saat sheet berada di atas langsung membuang sheet (termasuk sisa
