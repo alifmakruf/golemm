@@ -2,6 +2,7 @@ import { Suspense, useRef, useLayoutEffect } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { useModelWaves } from './TerrainWaves.jsx'
 import * as THREE from 'three'
 
 // ============================================================================
@@ -148,6 +149,13 @@ function TextGolemModel({ isMobile, mouseRef }) {
   const tiltGroupRef = useRef()
   const bluoShadersRef = useRef([]) // kumpulan shader ter-compile dari material bluerift, untuk update uTime tiap frame
   const { viewport } = useThree()
+
+  // Efek ombak wireframe (Wave animation) pada model 3D teks headline
+  useModelWaves(groupRef, {
+    color: '#67e8f9',
+    autoPulse: true,
+    pulseInterval: 5.5,
+  })
 
   // Terapkan glow + animasi flow ke material "bluerift" saja (stonetext tidak disentuh).
   // Cukup dijalankan sekali per model load, tidak tergantung viewport.

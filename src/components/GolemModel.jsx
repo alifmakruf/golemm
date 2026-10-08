@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { golemPointerState } from './pointerState.js'
+import { useModelWaves } from './TerrainWaves.jsx'
 import * as THREE from 'three'
 
 // ---- Tuning constants -------------------------------------------------
@@ -22,9 +23,16 @@ const EYE_GLOW_COLOR = '#0077ff'
 const EYE_GLOW_INTENSITY = 10.55 // dibuat redup, bukan menyilaukan
 const EYE_LIGHT_INTENSITY = 0.5
 
-// Kontrol kecepatan & jeda animasi alis (shapekey)
+// Kontrol animasi kepala golem (alisAction & mulutbawahAction bawaan file GLB)
+const PLAY_GOLEM_ANIMATION = true // true = putar animasi gerak kepala/alis/mulut
 const ANIMATION_SPEED = 0.8 // 1.0 = normal, 0.5 = 2x lebih lambat
 const ANIMATION_DELAY_SEC = 4.5 // jeda istirahat antar pengulangan (dalam detik)
+
+// ---- Parameter Efek Gelombang (Wave Animation seperti TerrainWaves) ----
+const GOLEM_WAVE_ENABLED = true      // Aktifkan efek ombak wireframe pada kepala golem
+const GOLEM_WAVE_COLOR = '#67e8f9'    // Warna wireframe gelombang (cyan kristal terang)
+const GOLEM_WAVE_AUTO_PULSE = true   // false = hanya saat diklik, true = ombak berulang periodik
+const GOLEM_WAVE_PULSE_INTERVAL = 4.5 // Interval jeda antar gelombang otomatis (detik)
 
 // ---- Parameter efek wireframe pemindai (scanner hover) ----------------
 const WIREFRAME_ENABLED = true // matikan efek sepenuhnya dari sini
@@ -88,6 +96,23 @@ export default function GolemModel({
   const eyeLeftRef = useRef()
 
   const { actions } = useAnimations(animations, centeredRef)
+
+  // Putar animasi ekspresi alis & mulut golem dari GLB
+  useEffect(() => {
+    if (!PLAY_GOLEM_ANIMATION || !actions) return
+    Object.values(actions).forEach((action) => {
+      if (action) {
+        action.reset().setEffectiveTimeScale(ANIMATION_SPEED).play()
+      }
+    })
+  }, [actions])
+
+  // Efek gelombang (wave animation) seperti TerrainWaves pada kepala Golem
+  useModelWaves(centeredRef, {
+    color: GOLEM_WAVE_COLOR,
+    autoPulse: GOLEM_WAVE_AUTO_PULSE && GOLEM_WAVE_ENABLED,
+    pulseInterval: GOLEM_WAVE_PULSE_INTERVAL,
+  })
 
   const uniformsRef = useRef({
     uHitPoint: { value: new THREE.Vector3(999, 999, 999) },

@@ -4,44 +4,37 @@ import * as THREE from 'three'
 import { golemPointerState } from './pointerState.js'
 
 // ============================================================================
-// TerrainWaves — klik terrain => gelombang (ombak) wireframe menyebar dari
-// titik klik. Gaya wireframe-nya meniru overlay pemindai milik Golem
-// (GolemModel.jsx): MeshBasicMaterial wireframe, warna terang kebiruan,
-// transparan, depthWrite off, toneMapped off (supaya ikut kena Bloom).
+// TerrainWaves & ModelWaves — Animasi gelombang (ombak) wireframe 3D:
+// Menyebar dari titik klik kursor atau secara otomatis (auto-pulse).
 //
-// Cara kerja:
-//  1. Tiap mesh terrain dibuatkan mesh overlay (geometry SAMA, dipasang sebagai
-//     child-nya, jadi ikut semua animasi/transform terrain) dengan material
-//     wireframe + custom shader gelombang.
-//  2. Klik di window -> raycast manual ke terrain (tidak lewat event R3F, karena
-//     layer HTML di atas canvas menangkap klik). Titik kena = pusat gelombang.
-//  3. Shader menampilkan wireframe HANYA di sekitar cincin yang membesar
-//     (jarak dari pusat ~ umur * kecepatan), makin lama makin pudar.
-//     Vertex di area cincin juga terangkat sedikit -> terasa seperti ombak.
-//  Overlay disembunyikan (visible=false) saat tidak ada gelombang aktif,
-//  jadi tidak ada beban render saat idle.
+// Parameter dapat disesuaikan di options masing-masing model atau tuning di bawah.
+// Sangat ringan (zero overhead saat idle): overlay mesh visible=false saat tidak ada gelombang aktif.
 // ============================================================================
 
-// ================== Parameter Tuning: Wave Wireframe ==================
-const WAVE_ENABLED = true
-const WAVE_MAX_SECTION = 3            // Gelombang aktif di Section 1..N (Section 4 & 5 = mode 2D, nonaktif)
-const WAVE_COLOR = '#6e878f'          // Warna garis wireframe (sama dengan wireframe Golem)
-const WAVE_MAX_OPACITY = 0.5          // Opasitas maksimum garis pada puncak gelombang (0-1)
-const WAVE_SPEED = 1.2                // Kecepatan gelombang menyebar (world unit / detik)
-const WAVE_WIDTH = 0.2                // Ketebalan cincin gelombang (world unit)
-const WAVE_LIFE = 4.4                 // Berapa lama gelombang hidup sebelum hilang (detik)
-const WAVE_LIFT = 0.12                // Tinggi angkatan vertex di puncak gelombang (world unit). 0 = tanpa angkatan
-const WAVE_DEPTH_BIAS = 0.03          // Dorongan kecil ke arah kamera supaya garis tidak "z-fighting" dengan permukaan
-const WAVE_MAX_COUNT = 4              // Maks. gelombang bersamaan (klik beruntun akan menimpa yang paling lama)
+// ================== Parameter Tuning Default ==================
+export const WAVE_CONFIG = {
+  enabled: true,
+  maxSection: 3.5,                 // Aktif sampai section 3.5 (mode 2D di section 4/5 nonaktif)
+  defaultColor: '#6e878f',         // Warna garis wireframe default (kebiruan)
+  golemColor: '#67e8f9',           // Warna garis wireframe golem & hand (cyan kristal terang)
+  maxOpacity: 0.55,                // Opasitas maksimum garis pada puncak gelombang (0-1)
+  speed: 1.35,                     // Kecepatan gelombang menyebar (world unit / detik)
+  width: 0.22,                     // Ketebalan cincin puncak gelombang (world unit)
+  life: 3.8,                       // Masa aktif gelombang (detik)
+  lift: 0.10,                      // Tinggi angkatan vertex di puncak gelombang (world unit)
+  depthBias: 0.025,                // Bias dorong ke kamera anti z-fighting
+  maxCount: 3,                     // Maksimal gelombang simultan
+  autoPulseInterval: 5.0,          // Interval gelombang berulang otomatis (detik). 0 = nonaktif
+}
 
-// Klik pada elemen-elemen ini TIDAK memicu gelombang (UI interaktif)
+// Elemen UI interaktif yang tidak boleh memicu raycast gelombang saat diklik
 const WAVE_IGNORE_SELECTOR =
   'button, a, input, textarea, select, label, nav, aside, [role="button"], ' +
-  '.sidebar-drawer, .sidebar-backdrop'
+  '.sidebar-drawer, .sidebar-backdrop, .section-why-us__headline-techtext, .section-why-us__golemhand-techtext'
 
-function createWaveMaterial(uniforms) {
+function createWaveMaterial(uniforms, color = WAVE_CONFIG.defaultColor) {
   const mat = new THREE.MeshBasicMaterial({
-    color: WAVE_COLOR,
+    color: color,
     wireframe: true,
     transparent: true,
     depthWrite: false,
@@ -52,7 +45,7 @@ function createWaveMaterial(uniforms) {
     Object.assign(shader.uniforms, uniforms)
 
     const decl = `
-      #define WAVE_N ${WAVE_MAX_COUNT}
+      #define WAVE_N ${WAVE_CONFIG.maxCount}
       uniform vec3 uWaveHit[WAVE_N];
       uniform float uWaveAge[WAVE_N];
       uniform float uWaveSpeed;
@@ -86,10 +79,13 @@ function createWaveMaterial(uniforms) {
             waveLift = max(waveLift, hump * env);
           }
         }
-        waveWp.y += waveLift * uWaveLift;
+        
+        // Dorong vertex ke arah luar normal permukaan + sedikit ke atas Y
+        vec3 worldNorm = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+        waveWp.xyz += (worldNorm * 0.7 + vec3(0.0, 0.3, 0.0)) * (waveLift * uWaveLift);
 
         vec4 mvPosition = viewMatrix * waveWp;
-        // dorong sedikit ke arah kamera (sepanjang sinar pandang) -> anti z-fighting
+        // Dorongan kecil ke arah kamera (anti z-fighting)
         mvPosition.xyz -= normalize(mvPosition.xyz) * uWaveBias;
         gl_Position = projectionMatrix * mvPosition;
         `
@@ -105,12 +101,12 @@ function createWaveMaterial(uniforms) {
           float age = uWaveAge[i];
           if (age >= 0.0) {
             float d = distance(vWaveWorldPos, uWaveHit[i]);
-            float x = d - age * uWaveSpeed;           // x > 0: di depan puncak, x < 0: di belakang
-            // puncak: tepi depan tajam, ekor di belakang melebar
+            float x = d - age * uWaveSpeed;           // x > 0: depan puncak, x < 0: belakang
+            // Puncak gelombang tajam
             float crest = x > 0.0
               ? 1.0 - smoothstep(0.0, uWaveWidth * 0.35, x)
               : 1.0 - smoothstep(0.0, uWaveWidth, -x);
-            // gelombang kedua yang lebih redup mengikuti di belakang
+            // Riak kedua yang lebih redup menyusul
             float crest2 = 0.45 * (1.0 - smoothstep(0.0, uWaveWidth * 0.6, abs(x + uWaveWidth * 2.2)));
             float env = 1.0 - smoothstep(0.0, uWaveLife, age);
             waveAmt = max(waveAmt, max(crest, crest2) * env);
@@ -124,45 +120,60 @@ function createWaveMaterial(uniforms) {
   return mat
 }
 
-// Pasang di dalam komponen yang berada di dalam <Canvas>. groupRef = group
-// yang membungkus model terrain.
-export function useTerrainWaves(groupRef, activeSection = 1) {
+// ============================================================================
+// Hook Umum: useModelWaves
+// Pasang pada sembarang model 3D (groupRef). Menghasilkan efek ombak
+// wireframe yang menyebar saat diklik maupun secara ritmis otomatis (auto-pulse).
+// ============================================================================
+export function useModelWaves(groupRef, options = {}) {
   const { camera, gl } = useThree()
 
-  const activeSectionRef = useRef(activeSection)
-  activeSectionRef.current = activeSection
+  const {
+    color = WAVE_CONFIG.golemColor,
+    speed = WAVE_CONFIG.speed,
+    width = WAVE_CONFIG.width,
+    life = WAVE_CONFIG.life,
+    lift = WAVE_CONFIG.lift,
+    opacity = WAVE_CONFIG.maxOpacity,
+    autoPulse = true,
+    pulseInterval = WAVE_CONFIG.autoPulseInterval,
+    activeSection = null,
+  } = options
 
   const uniforms = useMemo(
     () => ({
       uWaveHit: {
-        value: Array.from({ length: WAVE_MAX_COUNT }, () => new THREE.Vector3(9999, 9999, 9999)),
+        value: Array.from({ length: WAVE_CONFIG.maxCount }, () => new THREE.Vector3(9999, 9999, 9999)),
       },
-      uWaveAge: { value: new Array(WAVE_MAX_COUNT).fill(-1) },
-      uWaveSpeed: { value: WAVE_SPEED },
-      uWaveWidth: { value: WAVE_WIDTH },
-      uWaveLife: { value: WAVE_LIFE },
-      uWaveLift: { value: WAVE_LIFT },
-      uWaveBias: { value: WAVE_DEPTH_BIAS },
-      uWaveOpacity: { value: WAVE_MAX_OPACITY },
+      uWaveAge: { value: new Array(WAVE_CONFIG.maxCount).fill(-1) },
+      uWaveSpeed: { value: speed },
+      uWaveWidth: { value: width },
+      uWaveLife: { value: life },
+      uWaveLift: { value: lift },
+      uWaveBias: { value: WAVE_CONFIG.depthBias },
+      uWaveOpacity: { value: opacity },
     }),
-    []
+    [speed, width, life, lift, opacity]
   )
 
-  const material = useMemo(() => createWaveMaterial(uniforms), [uniforms])
+  const material = useMemo(() => createWaveMaterial(uniforms, color), [uniforms, color])
 
   const stateRef = useRef({
     next: 0,
-    starts: new Array(WAVE_MAX_COUNT).fill(-Infinity),
+    starts: new Array(WAVE_CONFIG.maxCount).fill(-Infinity),
     overlays: [],
     anyActive: false,
+    lastPulse: performance.now() / 1000,
   })
 
-  // 1) Buat overlay wireframe untuk tiap mesh terrain
+  // 1) Pasang overlay wireframe untuk setiap mesh di dalam grup model
   useEffect(() => {
-    if (!WAVE_ENABLED || !groupRef.current) return
+    if (!WAVE_CONFIG.enabled || !groupRef.current) return
     const meshes = []
     groupRef.current.traverse((o) => {
-      if (o.isMesh && !o.userData.isWaveOverlay) meshes.push(o)
+      if (o.isMesh && !o.userData.isWaveOverlay && !o.userData.isScanOverlay) {
+        meshes.push(o)
+      }
     })
 
     const overlays = meshes.map((m) => {
@@ -180,10 +191,10 @@ export function useTerrainWaves(groupRef, activeSection = 1) {
         ov.morphTargetInfluences = m.morphTargetInfluences
         ov.morphTargetDictionary = m.morphTargetDictionary
       }
-      ov.frustumCulled = false        // vertex bisa terangkat oleh gelombang
-      ov.renderOrder = 1
+      ov.frustumCulled = false
+      ov.renderOrder = 3
       ov.visible = false
-      ov.raycast = () => { }           // overlay tidak ikut kena raycast
+      ov.raycast = () => {}
       ov.userData.isWaveOverlay = true
       m.add(ov)
       return ov
@@ -198,22 +209,29 @@ export function useTerrainWaves(groupRef, activeSection = 1) {
     }
   }, [groupRef, material])
 
-  // 2) Klik di mana saja di window -> raycast manual ke terrain
+  // Helper fungsi memicu gelombang pada titik dunia tertentu
+  const triggerWave = (hitPoint) => {
+    const s = stateRef.current
+    const i = s.next % WAVE_CONFIG.maxCount
+    s.next += 1
+    uniforms.uWaveHit.value[i].copy(hitPoint)
+    s.starts[i] = performance.now() / 1000
+  }
+
+  // 2) Raycast manual saat klik di window
   useEffect(() => {
-    if (!WAVE_ENABLED) return
+    if (!WAVE_CONFIG.enabled) return
     const raycaster = new THREE.Raycaster()
     const ndc = new THREE.Vector2()
 
     const onClick = (e) => {
-      if (activeSectionRef.current > WAVE_MAX_SECTION) return
       const t = e.target
       if (t instanceof Element && t.closest(WAVE_IGNORE_SELECTOR)) return
-      // Klik tepat di atas model Golem (Hero) -> biarkan Golem yang menanganinya
-      if (activeSectionRef.current === 1 && golemPointerState.overModel) return
 
       const g = groupRef.current
+      if (!g) return
       const rect = gl.domElement.getBoundingClientRect()
-      if (!g || !rect.width || !rect.height) return
+      if (!rect.width || !rect.height) return
 
       ndc.set(
         ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -224,29 +242,42 @@ export function useTerrainWaves(groupRef, activeSection = 1) {
       camera.updateMatrixWorld()
       g.updateMatrixWorld(true)
       raycaster.setFromCamera(ndc, camera)
-      const hit = raycaster.intersectObject(g, true)[0]
-      if (!hit) return // klik di langit / di luar terrain
-
-      const s = stateRef.current
-      const i = s.next % WAVE_MAX_COUNT
-      s.next += 1
-      uniforms.uWaveHit.value[i].copy(hit.point)
-      s.starts[i] = performance.now() / 1000
+      const hits = raycaster.intersectObject(g, true)
+      // Filter out overlay meshes
+      const validHit = hits.find((h) => !h.object.userData.isWaveOverlay && !h.object.userData.isScanOverlay)
+      if (validHit) {
+        triggerWave(validHit.point)
+      }
     }
 
     window.addEventListener('click', onClick, true)
     return () => window.removeEventListener('click', onClick, true)
   }, [camera, gl, groupRef, uniforms])
 
-  // 3) Update umur tiap gelombang; tampilkan overlay hanya saat ada yang aktif
+  // 3) Frame update: hitung umur gelombang + auto-pulse interval
   useFrame(() => {
-    if (!WAVE_ENABLED) return
+    if (!WAVE_CONFIG.enabled) return
     const s = stateRef.current
     const now = performance.now() / 1000
+
+    // Auto pulse jika diaktifkan (membuat model tampak bernapas / hidup secara dinamis)
+    if (autoPulse && pulseInterval > 0 && now - s.lastPulse > pulseInterval) {
+      s.lastPulse = now
+      const g = groupRef.current
+      if (g) {
+        const wp = new THREE.Vector3()
+        g.getWorldPosition(wp)
+        // Beri sedikit offset random agar pusat riak bergeser organik
+        wp.x += (Math.random() - 0.5) * 0.4
+        wp.y += (Math.random() - 0.5) * 0.4
+        triggerWave(wp)
+      }
+    }
+
     let any = false
-    for (let i = 0; i < WAVE_MAX_COUNT; i++) {
+    for (let i = 0; i < WAVE_CONFIG.maxCount; i++) {
       const age = now - s.starts[i]
-      const active = age >= 0 && age < WAVE_LIFE
+      const active = age >= 0 && age < life
       uniforms.uWaveAge.value[i] = active ? age : -1
       if (active) any = true
     }
@@ -254,5 +285,21 @@ export function useTerrainWaves(groupRef, activeSection = 1) {
       s.anyActive = any
       s.overlays.forEach((ov) => { ov.visible = any })
     }
+  })
+
+  return { triggerWave }
+}
+
+// Kompatibilitas untuk model Terrain
+export function useTerrainWaves(groupRef, activeSection = 1) {
+  return useModelWaves(groupRef, {
+    color: WAVE_CONFIG.defaultColor,
+    speed: WAVE_CONFIG.speed,
+    width: WAVE_CONFIG.width,
+    life: WAVE_CONFIG.life,
+    lift: WAVE_CONFIG.lift,
+    opacity: WAVE_CONFIG.maxOpacity,
+    autoPulse: false, // terrain hanya saat diklik
+    activeSection,
   })
 }

@@ -1,24 +1,6 @@
-sebelum section 4 dan 5 atau section portfolio saya ingin ada section baru(section 3.5 kenapa kami?)
-pada section tersebut berisi model 3d golem yang seperti mengambang  dan disekitarnya ada bebatuan yang mengambang juga(seperti di luar angkasa)
-dan di bawahnya adalah model dengan texture seperti kaca/air yang sangat bening dan memantulkan serta membiaskan cahaya
-dan seluruh objek tersebut berputar dengan loop secara horisontal
-
-animasi innnya adalah model golem dan bebatuan yang mengambang seperti sedang di render(animasi wireframe seperti proyeksi hologram yang baru dinyalakan)
-
-animasi transisi dari section 3 ke 3.5 adalah frost growth, frost nya ini wireframe yang cukup padat merambat ke tengah dengan 3 kali scroll
-1 skroll 20% frost, 2 skroll 40% frost, 3 skroll 100% frost dengan halus
-
-animasi transisi dari section 3.5 ke 4 adalah kebalikan nya, jadi frost nya berkurang dengan 3 kali scroll
-1 skroll 20% frost berkurang, 2 skroll 40% frost berkurang, 3 skroll 100% frost berkurang 
-
-note: untuk model batu nya/metoritnya belum kubuat di blender jadi sediakan dulu tempatnya 
-dan untuk model golem yang di section 3.5 ini matikan keyframenya. posisi hadap golem adalah serong kanan dan serong keatas seperti sedang melamun menatap langit
-. oh iya background untuk section ini adalah galaxy, tambahkan ada kayak efek glitch text + mengambang secara random di backgroundnya dengan opacity yang tipis.
-
-jadi untuk lantai kacanya kamu buatkan dari kode saja biar ringan, jangan lupa efek ray tracingnya, tapi jangan pakai ssao dan pertimbangkan juga untuk beban rendernya
-serta responsif nya
-
-perbaikan: efek frost nya tidak kelihatan dan section 3 harusnya gaperlu animasi out karena tertimpa animasi transisi ke section 3.5,
-untuk latar di section 3.5 atau kaca dibawah nya itu luasnya full screen dan seperti efek glashmorphism, pencahayaan juga ga di 1 titik, tapi di beberapa titik  dan akan membias dan ada reflextion agar kacanya terlihat sangat jernih di kaca nya(jadi galacynya ini kayak di dalam kacanya) 
-
-perbaikan2: animasi transisi nya sangat kaku, saya ingin lebih smooth dan untuk frame frostnya juga saya ingin lebih halus dan smooth , yang sekarang terlalu kaku seperti gapakai animasi sama sekali dan kurang sesuai dan untuk framefrost yang akan menutupi section 3 juga terlalu jelek dan ga halus sama sekali, padahal saya penegnya sangat halus dan seperti wireframe dari objek kertas yang kusut
+perubahan animasi frosttransisi
+1. frost nya saya ingin awal muncul di pojok kiri bawah
+2. untuk menyesuaikan atau selaras dengan section 3.5 saya pengen frostnya ini jadi seperti wave, jadi yang cerah di depan yang belakangnya adalah section 3.5
+3. hilangkan efek motion blur nya dan tambahkan efek Heat Haze (atau Heat Shimmer / Atmospheric Distortion) pada section 3 nya ketika di scroll
+4. untuk ke section 3.5 dari section 3 gaperlu lagi perlu 2 scroll atau geseran kebawah, tapi saya ingin lebih 
+    merambatnya ketika di scroll jadi animasi merambatnya bukan dengan timer , tapi dengan scroll 

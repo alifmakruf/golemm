@@ -1,23 +1,38 @@
 import { Suspense, useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useGLTF, MeshReflectorMaterial } from '@react-three/drei'
+import { useGLTF, MeshReflectorMaterial, useAnimations } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
+import TechText from './TechText'
+import { useModelWaves } from './TerrainWaves.jsx'
 import './style/SectionWhyUs.css'
 
 // ================== Parameter Tuning: Section 3.5 (Kenapa Kami?) ==================
 // Anda dapat menyesuaikan parameter di bawah ini sesuka hati:
 
-// --- Model Golem ---
-// Golem sekarang di-FIT otomatis: bounding box dihitung lalu model diskalakan supaya sisi
-// terpanjangnya = GOLEM_TARGET_SIZE (world unit), dan titik tengahnya dipusatkan.
-// Dulu golem tidak dipusatkan & skalanya mentah, sehingga membengkak dan terpotong di atas layar.
+// --- Model Golem (Content 0) ---
+// Golem di-FIT otomatis ke ukuran target dan dipusatkan.
 const GOLEM_TARGET_SIZE = 1.7              // Ukuran sisi terpanjang golem di desktop (world unit)
 const GOLEM_TARGET_SIZE_MOBILE = 1.4       // Ukuran di HP/tablet
 const GOLEM_SCALE = 1.0                    // Pengali tambahan di atas auto-fit (1 = pas, 1.2 = 20% lebih besar)
+
+// --- Posisi Vertikal Golem Head (Content 0) ---
+// 0.0 = pas tepat di tengah vertikal pandangan kamera (CAMERA_LOOK_Y = 0.85).
+// Ubah nilai ini jika ingin menggeser: positif = naik, negatif = turun.
+const GOLEM_HEAD_VERTICAL_OFFSET = 0.0     // Offset vertikal dari tengah kamera (world unit)
 const GOLEM_FLOAT_CLEARANCE = 0.55         // Jarak tepi bawah golem ke lantai kaca (world unit)
-const GOLEM_BOB_AMPLITUDE = 0.09           // Jarak naik-turun mengambang
+const GOLEM_BOB_AMPLITUDE = 0.2           // Jarak naik-turun mengambang
 const GOLEM_BOB_SPEED = 0.9                // Kecepatan mengambang
+const GOLEM_PLAY_ANIMATION = true          // Mainkan animasi ekspresi alis & mulut golem dari GLB
+const GOLEM_ANIM_SPEED = 0.8               // Kecepatan animasi kepala golem
+
+// --- Animasi Gelombang (Wave Animation seperti TerrainWaves) ---
+const GOLEM_WAVE_ENABLED = true            // Aktifkan animasi ombak wireframe pada model golem & tangan
+const GOLEM_WAVE_COLOR = '#67e8f9'         // Warna wireframe ombak golem
+const GOLEM_WAVE_AUTO_PULSE = false        // false = gelombang muncul saat diklik (tidak menutupi model terus-menerus)
+const GOLEMHAND_WAVE_COLOR = '#67e8f9'     // Warna wireframe ombak tangan
+const GOLEMHAND_WAVE_AUTO_PULSE = false    // false = gelombang muncul saat diklik
+
 // Rotasi dasar golem: serong kanan (Y positif) + serong atas (X negatif) = melamun menatap langit
 const GOLEM_ROTATION_X = -0.4              // Serong atas (negatif = mendongak, radian)
 const GOLEM_ROTATION_Y = 0.35              // Serong kanan (positif = menoleh kanan, radian)
@@ -97,18 +112,17 @@ const MULTI_LIGHTS = [
   // 2. Violet Galaksi (kanan-atas-depan)
   { color: '#c084fc', position: [4.4, 3.8, 2.6], intensity: 2.8, distance: 18 },
   // 3. Magenta Kosmik (kiri-belakang)
-  { color: '#ffffffff', position: [-3.4, 2.6, -3.8], intensity: 2.2, distance: 18 },
+  { color: '#ffffff', position: [-3.4, 2.6, -3.8], intensity: 2.2, distance: 18 },
   // 4. Gold Starlight (kanan-belakang)
-  { color: '#ffffffff', position: [3.6, 2.4, -3.4], intensity: 1.6, distance: 18 },
+  { color: '#ffffff', position: [3.6, 2.4, -3.4], intensity: 1.6, distance: 18 },
   // 5. Caustic Glint (depan, rendah — kilau tajam di wajah golem & lantai)
   { color: '#e0f2fe', position: [0.0, 0.9, 2.4], intensity: 5.2, distance: 20 },
   // 6. Under-Glow (tepat di bawah golem, menyorot ke atas)
   // { color: '#25bdeb', position: [0.0, 0.25, 0.0], intensity: 3.6, distance: 12 },
 ]
 
-// --- Animasi "Pembatuan" Dr. Stone (Scan dari Bawah ke Atas) ---
-// Rentang scan (SCAN_Y_START/END) sekarang dihitung otomatis dari ukuran golem.
-const HOLOGRAM_ENABLED = true              // Aktifkan/matikan animasi entrance
+// --- Animasi "Pembatuan" Dr. Stone (Dinonaktifkan agar golem 100% solid batu bertekstur) ---
+const HOLOGRAM_ENABLED = false             // false = golem langsung solid batu utuh, tanpa scanline pembatuan
 const HOLOGRAM_DURATION_SEC = 2.2          // Durasi total animasi pembatuan (detik)
 const HOLOGRAM_WIRE_COLOR = '#93f8ff'      // Warna wireframe scan hologram
 const HOLOGRAM_WIRE_OPACITY = 0.05         // Opasitas wireframe saat aktif
@@ -148,12 +162,84 @@ const GLITCH_COUNT = 14                     // Jumlah teks glitch yang tampil se
 const STONE_BRIGHTNESS = 0.35               // Kecerahan batu (0-1)
 const CRACK_MATERIAL_NAME = 'Material.005'
 const CRACK_GLOW_COLOR = '#4ae0ff'
-const CRACK_GLOW_INTENSITY = 0.1
+const CRACK_GLOW_INTENSITY = 0.15        // Sesuaikan dengan GolemModel agar bloom terlihat
 const EYE_GLOW_COLOR = '#4ae0ff'
-const EYE_GLOW_INTENSITY = 1
+const EYE_GLOW_INTENSITY = 10.55         // Sama seperti GolemModel — cukup terang untuk bloom threshold
 
 // --- Delay & Animasi ---
 const SECTION_EXIT_DELAY_MS = 700           // Delay animasi keluar sebelum pindah section
+
+// --- Scroll-Driven 200vh Multi-Content (Content 0: Golem, Content 1: GolemHand) ---
+// Total perjalanan terasa 200vh: user benar-benar scroll ke bawah, dan rotasi model
+// mengikuti input scroll secara dinamis (Scroll-Driven Animation), bukan durasi statis.
+// Animasi fade dihilangkan: model 100% solid, berpindah posisi meluncur naik/turun melewati frame.
+// Bintang, debu kosmik, dan batu-batu yang mengorbit TETAP ADA di tengah scene!
+const SCROLL_DISTANCE_PX = 1400              // Jarak akumulasi scroll wheel (px) untuk beralih penuh 0 -> 1 (dinaikkan agar transisi lebih lega & tidak numpuk)
+const SCROLL_WHEEL_FACTOR = 1.0             // Pengali sensitivitas mouse wheel (1.0 = pas, 1.2 = lebih cepat)
+const SCROLL_TOUCH_FACTOR = 1.6             // Pengali sensitivitas touch swipe di layar sentuh
+const SCROLL_LERP_SPEED = 8.0               // Kecepatan kehalusan interpolasi gerakan 3D (makin besar = makin reaktif & nempel ke scroll)
+
+// --- Proteksi Scroll Kebablasan (Overshoot Guard) ---
+// Melindungi agar scroll di Section 3.5 tidak mudah tergelincir/kebablasan ke Section 3 atau Section 4
+const SCROLL_OVERSHOOT_EXIT_PX = 480        // Jarak scroll ekstra saat sudah mentok sebelum keluar section (onNext/onBack)
+const OVERSHOOT_COOLDOWN_MS = 350           // Jeda waktu (ms) serap inersia saat baru menyentuh batas sebelum akumulasi exit diizinkan
+
+// --- Parameter Animasi Muncul Konten (Entrance Animation) ---
+// Konten 3.5 disembunyikan sampai gelombang ombak selesai menyapu keluar viewport ke kanan atas
+const CONTENT_ENTRANCE_DELAY_MS = 140       // Jeda waktu (ms) setelah ombak tiba di kanan atas sebelum konten mulai muncul
+const CONTENT_ENTRANCE_OFFSET_Y = 35        // Jarak slide ke atas (px) untuk efek fade in up
+
+// --- Rotasi Scroll-Driven (Sumbu Vertikal Y) ---
+// Berputar dinamis sesuai putaran scroll user (scroll dikit = putar dikit, scroll balik = putar balik)
+const SCROLL_SPIN_Y = Math.PI * 2.0         // Total putaran sumbu vertikal (radian: 2*PI = 360° putaran penuh)
+const SCROLL_SPIN_X = 0.0                   // Putaran sumbu X (tumble vertikal jika diinginkan, default 0 untuk putaran vertikal murni)
+
+// --- Pergerakan Model (Jarak diperjauh agar konten 1 dan 2 tidak bertumpuk) ---
+const GOLEM_TRAVEL_Y = 5.8                  // Jarak model Golem meluncur naik ke atas keluar layar saat discroll (world unit)
+const GOLEMHAND_TRAVEL_Y = 5.8              // Jarak model GolemHand meluncur dari bawah layar ke tengah panggung (world unit)
+const TRAVEL_SCALE_DROP = 0.15              // Pengurangan skala saat model meluncur menjauh (0.15 = mengecil 15%)
+
+// --- Model 3D GolemHand (/golemhand.glb) ---
+const GOLEMHAND_MODEL_SIZE = 3.9            // Ukuran sisi terpanjang model tangan di desktop (world unit)
+const GOLEMHAND_MODEL_SIZE_MOBILE = 1.35    // Ukuran model tangan di HP/tablet
+const GOLEMHAND_MODEL_SCALE = 1.0           // Pengali skala tambahan di atas auto-fit
+const GOLEMHAND_MODEL_Y = 0.45              // Posisi ketinggian tangan di tengah panggung (world unit)
+const GOLEMHAND_MODEL_ROT_X = 3          // Kemiringan sumbu X (radian, agak condong ke depan)
+const GOLEMHAND_MODEL_ROT_Y = -1          // Rotasi sumbu vertikal Y (radian, menghadap agak serong kanan)
+const GOLEMHAND_MODEL_ROT_Z = -.5           // Kemiringan roll (radian)
+const GOLEMHAND_BOB_AMPLITUDE = 0.25        // Jarak naik-turun tangan mengambang
+const GOLEMHAND_BOB_SPEED = 0.85            // Kecepatan mengambang tangan
+const GOLEMHAND_PLAY_ANIMATION = true       // Mainkan animasi gerak jari tangan dari file GLB
+const GOLEMHAND_ANIM_SPEED = 0.9           // Kecepatan animasi gerakan jari tangan
+const GOLEMHAND_CRACK_GLOW_COLOR = '#4ae0ff' // Warna glow retakan biru kristal tangan
+const GOLEMHAND_CRACK_GLOW_INTENSITY = 0.55 // Intensitas cahaya retakan tangan
+
+// --- Parameter TechText Content 0 (Kenapa Memilih Kami?) ---
+const WHYUS_HEADLINE_TEXT = 'Kenapa Memilih Kami?' // Teks headline interaktif Content 0
+const WHYUS_HEADLINE_FONT_SIZE = 79                // Ukuran font sama dengan Hand To Hand
+const WHYUS_HEADLINE_FONT_WEIGHT = 700             // Ketebalan huruf
+const WHYUS_HEADLINE_LETTER_SPACING = -0.04        // Spasi antar huruf (em)
+const WHYUS_HEADLINE_COLOR = '#ffffff'             // Warna huruf
+const WHYUS_HEADLINE_ACCENT = '#67e8f9'            // Warna frame & partikel
+const WHYUS_HEADLINE_REACH = 180                   // Radius efek hover kursor (px)
+const WHYUS_HEADLINE_SPECKS = 12                   // Jumlah partikel aktif (0 = off)
+const WHYUS_HEADLINE_REVEAL = 'letter'             // Mode reveal: 'letter' | 'area' | 'off'
+const CONTENT_0_SHOW_SUBTITLE = false              // Subtitle dimatikan sesuai arahan (layout tengah atas)
+const CONTENT_0_SUBTITLE = 'Pengalaman visual 3D interaktif yang dibangun dengan teknologi mutakhir dan perhatian pada setiap detail.'
+
+// --- Parameter TechText GolemHand (Content 1) ---
+const GOLEMHAND_TEXT = 'Hand To Hand'          // Teks headline interaktif
+const GOLEMHAND_FONT_SIZE = 79              // Ukuran font (px) — proporsional di tengah atas
+const GOLEMHAND_FONT_WEIGHT = 700           // Ketebalan huruf
+const GOLEMHAND_LETTER_SPACING = -0.04      // Spasi antar huruf (em)
+const GOLEMHAND_COLOR = '#ffffff'           // Warna huruf
+const GOLEMHAND_ACCENT = '#67e8f9'          // Warna frame & partikel
+const GOLEMHAND_REACH = 180                 // Radius efek hover (px)
+const GOLEMHAND_SPECKS = 12                 // Jumlah partikel aktif (0 = off)
+const GOLEMHAND_REVEAL = 'letter'           // Mode reveal: 'letter' | 'area' | 'off'
+
+// --- Indikator Scroll 200vh (Track di Samping Kanan) ---
+const SHOW_SCROLL_INDICATOR = true          // Tampilkan track bar scroll di samping kanan layar
 
 
 // ========== Three.js Sub-Components ==========
@@ -205,11 +291,33 @@ function EyePart({ node, material }) {
 // Scanline naik dari bawah: wireframe hanya tampil di atas scanline,
 // solid hanya tampil di bawah scanline. Keduanya bergerak bersamaan.
 // Golem dipusatkan lewat bounding box & di-fit ke ukuran target, lalu melayang di atas lantai.
-function GolemWhyUs({ hologramProgress, isMobile }) {
-  const { nodes, materials } = useGLTF('/models/golem.glb')
+function GolemWhyUs({ hologramProgress, scrollProgRef, isMobile, isContentEntered }) {
+  const { nodes, materials, animations } = useGLTF('/models/golem.glb')
   const outerRef = useRef()      // grup luar: posisi melayang, rotasi, skala hasil auto-fit
   const centeredRef = useRef()   // grup dalam: kompensasi supaya titik tengah model = origin grup luar
   const layoutRef = useRef({ fit: 1, baseY: 1.5, scanStart: 0, scanEnd: 3.5 })
+  const { actions } = useAnimations(animations, centeredRef)
+
+  // Putar animasi alis & mulut golem dari file GLB
+  useEffect(() => {
+    if (!GOLEM_PLAY_ANIMATION || !actions) return
+    Object.values(actions).forEach((action) => {
+      if (action) {
+        action.reset().fadeIn(0.4).play()
+        action.setEffectiveTimeScale(GOLEM_ANIM_SPEED)
+      }
+    })
+    return () => {
+      Object.values(actions).forEach((action) => action?.stop())
+    }
+  }, [actions])
+
+  // Efek ombak wireframe (Wave animation) seperti TerrainWaves pada kepala golem
+  useModelWaves(centeredRef, {
+    color: GOLEM_WAVE_COLOR,
+    autoPulse: GOLEM_WAVE_AUTO_PULSE && GOLEM_WAVE_ENABLED,
+    pulseInterval: 5.0,
+  })
 
   // ClippingPlane (world space):
   // solidClip: normal (0,-1,0) → lolos jika y <= constant → solid muncul DI BAWAH scanline
@@ -236,10 +344,11 @@ function GolemWhyUs({ hologramProgress, isMobile }) {
   const eyeMaterial = useMemo(() => {
     const baseMat = materials?.['Material.002'] || (materials && Object.values(materials)[0])
     const mat = baseMat ? baseMat.clone() : new THREE.MeshStandardMaterial()
+    mat.transparent = true
     mat.emissive = new THREE.Color(EYE_GLOW_COLOR)
     mat.emissiveIntensity = EYE_GLOW_INTENSITY
     mat.toneMapped = false
-    mat.clippingPlanes = [solidClip.current]
+    if (HOLOGRAM_ENABLED) mat.clippingPlanes = [solidClip.current]
     return mat
   }, [materials])
 
@@ -278,9 +387,9 @@ function GolemWhyUs({ hologramProgress, isMobile }) {
 
     centered.position.set(-center.x, -center.y, -center.z)
 
-    const halfH = (size.y * fit) / 2
     const halfDiag = (Math.hypot(size.x, size.y, size.z) * fit) / 2
-    const baseY = GOLEM_FLOAT_CLEARANCE + halfH
+    // Posisi vertikal pas di tengah layar: sejajar dengan titik tatap kamera (CAMERA_LOOK_Y = 0.85)
+    const baseY = CAMERA_LOOK_Y + GOLEM_HEAD_VERTICAL_OFFSET
     layoutRef.current = {
       fit,
       baseY,
@@ -300,14 +409,16 @@ function GolemWhyUs({ hologramProgress, isMobile }) {
     const tune = (orig) => {
       if (cache.has(orig)) return cache.get(orig)
       const c = orig.clone()
+      c.transparent = true
       if (orig.name === CRACK_MATERIAL_NAME) {
         c.emissive = new THREE.Color(CRACK_GLOW_COLOR)
         c.emissiveIntensity = CRACK_GLOW_INTENSITY
+        c.toneMapped = false // Bloom threshold bisa mendeteksi glow retakan
       } else if (c.color) {
         c.color.multiplyScalar(STONE_BRIGHTNESS)
       }
-      // Solid mesh hanya muncul di BAWAH scanline
-      c.clippingPlanes = [solidClip.current]
+      // Solid mesh hanya diclip jika mode hologram diaktifkan
+      if (HOLOGRAM_ENABLED) c.clippingPlanes = [solidClip.current]
       cache.set(orig, c)
       return c
     }
@@ -353,32 +464,49 @@ function GolemWhyUs({ hologramProgress, isMobile }) {
     const t = state.clock.elapsedTime
     const L = layoutRef.current
     const outer = outerRef.current
+    if (!outer) return
 
-    // Melayang + menoleh pelan (golem selalu menghadap kamera, tidak berputar menampilkan punggung)
-    if (outer) {
-      outer.position.y = L.baseY + Math.sin(t * GOLEM_BOB_SPEED) * GOLEM_BOB_AMPLITUDE
-      outer.rotation.x = GOLEM_ROTATION_X + Math.sin(t * 0.6) * 0.025
-      outer.rotation.y = GOLEM_ROTATION_Y + Math.sin(t * GOLEM_SWAY_SPEED) * GOLEM_SWAY_YAW
-      outer.rotation.z = GOLEM_ROTATION_Z + Math.sin(t * 0.5) * 0.012
+    // Scroll-Driven Animation: posisi & rotasi mengikuti langsung scrollProgress (0.0 .. 1.0)
+    const p = scrollProgRef.current
+
+    // Culling performa: sembunyikan jika belum masuk atau sudah meluncur jauh ke atas di luar jangkauan kamera
+    if (!isContentEntered || p >= 0.995) {
+      outer.visible = false
+      return
     }
 
-    // Animasi scanline: gerakkan kedua clipping plane bersama sesuai hologramProgress
-    const p = hologramProgress.current // 0 → 1
+    outer.visible = true
+
+    // Posisi Y: meluncur naik ke atas keluar layar saat discroll (SOLID, TANPA FADE)
+    outer.position.y = L.baseY + Math.sin(t * GOLEM_BOB_SPEED) * GOLEM_BOB_AMPLITUDE + p * GOLEM_TRAVEL_Y
+
+    // Rotasi Y: berputar pada sumbu vertikal mengikuti input scroll secara dinamis
+    outer.rotation.x = GOLEM_ROTATION_X + Math.sin(t * 0.6) * 0.025 + p * SCROLL_SPIN_X
+    outer.rotation.y = GOLEM_ROTATION_Y + Math.sin(t * GOLEM_SWAY_SPEED) * GOLEM_SWAY_YAW + p * SCROLL_SPIN_Y
+    outer.rotation.z = GOLEM_ROTATION_Z + Math.sin(t * 0.5) * 0.012
+
+    // Skala mengecil halus saat meluncur ke atas
+    const currentScale = L.fit * (1 - p * TRAVEL_SCALE_DROP)
+    outer.scale.setScalar(currentScale)
+
+    // Animasi scanline pembatuan di awal entrance
+    const scanP = hologramProgress.current // 0 → 1
     const totalRange = L.scanEnd - L.scanStart
-    const solidY = L.scanStart + p * totalRange
-    const wireY = L.scanStart + Math.min(1, p + SCAN_WIRE_LEAD) * totalRange
+    const solidY = L.scanStart + scanP * totalRange
+    const wireY = L.scanStart + Math.min(1, scanP + SCAN_WIRE_LEAD) * totalRange
     solidClip.current.constant = solidY
     wireClip.current.constant = -wireY
 
-    // Wireframe fade: makin dekat selesai makin transparan
+    // Wireframe fade hanya saat entrance pembatuan
     if (wireframeMat) {
-      wireframeMat.opacity = HOLOGRAM_WIRE_OPACITY * Math.max(0, 1 - Math.pow(p, 3))
-      wireframeMat.visible = p < 0.98
+      wireframeMat.opacity = HOLOGRAM_WIRE_OPACITY * Math.max(0, 1 - Math.pow(scanP, 3))
+      wireframeMat.visible = scanP < 0.98
     }
 
-    // Napas mata: fade in seiring progress
+    // Napas mata: saat hologram off, langsung nyala penuh (tanpa multiplier scanP)
     const breathe = 1 + Math.sin(t * 1.4) * 0.08
-    eyeMaterial.emissiveIntensity = EYE_GLOW_INTENSITY * breathe * Math.min(1, p * 2)
+    const scanFactor = HOLOGRAM_ENABLED ? Math.min(1, scanP * 2) : 1
+    eyeMaterial.emissiveIntensity = EYE_GLOW_INTENSITY * breathe * scanFactor
   })
 
   return (
@@ -389,6 +517,126 @@ function GolemWhyUs({ hologramProgress, isMobile }) {
         {nodes.alis && <primitive object={nodes.alis} />}
         <EyePart node={nodes.matakanan} material={eyeMaterial} />
         <EyePart node={nodes.matakiri} material={eyeMaterial} />
+      </group>
+    </group>
+  )
+}
+
+// Model tangan golem (/golemhand.glb) — Content 1
+// Dipusatkan lewat bounding box & di-fit ke ukuran target, melayang di scene yang sama dengan batu-batu orbit
+function GolemHandModel({ scrollProgRef, isMobile, isContentEntered }) {
+  const outerRef = useRef()
+  const centeredRef = useRef()
+  const layoutRef = useRef({ fit: 1 })
+  const { scene, animations } = useGLTF('/golemhand.glb')
+  const { actions } = useAnimations(animations, outerRef)
+
+  // Efek ombak wireframe (Wave animation) seperti TerrainWaves pada tangan golem
+  useModelWaves(centeredRef, {
+    color: GOLEMHAND_WAVE_COLOR,
+    autoPulse: GOLEMHAND_WAVE_AUTO_PULSE && GOLEM_WAVE_ENABLED,
+    pulseInterval: 5.5,
+  })
+
+  // Mainkan animasi gerak jari tangan dari file GLB jika ada
+  useEffect(() => {
+    if (!GOLEMHAND_PLAY_ANIMATION || !actions) return
+    Object.values(actions).forEach((action) => {
+      if (action) {
+        action.reset().fadeIn(0.5).play()
+        action.setEffectiveTimeScale(GOLEMHAND_ANIM_SPEED)
+      }
+    })
+    return () => {
+      Object.values(actions).forEach((action) => action?.stop())
+    }
+  }, [actions])
+
+  // Tuning material: glow retakan cyan (tanpa fade, solid)
+  useEffect(() => {
+    scene.traverse((o) => {
+      if (o.isMesh && o.material) {
+        const prepareMat = (m) => {
+          m.opacity = 1
+          if (m.name === 'Material.005' || m.name === 'bluerift') {
+            m.emissive = new THREE.Color(GOLEMHAND_CRACK_GLOW_COLOR)
+            m.emissiveIntensity = GOLEMHAND_CRACK_GLOW_INTENSITY
+            m.toneMapped = false // Penting agar bloom threshold bisa mendeteksi emissive glow
+          }
+        }
+        if (Array.isArray(o.material)) {
+          o.material.forEach(prepareMat)
+        } else {
+          prepareMat(o.material)
+        }
+      }
+    })
+  }, [scene])
+
+  // Auto-fit & auto-center bounding box
+  useLayoutEffect(() => {
+    const centered = centeredRef.current
+    if (!centered) return
+
+    centered.position.set(0, 0, 0)
+    centered.rotation.set(0, 0, 0)
+    centered.scale.setScalar(1)
+    centered.updateWorldMatrix(true, true)
+
+    const box = new THREE.Box3().setFromObject(centered)
+    if (box.isEmpty()) return
+
+    const size = box.getSize(new THREE.Vector3())
+    const center = box.getCenter(new THREE.Vector3())
+    const maxDim = Math.max(size.x, size.y, size.z) || 1
+    const targetSize = isMobile ? GOLEMHAND_MODEL_SIZE_MOBILE : GOLEMHAND_MODEL_SIZE
+    const fit = (targetSize / maxDim) * GOLEMHAND_MODEL_SCALE
+
+    centered.position.set(-center.x, -center.y, -center.z)
+    layoutRef.current = { fit }
+
+    if (outerRef.current) {
+      outerRef.current.position.set(0, GOLEMHAND_MODEL_Y - GOLEMHAND_TRAVEL_Y, 0)
+      outerRef.current.scale.setScalar(fit * (1 - TRAVEL_SCALE_DROP))
+      outerRef.current.visible = false
+    }
+  }, [scene, isMobile])
+
+  useFrame((state) => {
+    const outer = outerRef.current
+    if (!outer) return
+
+    // Scroll-Driven Animation: posisi & rotasi mengikuti langsung scrollProgress (0.0 .. 1.0)
+    const p = scrollProgRef.current
+
+    // Culling performa: sembunyikan jika belum masuk atau masih jauh di bawah layar
+    if (!isContentEntered || p <= 0.005) {
+      outer.visible = false
+      return
+    }
+
+    outer.visible = true
+    const factor = 1 - p
+    const t = state.clock.elapsedTime
+    const fit = layoutRef.current.fit || 1
+
+    // Posisi Y: meluncur naik dari bawah layar ke posisi tengah panggung (SOLID, TANPA FADE)
+    outer.position.y = GOLEMHAND_MODEL_Y + Math.sin(t * GOLEMHAND_BOB_SPEED) * GOLEMHAND_BOB_AMPLITUDE - factor * GOLEMHAND_TRAVEL_Y
+
+    // Rotasi Y: berputar pada sumbu vertikal mengikuti input scroll secara dinamis
+    outer.rotation.y = GOLEMHAND_MODEL_ROT_Y - factor * SCROLL_SPIN_Y
+    outer.rotation.x = GOLEMHAND_MODEL_ROT_X - factor * SCROLL_SPIN_X
+    outer.rotation.z = GOLEMHAND_MODEL_ROT_Z
+
+    // Skala membesar ke normal saat sampai di tengah panggung
+    const currentScale = fit * (1 - factor * TRAVEL_SCALE_DROP)
+    outer.scale.setScalar(currentScale)
+  })
+
+  return (
+    <group ref={outerRef} visible={false}>
+      <group ref={centeredRef}>
+        <primitive object={scene} />
       </group>
     </group>
   )
@@ -695,13 +943,24 @@ function CameraRig({ hologramProgress }) {
 
 // Scene utama di dalam Canvas
 // clippingPlanes diaktifkan di renderer agar clippingPlane material bekerja
-function WhyUsScene({ hologramProgress, isMobile }) {
+function WhyUsScene({ hologramProgress, scrollProgRef, targetProgRef, sectionDomRef, isMobile, isContentEntered }) {
   const { gl } = useThree()
 
   useEffect(() => {
     gl.localClippingEnabled = true
     return () => { gl.localClippingEnabled = false }
   }, [gl])
+
+  // Scroll-Driven Animation Loop: interpolasi scrollProgress dengan lerp damping 60-120fps
+  useFrame((state, delta) => {
+    // Lerp smooth scroll progres (0.0 .. 1.0)
+    scrollProgRef.current += (targetProgRef.current - scrollProgRef.current) * Math.min(1, delta * SCROLL_LERP_SPEED)
+
+    // Update CSS custom property pada container DOM secara langsung (zero re-render!)
+    if (sectionDomRef.current) {
+      sectionDomRef.current.style.setProperty('--scroll-p', scrollProgRef.current.toFixed(4))
+    }
+  })
 
   return (
     <>
@@ -722,7 +981,7 @@ function WhyUsScene({ hologramProgress, isMobile }) {
         />
       ))}
 
-      {/* Rim light cyan untuk siluet golem */}
+      {/* Rim light cyan untuk siluet golem & tangan */}
       <directionalLight position={[0, 4, -4]} color="#00f0ff" intensity={1.2} />
 
       {/* Ambient agar golem tetap terbaca */}
@@ -731,19 +990,33 @@ function WhyUsScene({ hologramProgress, isMobile }) {
       {/* Lantai kaca STATIS — tidak ikut berputar */}
       {GLASS_FLOOR_ENABLED && <GlassFloor isMobile={isMobile} />}
 
-      {/* Golem melayang di tengah */}
+      {/* Golem melayang di tengah (Content 0) — Scroll-Driven */}
       <Suspense fallback={null}>
-        <GolemWhyUs hologramProgress={hologramProgress} isMobile={isMobile} />
+        <GolemWhyUs
+          hologramProgress={hologramProgress}
+          scrollProgRef={scrollProgRef}
+          isMobile={isMobile}
+          isContentEntered={isContentEntered}
+        />
       </Suspense>
 
-      {/* Batu mengorbit golem */}
+      {/* Model tangan Golem (Content 1) — Scroll-Driven */}
+      <Suspense fallback={null}>
+        <GolemHandModel
+          scrollProgRef={scrollProgRef}
+          isMobile={isMobile}
+          isContentEntered={isContentEntered}
+        />
+      </Suspense>
+
+      {/* Batu mengorbit golem (TETAP ADA & BERPUTAR DI KEDUA KONTEN!) */}
       {ROCKS_ENABLED && (
         <Turntable>
           <FloatingRocks />
         </Turntable>
       )}
 
-      {/* Debu kosmik */}
+      {/* Debu kosmik (TETAP ADA DI KEDUA KONTEN!) */}
       {DUST_ENABLED && <DustMotes isMobile={isMobile} />}
 
       {/* Bloom efek glow */}
@@ -797,9 +1070,21 @@ function generateGlitchTexts(count) {
 
 
 // ========== Main Component ==========
-const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNext }, ref) {
+const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNext, isPreview = false }, ref) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
   const [isExiting, setIsExiting] = useState(false)
+  const isExitingRef = useRef(false)
+  const sectionDomRef = useRef(null)
+
+  // Status kesiapan konten: konten disembunyikan sampai gelombang tiba di kanan atas (bukan preview)
+  const [isContentEntered, setIsContentEntered] = useState(false)
+  const [isContentEntering, setIsContentEntering] = useState(false)
+  const boundaryHitTimeRef = useRef(0)
+
+  // Scroll-Driven Animation state & refs (200vh total feel)
+  const targetProgRef = useRef(0)        // 0.0 .. 1.0 (target dari input scroll)
+  const scrollProgRef = useRef(0)        // 0.0 .. 1.0 (smooth interpolated)
+  const overshootRef = useRef(0)         // Akumulasi scroll saat sudah mentok di 0 atau 1
   const timerRef = useRef(null)
   const hologramProgress = useRef(0)
   const hologramStartTime = useRef(null)
@@ -808,9 +1093,31 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
   const stars = useMemo(() => generateStars(STAR_COUNT), [])
   const glitchTexts = useMemo(() => generateGlitchTexts(GLITCH_COUNT), [])
 
+  // Kontrol kemunculan konten: objek di 3.5 disembunyikan sampai ombak selesai menyapu keluar viewport (isPreview false)
+  useEffect(() => {
+    if (isVisible && !isPreview) {
+      const t = setTimeout(() => {
+        setIsContentEntering(true)
+        setIsContentEntered(true)
+      }, CONTENT_ENTRANCE_DELAY_MS)
+      return () => clearTimeout(t)
+    } else {
+      setIsContentEntered(false)
+      setIsContentEntering(false)
+      targetProgRef.current = 0
+      scrollProgRef.current = 0
+      overshootRef.current = 0
+      boundaryHitTimeRef.current = 0
+      isExitingRef.current = false
+      if (sectionDomRef.current) {
+        sectionDomRef.current.style.setProperty('--scroll-p', '0')
+      }
+    }
+  }, [isVisible, isPreview])
+
   // Hologram entrance animation timing
   useEffect(() => {
-    if (isVisible && HOLOGRAM_ENABLED) {
+    if (isVisible && !isPreview && HOLOGRAM_ENABLED) {
       hologramProgress.current = 0
       hologramStartTime.current = performance.now()
       const animate = () => {
@@ -826,32 +1133,157 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
       hologramProgress.current = 0
       hologramStartTime.current = null
     }
-  }, [isVisible])
+  }, [isVisible, isPreview])
 
-  // Handler navigasi
-  const handleBack = useCallback(() => {
-    if (isExiting) return
-    setIsExiting(true)
-    timerRef.current = setTimeout(() => {
-      setIsExiting(false)
-      if (onBack) onBack()
-    }, SECTION_EXIT_DELAY_MS)
-  }, [isExiting, onBack])
+  // Handler input wheel delta dari App.jsx (atau touch)
+  const onWheelDelta = useCallback((deltaY) => {
+    if (isExitingRef.current || !isContentEntered) return
 
-  const handleNext = useCallback(() => {
-    if (isExiting) return
-    setIsExiting(true)
-    timerRef.current = setTimeout(() => {
-      setIsExiting(false)
+    const now = performance.now()
+    const delta = deltaY * SCROLL_WHEEL_FACTOR
+    const prev = targetProgRef.current
+    const step = delta / SCROLL_DISTANCE_PX
+    const next = Math.max(0, Math.min(1, prev + step))
+
+    // Deteksi jika baru saja mencapai batas (prev berada di tengah lalu menyentuh 0 atau 1)
+    if ((prev > 0.001 && next <= 0.001) || (prev < 0.999 && next >= 0.999)) {
+      boundaryHitTimeRef.current = now
+      overshootRef.current = 0
+      targetProgRef.current = next
+      return
+    }
+
+    targetProgRef.current = next
+
+    // Cek jika sedang mentok di ujung atas (konten 0) dan terus scroll ke atas
+    if (prev <= 0 && delta < 0) {
+      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) {
+        return // Serap inersia scroll yang tersisa
+      }
+      overshootRef.current += Math.abs(delta)
+      if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
+        overshootRef.current = 0
+        isExitingRef.current = true
+        setIsExiting(true)
+        setIsContentEntered(false)
+        timerRef.current = setTimeout(() => {
+          setIsExiting(false)
+          isExitingRef.current = false
+          if (onBack) onBack()
+        }, 220)
+      }
+      return
+    }
+
+    // Cek jika sedang mentok di ujung bawah (konten 1) dan terus scroll ke bawah
+    if (prev >= 1 && delta > 0) {
+      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) {
+        return // Serap inersia scroll yang tersisa
+      }
+      overshootRef.current += Math.abs(delta)
+      if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
+        overshootRef.current = 0
+        isExitingRef.current = true
+        setIsExiting(true)
+        setIsContentEntered(false)
+        timerRef.current = setTimeout(() => {
+          setIsExiting(false)
+          isExitingRef.current = false
+          if (onNext) onNext()
+        }, 220)
+      }
+      return
+    }
+
+    // Reset overshoot saat sedang di dalam rentang
+    overshootRef.current = 0
+  }, [onBack, onNext, isContentEntered])
+
+  // Handler touch delta untuk layar sentuh HP
+  const onTouchDelta = useCallback((dy) => {
+    if (isExitingRef.current || !isContentEntered) return
+    const now = performance.now()
+    const delta = dy * SCROLL_TOUCH_FACTOR
+    const prev = targetProgRef.current
+    const step = delta / SCROLL_DISTANCE_PX
+    const next = Math.max(0, Math.min(1, prev + step))
+
+    if ((prev > 0.001 && next <= 0.001) || (prev < 0.999 && next >= 0.999)) {
+      boundaryHitTimeRef.current = now
+      overshootRef.current = 0
+      targetProgRef.current = next
+      return
+    }
+
+    targetProgRef.current = next
+
+    if (prev <= 0 && delta < 0) {
+      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) return
+      overshootRef.current += Math.abs(delta)
+      if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
+        overshootRef.current = 0
+        isExitingRef.current = true
+        setIsExiting(true)
+        setIsContentEntered(false)
+        timerRef.current = setTimeout(() => {
+          setIsExiting(false)
+          isExitingRef.current = false
+          if (onBack) onBack()
+        }, 220)
+      }
+      return
+    }
+
+    if (prev >= 1 && delta > 0) {
+      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) return
+      overshootRef.current += Math.abs(delta)
+      if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
+        overshootRef.current = 0
+        isExitingRef.current = true
+        setIsExiting(true)
+        setIsContentEntered(false)
+        timerRef.current = setTimeout(() => {
+          setIsExiting(false)
+          isExitingRef.current = false
+          if (onNext) onNext()
+        }, 220)
+      }
+      return
+    }
+
+    overshootRef.current = 0
+  }, [onBack, onNext, isContentEntered])
+
+  // Handler touch end
+  const onTouchEnd = useCallback(() => {
+    overshootRef.current = 0
+  }, [])
+
+  // Handler imperative next / back (jika dipanggil dari keyboard / tombol)
+  const next = useCallback(() => {
+    if (targetProgRef.current < 0.95) {
+      targetProgRef.current = 1
+    } else {
       if (onNext) onNext()
-    }, SECTION_EXIT_DELAY_MS)
-  }, [isExiting, onNext])
+    }
+  }, [onNext])
 
-  // Imperative handle untuk scroll navigation dari App.jsx
+  const back = useCallback(() => {
+    if (targetProgRef.current > 0.05) {
+      targetProgRef.current = 0
+    } else {
+      if (onBack) onBack()
+    }
+  }, [onBack])
+
+  // Expose imperative handle untuk App.jsx
   useImperativeHandle(ref, () => ({
-    next: handleNext,
-    back: handleBack,
-  }), [handleNext, handleBack])
+    next,
+    back,
+    onWheelDelta,
+    onTouchDelta,
+    onTouchEnd,
+  }), [next, back, onWheelDelta, onTouchDelta, onTouchEnd])
 
   useEffect(() => {
     return () => {
@@ -863,7 +1295,13 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
 
   return (
     <section
-      className={`section-why-us ${showSection ? 'section-why-us--visible' : ''}`}
+      ref={sectionDomRef}
+      className={`section-why-us ${(showSection || isPreview) ? 'section-why-us--visible' : ''}`}
+      style={{
+        '--scroll-p': '0',
+        // isPreview: tampil di bawah Section 3 (z-index < 4), pointer-events nonaktif, langsung terlihat penuh tanpa delay transisi
+        ...(isPreview ? { zIndex: 2, pointerEvents: 'none', opacity: 1, transform: 'none', visibility: 'visible', transition: 'none' } : {}),
+      }}
     >
       {/* Galaxy Background + aurora yang bernapas pelan */}
       <div className="section-why-us__bg" />
@@ -911,7 +1349,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
         ))}
       </div>
 
-      {/* Canvas 3D */}
+      {/* Canvas 3D — Shared scene (tetap aktif di content 0 & 1, batu orbit & debu tetap ada) */}
       <div className="section-why-us__canvas">
         <Canvas
           frameloop={showSection ? 'always' : 'never'}
@@ -924,11 +1362,16 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
             powerPreference: 'high-performance',
           }}
           events={false}
-          // Wrapper Canvas R3F default pointer-events:auto -> saat section ini tersembunyi (z-index 12)
-          // ia menutupi Section 2 & 3 dan menelan sentuhan/scroll. Matikan hit-testing-nya.
           style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
         >
-          <WhyUsScene hologramProgress={hologramProgress} isMobile={isMobile} />
+          <WhyUsScene
+            hologramProgress={hologramProgress}
+            scrollProgRef={scrollProgRef}
+            targetProgRef={targetProgRef}
+            sectionDomRef={sectionDomRef}
+            isMobile={isMobile}
+            isContentEntered={isContentEntered}
+          />
         </Canvas>
       </div>
 
@@ -937,19 +1380,61 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
       <div className="section-why-us__vignette" />
       <div className="section-why-us__grain" />
 
-      {/* Konten teks overlay */}
-      <div className="section-why-us__content">
-        <h2 className="section-why-us__headline">Kenapa memilih Kami?</h2>
-        <span className="section-why-us__divider" />
-        <p className="section-why-us__subtitle">
-          Kami menghadirkan pengalaman visual 3D interaktif yang memukau,
-          dibangun dengan teknologi yang terupdate atau terbaru dan perhatian pada setiap detail.
-        </p>
+      {/* Konten teks overlay — content 0 (tengah atas, Scroll-Driven) */}
+      <div className={`section-why-us__content ${!isContentEntered ? 'section-why-us__content--hidden' : isContentEntering ? 'section-why-us__content--entering' : ''}`}>
+        <div className="section-why-us__headline-techtext">
+          <TechText
+            text={WHYUS_HEADLINE_TEXT}
+            fontSize={WHYUS_HEADLINE_FONT_SIZE}
+            fontWeight={WHYUS_HEADLINE_FONT_WEIGHT}
+            letterSpacing={WHYUS_HEADLINE_LETTER_SPACING}
+            color={WHYUS_HEADLINE_COLOR}
+            accentColor={WHYUS_HEADLINE_ACCENT}
+            reach={WHYUS_HEADLINE_REACH}
+            specks={WHYUS_HEADLINE_SPECKS}
+            reveal={WHYUS_HEADLINE_REVEAL}
+            draggable={true}
+            sweep={true}
+          />
+        </div>
+        {CONTENT_0_SHOW_SUBTITLE && (
+          <>
+            <span className="section-why-us__divider" />
+            <p className="section-why-us__subtitle">{CONTENT_0_SUBTITLE}</p>
+          </>
+        )}
       </div>
 
-      {/* Petunjuk scroll: 1 kali scroll cukup untuk pindah section */}
+      {/* Content 1: GolemHand — TechText headline di tengah atas (Scroll-Driven) */}
+      <div className={`section-why-us__golemhand ${!isContentEntered ? 'section-why-us__content--hidden' : ''}`}>
+        <div className="section-why-us__golemhand-techtext">
+          <TechText
+            text={GOLEMHAND_TEXT}
+            fontSize={GOLEMHAND_FONT_SIZE}
+            fontWeight={GOLEMHAND_FONT_WEIGHT}
+            letterSpacing={GOLEMHAND_LETTER_SPACING}
+            color={GOLEMHAND_COLOR}
+            accentColor={GOLEMHAND_ACCENT}
+            reach={GOLEMHAND_REACH}
+            specks={GOLEMHAND_SPECKS}
+            reveal={GOLEMHAND_REVEAL}
+            draggable={true}
+            sweep={true}
+          />
+        </div>
+      </div>
+
+      {/* Track Indikator Scroll 200vh di Samping Kanan */}
+      {SHOW_SCROLL_INDICATOR && (
+        <div className={`section-why-us__scroll-track ${!isContentEntered ? 'section-why-us__content--hidden' : ''}`}>
+          <div className="section-why-us__scroll-thumb" />
+        </div>
+      )}
     </section>
   )
 })
+
+useGLTF.preload('/models/golem.glb')
+useGLTF.preload('/golemhand.glb')
 
 export default SectionWhyUs

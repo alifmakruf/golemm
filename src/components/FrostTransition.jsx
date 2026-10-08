@@ -1,74 +1,71 @@
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react'
 import gsap from 'gsap'
 import './style/FrostTransition.css'
 
-// ================== Parameter Tuning: Crumpled Paper Wireframe Frost ==================
+// ============================================================================
+// Parameter Tuning Gelombang Frost (Wave Wipe Origami Mesh)
+// Sesuai target.txt:
+// 1. Muncul dari pojok kiri bawah (originU: 0.0, originV: 1.0)
+// 2. Berbentuk wave cerah di depan, di belakangnya menyingkap Section 3.5
+// 3. Motion blur dihilangkan agar performa ultra-ringan 60-120 FPS
+// ============================================================================
 export const FROST_CONFIG = {
-  // --- Kehalusan Animasi GSAP ---
-  animDuration: 0.79,
-  animEase: 'power2.out',
+  // --- Titik Asal Gelombang (0.0, 1.0 = Pojok Kiri Bawah) ---
+  originU: 0.0, // 0 = kiri layar, 1 = kanan layar
+  originV: 1.0, // 1 = bawah layar, 0 = atas layar
 
-  // --- Step Persentase Transisi ---
-  // Arah masuk (Section 3 → 3.5): 2 scroll
-  // Step 1 = 10%, Step 2 = 100%
-  inSteps: [-0.3, 0.10, 1.00],
+  // Lebar pita gelombang merambat (0.15 = sempit tajam, 0.35 = lebar tebal)
+  waveBandWidth: 0.2,
 
-  restProgress: -0.30,
+  // --- Kerapatan Grid Wireframe Kertas Kusut ---
+  gridCols: 32,
+  gridRows: 32,
+  jitterAmount: 0.88,
+  creaseDepth: 48,
 
-  // Arah keluar (Section 3.5 → 4):
-  outSteps: [0.00, 0.30, 0.65, 1.00],
-
-  // --- Parameter Visual Wireframe Kertas Kusut ---
-  gridCols: 30,
-  gridRows: 30,
-  jitterAmount: 0.92,
-  creaseDepth: 50,
-
-  feather: 0.4,                 // Kelembutan tepi rambatan saat diam
-
+  // --- Garis Wireframe ---
   lineWidth: 0.1,
-  lineColor: 'rgba(255, 255, 255, ',          // garis wireframe: putih
-  lineBaseOpacity: 0.35,                      // naikkan sedikit, putih di atas latar terang cepat "hilang"
+  lineColor: 'rgba(255, 255, 255, ',          // Warna garis putih bersih
+  lineBaseOpacity: 0.10,                      // Kecerahan garis di bibir depan ombak
 
-  facetColor: 'rgba(255, 255, 255, ',         // bayangan faset: putih
-  facetMaxOpacity: 0.24,
+  // --- Bayangan Faset Segitiga (Kristal Origami) ---
+  facetColor: 'rgba(200, 238, 255, ',         // Nuansa kristal es cyan lembut
+  facetMaxOpacity: 0.12,                      // Opacity maksimal faset
 
-  nodeDotSize: 0.1,
-  nodeDotColor: 'rgba(255, 255, 255, 0.85)',
+  // --- Titik Simpul Kristal (Node Dots) di Bibir Depan Ombak ---
+  nodeDotSize: .2,
+  nodeDotColor: 'rgba(255, 255, 255, 0.95)',
 
-  edgeGlowColor: 'rgba(255, 255, 255, 0.55)',
-
-  // --- Motion Blur: HANYA aktif saat transisi menuju 100% ---
-  motionBlur: {
-    enabled: true,
-    featherBoost: 0.9,           // Tambahan kelembutan tepi saat paling cepat
-    zoomTrail: 0.60,             // Panjang jejak zoom-blur maksimum (selisih skala, 0.10 = 10%)
-    samples: 3,                  // Jumlah lapisan blur (makin banyak makin halus, makin berat)
-    distRef: 0.6,                // Jarak progress yang dianggap "lompatan penuh" (kecil = lebih sensitif)
-  },
+  // --- Transisi Otomatis (GSAP) untuk Arah Keluar (3.5 -> 4) & Arah Masuk ---
+  animDuration: 0.75,
+  animEase: 'power2.out',
+  inSteps: [0.00, 1.00],
+  // --- Posisi Istirahat Gelombang di Section 3.5 (Overlap di Pojok Kanan Atas) ---
+  // 1.0 = tepat di sudut kanan atas layar (overlap di luar viewport)
+  // Gelombang tetap berada di kanan atas saat user berada di Section 3.5,
+  // dan siap menyapu kembali secara halus ke kiri bawah saat user scroll kembali ke Section 3
+  restProgress: 1.0,
 }
 
-export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
+const FrostTransition = forwardRef(function FrostTransition(
+  { scrollStep = 0, direction = 'in', onProgress },
+  ref
+) {
   const containerRef = useRef(null)
   const canvasRef = useRef(null)
-  const offRef = useRef(null)            // canvas offscreen untuk zoom-blur (dibuat hanya saat dibutuhkan)
   const progressAnimRef = useRef({ value: 0 })
   const tweenRef = useRef(null)
-  const blurRef = useRef(0)              // intensitas motion blur 0-1 (selalu 0 kecuali menuju 100%)
 
-  // Hitung target progress saat ini
+  // Hitung target progress untuk arah keluar / idle otomatis
   let targetProgress = 0
-  if (direction === 'in') {
-    const idx = Math.min(Math.max(scrollStep, 0), FROST_CONFIG.inSteps.length - 1)
-    targetProgress = FROST_CONFIG.inSteps[idx]
-  } else if (direction === 'inside') {
+  if (direction === 'inside') {
     targetProgress = FROST_CONFIG.restProgress
   } else if (direction === 'out') {
     const idx = Math.min(Math.max(scrollStep, 0), FROST_CONFIG.outSteps.length - 1)
     targetProgress = FROST_CONFIG.outSteps[idx]
   }
 
-  // Generate struktur faset kertas kusut sekali
+  // Generate struktur faset kertas kusut sekali saat mount
   const meshData = useMemo(() => {
     const cols = FROST_CONFIG.gridCols
     const rows = FROST_CONFIG.gridRows
@@ -86,11 +83,19 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
         const jy = (Math.random() - 0.5) * (1 / rows) * jitter
         const jz = (Math.random() - 0.5) * FROST_CONFIG.creaseDepth
 
+        const finalU = Math.max(0, Math.min(1, u + jx))
+        const finalV = Math.max(0, Math.min(1, v + jy))
+
+        // Jarak dari pojok kiri bawah (originU: 0, originV: 1), dinormalisasi ke 0..1
+        const du = finalU - FROST_CONFIG.originU
+        const dv = (1 - finalV) - (1 - FROST_CONFIG.originV)
+        const waveDist = Math.hypot(du, dv) / Math.SQRT2
+
         vertices.push({
-          u: Math.max(0, Math.min(1, u + jx)),
-          v: Math.max(0, Math.min(1, v + jy)),
+          u: finalU,
+          v: finalV,
           z: jz,
-          centerDist: Math.hypot((u - 0.5) * 2, (v - 0.5) * 2),
+          waveDist,
         })
       }
     }
@@ -119,12 +124,12 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
           const vb = vertices[b]
           const vd = vertices[d]
 
-          const abx = (vb.u - va.u)
-          const aby = (vb.v - va.v)
+          const abx = vb.u - va.u
+          const aby = vb.v - va.v
           const abz = (vb.z - va.z) * 0.01
 
-          const adx = (vd.u - va.u)
-          const ady = (vd.v - va.v)
+          const adx = vd.u - va.u
+          const ady = vd.v - va.v
           const adz = (vd.z - va.z) * 0.01
 
           let nx = aby * adz - abz * ady
@@ -136,12 +141,12 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
           nz /= nlen
 
           const dot = Math.abs(nx * lx + ny * ly + nz * lz)
-          const avgDist = (va.centerDist + vb.centerDist + vd.centerDist) / 3
+          const avgDist = (va.waveDist + vb.waveDist + vd.waveDist) / 3
 
           triangles.push({
             indices: [a, b, d],
             shade: dot,
-            centerDist: avgDist,
+            waveDist: avgDist,
           })
         })
       }
@@ -150,25 +155,29 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
     return { vertices, triangles }
   }, [])
 
-  // Gambar mesh ke ctx tertentu (sama persis dengan kode awal; feather bisa melebar saat motion blur)
-  const drawMesh = (ctx, w, h, currentProg, feather) => {
+  // Gambar mesh gelombang ke canvas secara efisien (Direct single-pass render)
+  const drawMesh = (ctx, w, h, currentProg) => {
     ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.globalAlpha = 1
-    ctx.globalCompositeOperation = 'source-over'
     ctx.clearRect(0, 0, w, h)
 
     if (currentProg <= 0.001) return
 
-    const revealThreshold = (1 - currentProg) * 1.35
     const { vertices, triangles } = meshData
+    const band = FROST_CONFIG.waveBandWidth
+    // Posisi puncak gelombang merambat dari 0 hingga melampaui layar (1 + band)
+    const wavePos = currentProg * (1 + band)
 
-    // 1. Faset bayangan
+    // 1. Faset bayangan kristal origami
     triangles.forEach((tri) => {
-      const diff = tri.centerDist - revealThreshold
-      if (diff < -feather) return
+      const diff = wavePos - tri.waveDist
+      // Di depan bibir gelombang atau sudah di belakang pita gelombang -> abaikan
+      if (diff < 0 || diff > band) return
 
-      const tAlpha = Math.min(1, Math.max(0, (diff + feather) / feather))
-      if (tAlpha <= 0) return
+      const norm = diff / band
+      // Puncak di bibir depan ombak sangat cerah, memudar halus ke belakang
+      const crestShape = Math.sin((1 - norm) * (Math.PI / 2))
+      const tAlpha = Math.max(0, Math.min(1, crestShape))
+      if (tAlpha <= 0.01) return
 
       const v0 = vertices[tri.indices[0]]
       const v1 = vertices[tri.indices[1]]
@@ -180,22 +189,24 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
       ctx.lineTo(v2.u * w, v2.v * h)
       ctx.closePath()
 
-      const facetAlpha = (FROST_CONFIG.facetMaxOpacity * (0.4 + tri.shade * 0.6) * tAlpha).toFixed(3)
+      const facetAlpha = (FROST_CONFIG.facetMaxOpacity * (0.35 + tri.shade * 0.65) * tAlpha).toFixed(3)
       ctx.fillStyle = `${FROST_CONFIG.facetColor}${facetAlpha})`
       ctx.fill()
     })
 
-    // 2. Garis wireframe
+    // 2. Garis wireframe putih terang
     ctx.lineWidth = FROST_CONFIG.lineWidth
     ctx.lineJoin = 'round'
     ctx.lineCap = 'round'
 
     triangles.forEach((tri) => {
-      const diff = tri.centerDist - revealThreshold
-      if (diff < -feather) return
+      const diff = wavePos - tri.waveDist
+      if (diff < 0 || diff > band) return
 
-      const tAlpha = Math.min(1, Math.max(0, (diff + feather) / feather))
-      if (tAlpha <= 0) return
+      const norm = diff / band
+      const crestFactor = Math.pow(1 - norm, 0.7)
+      const tAlpha = Math.max(0, Math.min(1, crestFactor))
+      if (tAlpha <= 0.01) return
 
       const v0 = vertices[tri.indices[0]]
       const v1 = vertices[tri.indices[1]]
@@ -207,19 +218,20 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
       ctx.lineTo(v2.u * w, v2.v * h)
       ctx.closePath()
 
-      const strokeAlpha = (FROST_CONFIG.lineBaseOpacity * tAlpha * (0.6 + tri.shade * 0.4)).toFixed(3)
+      const strokeAlpha = (FROST_CONFIG.lineBaseOpacity * tAlpha * (0.55 + tri.shade * 0.45)).toFixed(3)
       ctx.strokeStyle = `${FROST_CONFIG.lineColor}${strokeAlpha})`
       ctx.stroke()
     })
 
-    // 3. Titik simpul kristal
+    // 3. Titik simpul kristal di bibir depan ombak
     if (FROST_CONFIG.nodeDotSize > 0) {
       ctx.fillStyle = FROST_CONFIG.nodeDotColor
       vertices.forEach((v) => {
-        const diff = v.centerDist - revealThreshold
-        if (diff < -feather * 0.5) return
-        const tAlpha = Math.min(1, Math.max(0, (diff + feather * 0.5) / feather))
-        if (tAlpha < 0.2) return
+        const diff = wavePos - v.waveDist
+        if (diff < 0 || diff > band * 0.45) return
+        const norm = diff / (band * 0.45)
+        const alpha = 1 - norm
+        if (alpha < 0.25) return
 
         ctx.beginPath()
         ctx.arc(v.u * w, v.v * h, FROST_CONFIG.nodeDotSize, 0, Math.PI * 2)
@@ -228,50 +240,23 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
     }
   }
 
-  // Render satu frame ke canvas utama.
-  // b = 0 → render biasa (persis kode awal). b > 0 → motion blur (hanya saat menuju 100%).
+  // Render satu frame ke canvas
   const renderCanvas = (currentProg) => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
-    const w = canvas.width
-    const h = canvas.height
-    const mb = FROST_CONFIG.motionBlur
-    const b = mb.enabled ? blurRef.current : 0
-
-    if (b < 0.02) {
-      drawMesh(ctx, w, h, currentProg, FROST_CONFIG.feather)
-      return
-    }
-
-    // Gambar mesh sekali ke offscreen, lalu tumpuk beberapa lapisan berskala (zoom blur radial)
-    let off = offRef.current
-    if (!off) off = offRef.current = document.createElement('canvas')
-    if (off.width !== w || off.height !== h) {
-      off.width = w
-      off.height = h
-    }
-    drawMesh(off.getContext('2d'), w, h, currentProg, FROST_CONFIG.feather + b * mb.featherBoost)
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.globalCompositeOperation = 'source-over'
-    ctx.clearRect(0, 0, w, h)
-
-    const n = mb.samples
-    const trail = mb.zoomTrail * b
-    // Rata-rata berjalan: lapisan ke-i beralpha 1/(i+1) → semua lapisan berbobot sama.
-    // Skala hanya membesar (≥ 1) agar pinggir layar tetap tertutup.
-    for (let i = 0; i < n; i++) {
-      const s = 1 + trail * (i / (n - 1))
-      ctx.globalAlpha = 1 / (i + 1)
-      ctx.setTransform(s, 0, 0, s, (w / 2) * (1 - s), (h / 2) * (1 - s))
-      ctx.drawImage(off, 0, 0)
-    }
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.globalAlpha = 1
+    drawMesh(ctx, canvas.width, canvas.height, currentProg)
   }
+
+  // Expose setProgress imperatif untuk scroll-driven loop di App.jsx
+  useImperativeHandle(ref, () => ({
+    setProgress: (val) => {
+      progressAnimRef.current.value = val
+      renderCanvas(val)
+      if (onProgress) onProgress(val)
+    },
+  }))
 
   // Handle Resize Canvas untuk Retina / High-DPI Display
   useEffect(() => {
@@ -289,22 +274,14 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
     return () => window.removeEventListener('resize', handleResize)
   }, [meshData])
 
-  // GSAP Ultra-Smooth Tweening
+  // GSAP Tweening untuk arah keluar ('out') atau 'inside'
   useEffect(() => {
+    if (direction === 'in') return // Arah masuk dikontrol langsung via scroll loop
+
     if (tweenRef.current) tweenRef.current.kill()
-
     const state = progressAnimRef.current
-    const mb = FROST_CONFIG.motionBlur
-    blurRef.current = 0
 
-    // Tidak perlu tween kalau sudah di target
-    if (Math.abs(state.value - targetProgress) < 0.0005) {
-      return
-    }
-
-    // Motion blur hanya untuk transisi yang berakhir di 100%
-    const rushing = mb.enabled && targetProgress >= 0.999
-    const span = Math.min(1, Math.abs(targetProgress - state.value) / mb.distRef)
+    if (Math.abs(state.value - targetProgress) < 0.0005) return
 
     tweenRef.current = gsap.to(state, {
       value: targetProgress,
@@ -312,47 +289,31 @@ export default function FrostTransition({ scrollStep = 0, direction = 'in' }) {
       ease: FROST_CONFIG.animEase,
       onUpdate: () => {
         const val = state.value
-        // Pada ease "out" kecepatan tertinggi di awal, menurun ke 0 di akhir ≈ (1 - progress waktu)
-        const tw = tweenRef.current
-        blurRef.current = rushing && tw ? (1 - tw.progress()) * span : 0
-
-        // Update CSS variable untuk efek frosted blur kaca
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--frost-progress', val.toFixed(4))
-        }
+        if (onProgress) onProgress(val)
         renderCanvas(val)
       },
       onComplete: () => {
-        // Selesai → blur hilang, gambar kembali tajam
-        blurRef.current = 0
         renderCanvas(state.value)
+        if (onProgress) onProgress(state.value)
       },
     })
 
     return () => {
       if (tweenRef.current) tweenRef.current.kill()
     }
-  }, [targetProgress])
-
-  const isVisible = targetProgress > 0 || progressAnimRef.current.value > 0.001
+  }, [targetProgress, direction])
 
   return (
     <div
       ref={containerRef}
-      className={`frost-overlay ${isVisible ? 'frost-overlay--active' : ''}`}
-      style={{ '--frost-progress': progressAnimRef.current.value }}
+      className="frost-overlay frost-overlay--active"
     >
-      {/* Layer 1: Frosted glass blur halus pada background */}
-      <div className="frost-overlay__blur" />
-
-      {/* Layer 2: Glow biru es halus di pinggiran */}
-      <div className="frost-overlay__glow" />
-
-      {/* Layer 3: Canvas Utama Kertas Kusut Wireframe (Organic Crumpled Origami) */}
       <canvas
         ref={canvasRef}
         className="frost-overlay__canvas"
       />
     </div>
   )
-}
+})
+
+export default FrostTransition
