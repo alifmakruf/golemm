@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { golemPointerState } from './pointerState.js'
 import { useModelWaves } from './TerrainWaves.jsx'
+import { useGolemClone } from './useGolemClone.js'
 import * as THREE from 'three'
 
 // ---- Tuning constants -------------------------------------------------
@@ -29,20 +30,20 @@ const ANIMATION_SPEED = 0.8 // 1.0 = normal, 0.5 = 2x lebih lambat
 const ANIMATION_DELAY_SEC = 4.5 // jeda istirahat antar pengulangan (dalam detik)
 
 // ---- Parameter Efek Gelombang (Wave Animation seperti TerrainWaves) ----
-const GOLEM_WAVE_ENABLED = true      // Aktifkan efek ombak wireframe pada kepala golem
+const GOLEM_WAVE_ENABLED = false      // Aktifkan efek ombak wireframe pada kepala golem
 const GOLEM_WAVE_COLOR = '#67e8f9'    // Warna wireframe gelombang (cyan kristal terang)
-const GOLEM_WAVE_AUTO_PULSE = true   // false = hanya saat diklik, true = ombak berulang periodik
+const GOLEM_WAVE_AUTO_PULSE = false   // false = hanya saat diklik, true = ombak berulang periodik
 const GOLEM_WAVE_PULSE_INTERVAL = 4.5 // Interval jeda antar gelombang otomatis (detik)
 
 // ---- Parameter efek wireframe pemindai (scanner hover) ----------------
-const WIREFRAME_ENABLED = true // matikan efek sepenuhnya dari sini
+const WIREFRAME_ENABLED = false // matikan efek sepenuhnya dari sini
 const WIREFRAME_COLOR = '#dcedff' // warna garis wireframe (hex)
 const WIREFRAME_MAX_OPACITY = 0.5 // opasitas maksimum saat terkena pindai (0-1)
 const WIREFRAME_FADE_SPEED = 8 // makin besar, makin cepat muncul/menghilang
 const WIREFRAME_SCAN_RADIUS = 0.3 // radius luas area pemindaian kursor di model
 const WIREFRAME_SCAN_FEATHER = 0.25 // kehalusan gradasi tepi lingkaran pindai
 const WIREFRAME_SCALE_OFFSET = 1.001 // sedikit membesar dari mesh asli, mencegah z-fighting
-const WIREFRAME_INCLUDE_EYES = true    // true = mata ikut dibungkus wireframe juga
+const WIREFRAME_INCLUDE_EYES = false    // true = mata ikut dibungkus wireframe juga
 
 // ---- Tampilan material golem -------------------------------------------
 const STONE_BRIGHTNESS = 0.4           // 1 = warna asli, <1 = lebih gelap (mis. 0.4 = jauh lebih gelap)
@@ -88,7 +89,7 @@ export default function GolemModel({
   onModelClick,
 }) {
   const { camera } = useThree()
-  const { nodes, materials, animations } = useGLTF('/models/golem.glb')
+  const { nodes, materials, animations } = useGolemClone()
 
   const pivotRef = useRef() // grup luar: yang berotasi (menoleh)
   const centeredRef = useRef() // grup dalam: kompensasi supaya golem berada di tengah pivot

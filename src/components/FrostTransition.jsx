@@ -22,8 +22,8 @@ import './style/FrostTransition.css'
 // Hanya `transform` yang dianimasikan => ringan (compositor).
 // ============================================================================
 export const FROST_VEIL_CONFIG = {
-  scrollDistancePx: 2600,  // Jarak scroll mouse/trackpad (px) untuk menggerakkan lembar dari 0 sampai 1 (makin BESAR = makin lambat/tidak sensitif)
-  touchDistancePx: 1500,   // Jarak swipe layar sentuh (px) untuk menggerakkan lembar dari 0 sampai 1 (makin BESAR = makin lambat)
+  scrollDistancePx: 1600,  // Jarak scroll mouse/trackpad (px) untuk menggerakkan lembar dari 0 sampai 1 (makin BESAR = makin lambat/tidak sensitif)
+  touchDistancePx: 1000,   // Jarak swipe layar sentuh (px) untuk menggerakkan lembar dari 0 sampai 1 (makin BESAR = makin lambat)
   settleDelayMs: 2000,     // Setelah scroll/swipe berhenti, kabut DIAM di posisinya selama ini (ms), baru lanjut/batal menurut threshold
   commitThreshold: 0.4,    // Threshold (0-1): setelah jeda settleDelayMs, di atas nilai ini transisi DILANJUTKAN, di bawahnya DIBATALKAN
   fogHeightVh: 70,         // Tinggi kabut di atas tepi lembar (vh). Makin besar = kabut makin tebal/panjang (ubah juga --fv-height di CSS bila perlu)

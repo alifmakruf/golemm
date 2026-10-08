@@ -1,10 +1,11 @@
 import { Suspense, useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useGLTF, MeshReflectorMaterial, useAnimations } from '@react-three/drei'
+import { useGLTF, MeshReflectorMaterial, useAnimations, Html } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import TechText from './TechText'
 import { useModelWaves } from './TerrainWaves.jsx'
+import { useGolemClone } from './useGolemClone.js'
 import './style/SectionWhyUs.css'
 
 // ================== Parameter Tuning: Section 3.5 (Kenapa Kami?) ==================
@@ -25,6 +26,7 @@ const GOLEM_BOB_AMPLITUDE = 0.09           // Jarak naik-turun mengambang
 const GOLEM_BOB_SPEED = 0.9                // Kecepatan mengambang
 const GOLEM_PLAY_ANIMATION = true          // Mainkan animasi ekspresi alis & mulut golem dari GLB
 const GOLEM_ANIM_SPEED = 0.8               // Kecepatan animasi kepala golem
+const GOLEM_ANIM_DELAY_SEC = 4.5           // Jeda diam (detik) antar pengulangan animasi alis & mulut. 0 = loop terus tanpa jeda
 
 // --- Animasi Gelombang (Wave Animation seperti TerrainWaves) ---
 const GOLEM_WAVE_ENABLED = true            // Aktifkan animasi ombak wireframe pada model golem & tangan
@@ -57,6 +59,32 @@ const ROCK_FLOAT_SPEED = 0.6               // Kecepatan batu naik-turun mengamba
 const ROCK_FLOAT_AMPLITUDE = 0.22          // Jarak mengambang naik-turun (world unit)
 const ROCK_COLOR = '#15171b'               // Warna batu placeholder
 const ROCK_EMISSIVE = '#0a2a44'            // Cahaya samar dari dalam batu (biru kristal)
+
+// --- Hotspot di Batu Mengambang (dot kecil + teks di atasnya, tanpa garis) ---
+// Dot menempel di puncak batu & ikut orbit/mengambang. Teks muncul tepat di atas dot.
+// rock = nomor batu (0 .. ROCK_COUNT-1). Tata letak batu deterministik, jadi nomor yang sama = batu yang sama.
+const ROCK_HOTSPOTS_ENABLED = true
+const ROCK_HOTSPOTS = [
+  { rock: 0, label: 'Build For Interactive' },
+  { rock: 2, label: 'Purpose Driven Creativity' },
+  { rock: 4, label: 'More Than Just Digital' },
+  { rock: 6, label: 'Design Meet Technology' },
+]
+const ROCK_HOTSPOT_HIDE_ON_MOBILE = false  // true = sembunyikan hotspot batu di layar mobile
+const ROCK_HOTSPOT_DOT_SIZE = 2            // Diameter dot (px)
+const ROCK_HOTSPOT_DOT_COLOR = 'transparent'   // Warna dot, glow & cincin denyut
+const ROCK_HOTSPOT_RING_PULSE = false       // Cincin berdenyut di sekeliling dot
+const ROCK_HOTSPOT_TEXT_SIZE = 12          // Ukuran teks (px)
+const ROCK_HOTSPOT_TEXT_SIZE_MOBILE = 10   // Ukuran teks di mobile (px)
+const ROCK_HOTSPOT_TEXT_COLOR = '#e6fbff5b'  // Warna teks
+const ROCK_HOTSPOT_TEXT_BG = 'transparent' // Latar teks ('transparent' = tanpa latar)
+const ROCK_HOTSPOT_TEXT_GAP = 4            // Jarak teks ke dot (px)
+const ROCK_HOTSPOT_ANCHOR_Y = 0.1         // Posisi dot di batu: 0 = pusat, 1 = puncak batu
+const ROCK_HOTSPOT_OCCLUDE_RADIUS = 0.3    // Radius area golem di layar (tinggi layar = 1); hotspot di belakang area ini dipudarkan
+const ROCK_HOTSPOT_OCCLUDE_FEATHER = 0.2 // Kehalusan tepi pemudaran
+const ROCK_HOTSPOT_BEHIND_MARGIN = 0.2     // Batu dianggap "di belakang golem" setelah selisih jarak kamera melebihi ini
+const ROCK_HOTSPOT_BEHIND_FADE = 0.8       // Rentang jarak transisi depan -> belakang
+const ROCK_HOTSPOT_Z_INDEX = 20            // z-index label HTML
 
 // --- Lantai Kaca Gelap Reflektif (MeshReflectorMaterial) ---
 // Lantai = bidang kaca obsidian yang MEMANTULKAN golem, batu & cahaya, ditambah panggung kaca
@@ -163,6 +191,11 @@ const STONE_BRIGHTNESS = 0.35               // Kecerahan batu (0-1)
 const CRACK_MATERIAL_NAME = 'Material.005'
 const CRACK_GLOW_COLOR = '#4ae0ff'
 const CRACK_GLOW_INTENSITY = 0.15        // Sesuaikan dengan GolemModel agar bloom terlihat
+// Mata mengikuti kursor (sama seperti hero). Offset dihitung di ruang kamera lalu diputar ke ruang lokal model,
+// jadi tetap benar walau golem berputar mengikuti scroll.
+const EYE_FOLLOW_ENABLED = true
+const EYE_MAX_OFFSET = 0.045          // Jarak geser maksimum bola mata (unit lokal model, sama dengan hero)
+const EYE_FOLLOW_DAMPING = 4.5       // Makin kecil makin halus/lambat
 const EYE_GLOW_COLOR = '#4ae0ff'
 const EYE_GLOW_INTENSITY = 10.55         // Sama seperti GolemModel — cukup terang untuk bloom threshold
 
@@ -211,7 +244,7 @@ const GOLEMHAND_CRACK_GLOW_COLOR = '#4ae0ff' // Warna glow retakan biru kristal 
 const GOLEMHAND_CRACK_GLOW_INTENSITY = 0.25 // Intensitas cahaya retakan tangan
 
 // --- Parameter TechText Content 0 (Kenapa Memilih Kami?) ---
-const WHYUS_HEADLINE_TEXT = 'Kenapa Memilih Kami?' // Teks headline interaktif Content 0
+const WHYUS_HEADLINE_TEXT = 'Our Adventages' // Teks headline interaktif Content 0
 const WHYUS_HEADLINE_FONT_SIZE = 79                // Ukuran font sama dengan Hand To Hand
 const WHYUS_HEADLINE_FONT_WEIGHT = 700             // Ketebalan huruf
 const WHYUS_HEADLINE_LETTER_SPACING = -0.04        // Spasi antar huruf (em)
@@ -290,10 +323,11 @@ function makeRadialTexture(stops, size = 256) {
 }
 
 // Mata golem (di luar komponen utama supaya tidak di-remount)
-function EyePart({ node, material }) {
+function EyePart({ node, material, innerRef }) {
   if (!node) return null
   return (
     <mesh
+      ref={innerRef}
       name={node.name}
       geometry={node.geometry}
       material={material}
@@ -311,18 +345,51 @@ function EyePart({ node, material }) {
 // solid hanya tampil di bawah scanline. Keduanya bergerak bersamaan.
 // Golem dipusatkan lewat bounding box & di-fit ke ukuran target, lalu melayang di atas lantai.
 function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
-  const { nodes, materials, animations } = useGLTF('/models/golem.glb')
+  const { nodes, materials, animations } = useGolemClone()
   const outerRef = useRef()      // grup luar: posisi melayang, rotasi, skala hasil auto-fit
   const centeredRef = useRef()   // grup dalam: kompensasi supaya titik tengah model = origin grup luar
   const layoutRef = useRef({ fit: 1, baseY: 1.5, scanStart: 0, scanEnd: 3.5 })
   const lastOpacityRef = useRef(1)
   const { actions } = useAnimations(animations, centeredRef)
 
+  // Mata mengikuti kursor
+  const eyeRightRef = useRef()
+  const eyeLeftRef = useRef()
+  const eyeBase = useRef({ right: new THREE.Vector3(), left: new THREE.Vector3() })
+  const eyeCurrent = useRef(new THREE.Vector3())
+  const eyeTarget = useRef(new THREE.Vector3())
+  const eyeQuat = useRef(new THREE.Quaternion())
+  const pointerRef = useRef({ x: 0, y: 0 })
+
+  useEffect(() => {
+    if (!EYE_FOLLOW_ENABLED) return
+    const onMove = (e) => {
+      pointerRef.current.x = (e.clientX / window.innerWidth - 0.5) * 2
+      pointerRef.current.y = (e.clientY / window.innerHeight - 0.5) * 2
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
+
+  useEffect(() => {
+    if (nodes?.matakanan) eyeBase.current.right.copy(nodes.matakanan.position)
+    if (nodes?.matakiri) eyeBase.current.left.copy(nodes.matakiri.position)
+  }, [nodes])
+
+  // Status jeda antar pengulangan animasi
+  const animState = useRef({ playing: true, resumeAt: 0 })
+
   // Putar animasi alis & mulut golem dari file GLB
   useEffect(() => {
     if (!GOLEM_PLAY_ANIMATION || !actions) return
+    animState.current = { playing: true, resumeAt: 0 }
     Object.values(actions).forEach((action) => {
       if (action) {
+        if (GOLEM_ANIM_DELAY_SEC > 0) {
+          // Sekali putar lalu tahan di pose akhir; useFrame yang memutar ulang setelah jeda
+          action.setLoop(THREE.LoopOnce, 1)
+          action.clampWhenFinished = true
+        }
         action.reset().fadeIn(0.4).play()
         action.setEffectiveTimeScale(GOLEM_ANIM_SPEED)
       }
@@ -391,7 +458,7 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
     const tmp = new THREE.Box3()
     const m = new THREE.Matrix4()
     centered.traverse((o) => {
-      if (!o.isMesh || o.userData.isScanOverlay || !o.geometry) return
+      if (!o.isMesh || o.userData.isScanOverlay || o.userData.isWaveOverlay || !o.geometry) return
       if (!o.geometry.boundingBox) o.geometry.computeBoundingBox()
       m.multiplyMatrices(inv, o.matrixWorld)
       tmp.copy(o.geometry.boundingBox).applyMatrix4(m)
@@ -445,7 +512,7 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
       ;[nodes?.kepalaatas, nodes?.mulutbawah, nodes?.alis].forEach((n) => {
         if (!n) return
         n.traverse((o) => {
-          if (!o.isMesh || !o.material) return
+          if (!o.isMesh || !o.material || o.userData.isWaveOverlay || o.userData.isScanOverlay) return
           restore.push([o, o.material])
           o.material = Array.isArray(o.material) ? o.material.map(tune) : tune(o.material)
         })
@@ -464,7 +531,7 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
     const targets = []
       ;[nodes?.kepalaatas, nodes?.mulutbawah, nodes?.alis, nodes?.matakanan, nodes?.matakiri].forEach((n) => {
         if (!n) return
-        const collect = (o) => { if (o.isMesh) targets.push(o) }
+        const collect = (o) => { if (o.isMesh && !o.userData.isWaveOverlay && !o.userData.isScanOverlay) targets.push(o) }
         n.isMesh ? collect(n) : n.traverse(collect)
       })
     const overlays = targets.map((mesh) => {
@@ -480,11 +547,26 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
     return () => overlays.forEach(({ ov, parent }) => parent.remove(ov))
   }, [nodes, wireframeMat])
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.elapsedTime
     const L = layoutRef.current
     const outer = outerRef.current
     if (!outer) return
+
+    // Jeda antar pengulangan animasi alis & mulut: setelah selesai, diam GOLEM_ANIM_DELAY_SEC detik lalu ulang
+    if (GOLEM_PLAY_ANIMATION && GOLEM_ANIM_DELAY_SEC > 0 && actions) {
+      const list = Object.values(actions).filter(Boolean)
+      const st = animState.current
+      if (list.length) {
+        if (st.playing && !list.some((a) => a.isRunning())) {
+          st.playing = false
+          st.resumeAt = t + GOLEM_ANIM_DELAY_SEC
+        } else if (!st.playing && t >= st.resumeAt) {
+          list.forEach((a) => { a.reset(); a.setEffectiveTimeScale(GOLEM_ANIM_SPEED); a.play() })
+          st.playing = true
+        }
+      }
+    }
 
     // Scroll-Driven Animation: posisi & rotasi mengikuti langsung scrollProgress (0.0 .. 1.0)
     const p = scrollProgRef.current
@@ -522,6 +604,22 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
       eyeMaterial.opacity = op
     }
 
+    // Mata mengikuti kursor: arah kursor di ruang kamera -> diputar ke ruang lokal model
+    if (EYE_FOLLOW_ENABLED && centeredRef.current) {
+      const ptr = pointerRef.current
+      let rx = ptr.x * EYE_MAX_OFFSET
+      let ry = -ptr.y * EYE_MAX_OFFSET
+      const len = Math.hypot(rx, ry)
+      if (len > EYE_MAX_OFFSET) { rx *= EYE_MAX_OFFSET / len; ry *= EYE_MAX_OFFSET / len }
+      const tgt = eyeTarget.current.set(rx, ry, 0).applyQuaternion(state.camera.quaternion)
+      outer.updateWorldMatrix(true, false)
+      centeredRef.current.getWorldQuaternion(eyeQuat.current).invert()
+      tgt.applyQuaternion(eyeQuat.current)
+      eyeCurrent.current.lerp(tgt, 1 - Math.exp(-EYE_FOLLOW_DAMPING * delta))
+      if (eyeRightRef.current) eyeRightRef.current.position.copy(eyeBase.current.right).add(eyeCurrent.current)
+      if (eyeLeftRef.current) eyeLeftRef.current.position.copy(eyeBase.current.left).add(eyeCurrent.current)
+    }
+
     // Animasi scanline pembatuan di awal entrance
     const scanP = hologramProgress.current // 0 → 1
     const totalRange = L.scanEnd - L.scanStart
@@ -548,8 +646,8 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
         {nodes.kepalaatas && <primitive object={nodes.kepalaatas} />}
         {nodes.mulutbawah && <primitive object={nodes.mulutbawah} />}
         {nodes.alis && <primitive object={nodes.alis} />}
-        <EyePart node={nodes.matakanan} material={eyeMaterial} />
-        <EyePart node={nodes.matakiri} material={eyeMaterial} />
+        <EyePart node={nodes.matakanan} material={eyeMaterial} innerRef={eyeRightRef} />
+        <EyePart node={nodes.matakiri} material={eyeMaterial} innerRef={eyeLeftRef} />
       </group>
     </group>
   )
@@ -692,8 +790,33 @@ function GolemHandModel({ scrollProgRef, entryRef, isMobile }) {
   )
 }
 
+// Hotspot satu batu: dot kecil + teks di atasnya (elemen DOM lewat drei <Html>). Opacity diatur per frame lewat ref.
+// Gaya ada di SectionWhyUs.css (.rock-hotspot).
+function RockHotspot({ label, position, domRef, isMobile }) {
+  return (
+    <Html position={position} zIndexRange={[ROCK_HOTSPOT_Z_INDEX, 0]} style={{ pointerEvents: 'none' }}>
+      <div
+        ref={domRef}
+        className="rock-hotspot"
+        style={{
+          opacity: 0,
+          '--rh-dot': `${ROCK_HOTSPOT_DOT_SIZE}px`,
+          '--rh-color': ROCK_HOTSPOT_DOT_COLOR,
+          '--rh-text-size': `${isMobile ? ROCK_HOTSPOT_TEXT_SIZE_MOBILE : ROCK_HOTSPOT_TEXT_SIZE}px`,
+          '--rh-text-color': ROCK_HOTSPOT_TEXT_COLOR,
+          '--rh-text-bg': ROCK_HOTSPOT_TEXT_BG,
+          '--rh-gap': `${ROCK_HOTSPOT_TEXT_GAP}px`,
+        }}
+      >
+        <span className="rock-hotspot__text">{label}</span>
+        <span className={`rock-hotspot__dot${ROCK_HOTSPOT_RING_PULSE ? ' rock-hotspot__dot--pulse' : ''}`} />
+      </div>
+    </Html>
+  )
+}
+
 // Batu/meteorit mengambang (PLACEHOLDER) — mengorbit golem, flat-shaded dengan glow kristal samar
-function FloatingRocks() {
+function FloatingRocks({ entryRef, isMobile }) {
   const rocksData = useMemo(() => {
     const rand = mulberry32(35)
     const data = []
@@ -729,7 +852,25 @@ function FloatingRocks() {
   )
   useEffect(() => () => { geometry.dispose(); material.dispose() }, [geometry, material])
 
-  const refs = useRef([])
+  const refs = useRef([])      // grup posisi (naik-turun), TIDAK berputar -> hotspot tetap tegak
+  const rotRefs = useRef([])   // grup putar: hanya mesh batu yang berputar
+  const domRefs = useRef([])   // elemen DOM hotspot per batu
+
+  // Peta nomor batu -> label hotspot
+  const labels = useMemo(() => {
+    const m = new Map()
+    if (ROCK_HOTSPOTS_ENABLED && !(isMobile && ROCK_HOTSPOT_HIDE_ON_MOBILE)) {
+      ROCK_HOTSPOTS.forEach((h) => { if (h.rock >= 0 && h.rock < ROCK_COUNT) m.set(h.rock, h.label) })
+    }
+    return m
+  }, [isMobile])
+
+  const tmp = useRef({
+    wp: new THREE.Vector3(),
+    np: new THREE.Vector3(),
+    gn: new THREE.Vector3(),
+    golem: new THREE.Vector3(0, CAMERA_LOOK_Y, 0),
+  })
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime
@@ -737,16 +878,56 @@ function FloatingRocks() {
       if (!grp) return
       const rock = rocksData[i]
       grp.position.y = rock.baseY + Math.sin(t * rock.speed + rock.phase) * ROCK_FLOAT_AMPLITUDE
-      grp.rotation.x += rock.rotSpeed * delta * 0.6
-      grp.rotation.z += rock.rotSpeed * delta * 0.45
+      const rg = rotRefs.current[i]
+      if (rg) {
+        rg.rotation.x += rock.rotSpeed * delta * 0.6
+        rg.rotation.z += rock.rotSpeed * delta * 0.45
+      }
     })
+
+    // Hotspot: ikut fade-in saat golem tiba, dan memudar bila batu ada DI BELAKANG golem (terhalang)
+    if (labels.size) {
+      const cam = state.camera
+      const T = tmp.current
+      const arrive = entryRef ? Math.min(1, entryRef.current * ENTRY_FADE_SPEED) : 1
+      const camToGolem = cam.position.distanceTo(T.golem)
+      const aspect = state.size.width / Math.max(1, state.size.height)
+      T.gn.copy(T.golem).project(cam)
+      labels.forEach((_, i) => {
+        const grp = refs.current[i]
+        const el = domRefs.current[i]
+        if (!grp || !el) return
+        grp.getWorldPosition(T.wp)
+        const behind = THREE.MathUtils.smoothstep(
+          cam.position.distanceTo(T.wp) - camToGolem,
+          ROCK_HOTSPOT_BEHIND_MARGIN,
+          ROCK_HOTSPOT_BEHIND_MARGIN + ROCK_HOTSPOT_BEHIND_FADE
+        )
+        T.np.copy(T.wp).project(cam)
+        const dist = Math.hypot((T.np.x - T.gn.x) * aspect * 0.5, (T.np.y - T.gn.y) * 0.5)
+        const clear = THREE.MathUtils.smoothstep(dist, ROCK_HOTSPOT_OCCLUDE_RADIUS, ROCK_HOTSPOT_OCCLUDE_RADIUS + ROCK_HOTSPOT_OCCLUDE_FEATHER)
+        const offscreen = T.np.z > 1 ? 0 : 1
+        const vis = (1 - behind * (1 - clear)) * arrive * offscreen
+        el.style.opacity = vis < 0.01 ? '0' : vis.toFixed(3)
+      })
+    }
   })
 
   return (
     <>
       {rocksData.map((rock, i) => (
         <group key={i} ref={(el) => { refs.current[i] = el }} position={rock.position}>
-          <mesh geometry={geometry} material={material} scale={[rock.size * rock.squash[0], rock.size * rock.squash[1], rock.size * rock.squash[2]]} />
+          <group ref={(el) => { rotRefs.current[i] = el }}>
+            <mesh geometry={geometry} material={material} scale={[rock.size * rock.squash[0], rock.size * rock.squash[1], rock.size * rock.squash[2]]} />
+          </group>
+          {labels.has(i) && (
+            <RockHotspot
+              label={labels.get(i)}
+              position={[0, rock.size * rock.squash[1] * ROCK_HOTSPOT_ANCHOR_Y, 0]}
+              domRef={(el) => { domRefs.current[i] = el }}
+              isMobile={isMobile}
+            />
+          )}
         </group>
       ))}
     </>
@@ -1081,7 +1262,7 @@ function WhyUsScene({ hologramProgress, scrollProgRef, targetProgRef, entryRef, 
       {/* Batu mengorbit golem (TETAP ADA & BERPUTAR DI KEDUA KONTEN!) */}
       {ROCKS_ENABLED && (
         <Turntable>
-          <FloatingRocks />
+          <FloatingRocks entryRef={entryRef} isMobile={isMobile} />
         </Turntable>
       )}
 

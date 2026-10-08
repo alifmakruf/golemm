@@ -368,7 +368,8 @@
   z-index: 5;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;  /* Rata atas */
+  justify-content: flex-start;
+  /* Rata atas */
   align-items: center;
   padding: clamp(2.5rem, 6vh, 4.5rem) 2rem 0;
   pointer-events: none;
@@ -399,6 +400,7 @@
     opacity: 0;
     transform: translateY(calc(var(--scroll-p, 0) * -160px + 35px));
   }
+
   100% {
     opacity: calc(clamp(0, 1 - var(--scroll-p, 0) / 0.38, 1));
     transform: translateY(calc(var(--scroll-p, 0) * -160px));
@@ -464,8 +466,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;  /* Rata atas */
-  padding-top: clamp(2.4rem, 5vh, 4rem); /* Jarak dari atas proporsional */
+  justify-content: flex-start;
+  /* Rata atas */
+  padding-top: clamp(2.4rem, 5vh, 4rem);
+  /* Jarak dari atas proporsional */
   pointer-events: none;
   transform: translateY(calc((1 - var(--scroll-p, 0)) * 160px));
   /* Fade in bersih: mulai muncul baru di scroll 0.58, memberi jeda lega di tengah (zero overlap) */
@@ -484,6 +488,7 @@
     opacity: 0;
     transform: translateY(calc((1 - var(--scroll-p, 0)) * 160px + 35px));
   }
+
   100% {
     opacity: calc(clamp(0, (var(--scroll-p, 0) - 0.58) / 0.32, 1));
     transform: translateY(calc((1 - var(--scroll-p, 0)) * 160px));
@@ -532,17 +537,21 @@
   .section-why-us__content {
     padding-top: clamp(2rem, 4vh, 3.2rem);
   }
+
   .section-why-us__headline-techtext {
     width: 92vw;
     height: clamp(60px, 10vh, 95px);
   }
+
   .section-why-us__golemhand {
     padding-top: clamp(2rem, 4vh, 3.2rem);
   }
+
   .section-why-us__golemhand-techtext {
     width: 92vw;
     height: clamp(60px, 10vh, 95px);
   }
+
   .section-why-us__scroll-track {
     right: 10px;
     width: 3px;
@@ -665,4 +674,60 @@
 .section-why-us--preview .section-why-us__star {
   animation: none;
   will-change: auto;
+}
+
+/* ---- Hotspot di batu mengambang: dot kecil + teks di atasnya (tanpa garis) ----
+   Variabel --rh-* diisi dari parameter ROCK_HOTSPOT_* di SectionWhyUs.jsx. ---- */
+.rock-hotspot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--rh-gap, 5px);
+  white-space: nowrap;
+  pointer-events: none;
+  /* titik tengah dot tepat di anchor 3D */
+  transform: translate(-50%, calc(-100% + var(--rh-dot, 6px) / 2));
+  will-change: opacity;
+}
+
+.rock-hotspot__text {
+  font-size: var(--rh-text-size, 12px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rh-text-color, #e6fbff);
+  background: var(--rh-text-bg, transparent);
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-shadow: 0 0 8px var(--rh-color, #67e8f9);
+}
+
+.rock-hotspot__dot {
+  position: relative;
+  width: var(--rh-dot, 6px);
+  height: var(--rh-dot, 6px);
+  border-radius: 50%;
+  background: var(--rh-color, #67e8f9);
+  box-shadow: 0 0 8px 2px var(--rh-color, #67e8f9);
+}
+
+.rock-hotspot__dot--pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--rh-color, #67e8f9);
+  animation: rockHotspotPulse 2.2s ease-out infinite;
+}
+
+@keyframes rockHotspotPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
 }
