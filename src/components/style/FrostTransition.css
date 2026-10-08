@@ -1,25 +1,52 @@
 /* ==========================================================================
-   Frost Growth Transition Overlay — Liquid Wave Origami Mesh
-   Sesuai target.txt:
-   - Dioptimalkan untuk performa tinggi tanpa backdrop-filter blur layar penuh
-   - Canvas wave transparan membentang di atas layar
+   Frost Veil — transisi 3D <-> 3D (Section 3 <-> 3.5): KABUT ala igloo.inc.
+   Kabut ini adalah TEPI ATAS lembar Section 3.5. Lembar 3.5 menimpa Section 3
+   (sama seperti sheet Section 4 menimpa 3.5): kabut berada TEPAT di atas tepi lembar,
+   memudar dari transparan (atas) menjadi warna latar 3.5 yang pekat (bawah), sehingga
+   kabut & Section 3.5 menyatu — tidak ada kabut "di antara" kedua section.
+   Posisi kabut & lembar digerakkan oleh scroll (lihat FrostTransition.jsx).
+   Hanya transform yang dianimasikan => ringan.
    ========================================================================== */
 
-.frost-overlay {
+.frost-veil {
   position: fixed;
-  inset: 0;
+  left: 0;
+  top: 0;
   width: 100vw;
-  height: 100vh;
+  height: var(--fv-height, 70vh);
   z-index: 60;
   pointer-events: none;
-  overflow: hidden;
+  visibility: hidden;
+  transform: translate3d(0, 100vh, 0);
+  will-change: transform;
+  backface-visibility: hidden;
+  /* Ramp smootherstep (25 stop): biru kabut tipis -> #02020a (= warna atas background Section 3.5), alpha 0 -> 1 */
+  background-image: linear-gradient(180deg,
+    rgba(40,84,140,0.000) 0.0%,
+    rgba(40,84,140,0.001) 4.2%,
+    rgba(40,84,139,0.005) 8.3%,
+    rgba(39,83,138,0.016) 12.5%,
+    rgba(39,81,135,0.035) 16.7%,
+    rgba(38,79,132,0.065) 20.8%,
+    rgba(36,76,127,0.104) 25.0%,
+    rgba(34,72,120,0.152) 29.2%,
+    rgba(32,67,113,0.210) 33.3%,
+    rgba(30,61,104,0.275) 37.5%,
+    rgba(27,56,95,0.347) 41.7%,
+    rgba(24,49,85,0.422) 45.8%,
+    rgba(21,43,75,0.500) 50.0%,
+    rgba(18,37,65,0.578) 54.2%,
+    rgba(15,30,55,0.653) 58.3%,
+    rgba(12,25,46,0.725) 62.5%,
+    rgba(10,19,37,0.790) 66.7%,
+    rgba(8,14,30,0.848) 70.8%,
+    rgba(6,10,23,0.896) 75.0%,
+    rgba(4,7,18,0.935) 79.2%,
+    rgba(3,5,15,0.965) 83.3%,
+    rgba(3,3,12,0.984) 87.5%,
+    rgba(2,2,11,0.995) 91.7%,
+    rgba(2,2,10,0.999) 95.8%,
+    rgba(2,2,10,1.000) 100.0%);
 }
 
-.frost-overlay__canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  pointer-events: none;
-}
+.frost-veil--active { visibility: visible; }

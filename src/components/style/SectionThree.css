@@ -45,7 +45,31 @@
   flex-direction: column;
   align-items: flex-start;
   width: 100%;
-  animation: fadeInDownS3 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* [PERBAIKAN] Dulu animasi ini hanya berjalan SEKALI saat mount (ketika section masih tersembunyi),
+   jadi judul tidak pernah ikut "terbit" bersama kartu. Sekarang dimainkan tiap section tampil. */
+.section-three--visible .section-three__header {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+}
+
+/* Mode "tersibak gelombang" (kembali dari 3.5): tanpa fade/scale sendiri — kemunculannya
+   sepenuhnya dikendalikan oleh mask gelombang. */
+.section-three--instant,
+.section-three--instant .section-three__header {
+  transition: none !important;
+}
+
+/* Saat keluar (Back ke Section 2) judul ikut naik & memudar bersama kartu yang meluncur turun */
+.section-three--leaving .section-three__header {
+  opacity: 0;
+  transform: translateY(-14px);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.5, 0, 0.75, 0);
 }
 
 .btn-back-s3 {
@@ -142,7 +166,10 @@
   box-sizing: border-box;
   transform-style: preserve-3d;
   will-change: transform;
-  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.3s ease;
+  /* [PERBAIKAN] transisi transform 0.18s DIHAPUS: parallax kini di-smooth di JS (rAF + peluruhan
+     eksponensial). Transisi CSS yang di-reset tiap event pointermove membuat gerak kartu patah-patah
+     dan "berebut" dengan smoothing JS. */
+  transition: box-shadow 0.3s ease;
   overflow: hidden;
 }
 
@@ -396,6 +423,12 @@
   animation: cardS3SpinUp var(--s3-entrance-dur, 1.1s) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.card-s3-entrance--landed {
+  opacity: 1;
+  transform: translateY(0) rotate(0deg);
+  animation: none;
+}
+
 .card-s3-entrance--exit {
   animation: cardS3SpinDown var(--s3-exit-dur, 0.7s) cubic-bezier(0.5, 0, 0.75, 0) both !important;
 }
@@ -519,4 +552,12 @@
   .glass-card-s3__inner {
     padding: 1.4rem 1.2rem;
   }
+}
+
+/* ---- [PERFORMA] backdrop-filter pada 3 kartu + mask yang berubah tiap frame = re-blur penuh tiap frame.
+   Dimatikan HANYA selama gelombang berjalan (blur-nya hanya 1px, nyaris tak terlihat bedanya). ---- */
+.app-container[data-wave="entering"] .glass-card-s3,
+.app-container[data-wave="returning"] .glass-card-s3 {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }

@@ -105,7 +105,7 @@ const HEADLINE_BLUERIFT_EMISSIVE_COLOR = '#1e9bff'
 // Kekuatan cahaya. Boleh > 1 (memang disengaja "overbright") supaya efek
 // Bloom di bawah bisa menangkap & menyebarkannya jadi glow. Naikkan untuk
 // glow lebih terang/menyebar, turunkan untuk lebih redup.
-const HEADLINE_BLUERIFT_EMISSIVE_INTENSITY = 1
+const HEADLINE_BLUERIFT_EMISSIVE_INTENSITY = 2.5
 
 // Opsional: ganti juga warna dasar (base color) "bluerift". Isi null untuk
 // tetap pakai warna asli dari Blender, atau isi hex (mis. '#38bdf8') untuk

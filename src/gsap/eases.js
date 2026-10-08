@@ -22,6 +22,12 @@ export const EASE = {
   softOut: CustomEase.create('softOut', '0.23, 1, 0.32, 1'),   // cubic-bezier(0.23,1,0.32,1) — entrance utama (Hero, Loading)
   softOut2: CustomEase.create('softOut2', '0.16, 1, 0.3, 1'),  // cubic-bezier(0.16,1,0.3,1) — entrance card Section 2/3/4
   sharpIn: CustomEase.create('sharpIn', '0.5, 0, 0.75, 0'),    // cubic-bezier(0.5,0,0.75,0) — exit card (percepatan tajam)
+
+  // -- Kurva untuk transisi antar-section (gelombang & sheet) --
+  // inOutCubic : dipakai gelombang saat kembali 3.5 -> 3 (mulai & berhenti lembut)
+  // sheet      : SAMA PERSIS dengan --sheet-ease di SectionPortfolio.css (cubic-bezier(0.76,0,0.18,1))
+  inOutCubic: CustomEase.create('inOutCubic', '0.65, 0, 0.35, 1'),
+  sheet: CustomEase.create('sheetEase', '0.76, 0, 0.18, 1'),
 }
 
 export default EASE

@@ -21,7 +21,7 @@ const GOLEM_SCALE = 1.0                    // Pengali tambahan di atas auto-fit 
 // Ubah nilai ini jika ingin menggeser: positif = naik, negatif = turun.
 const GOLEM_HEAD_VERTICAL_OFFSET = 0.0     // Offset vertikal dari tengah kamera (world unit)
 const GOLEM_FLOAT_CLEARANCE = 0.55         // Jarak tepi bawah golem ke lantai kaca (world unit)
-const GOLEM_BOB_AMPLITUDE = 0.2           // Jarak naik-turun mengambang
+const GOLEM_BOB_AMPLITUDE = 0.09           // Jarak naik-turun mengambang
 const GOLEM_BOB_SPEED = 0.9                // Kecepatan mengambang
 const GOLEM_PLAY_ANIMATION = true          // Mainkan animasi ekspresi alis & mulut golem dari GLB
 const GOLEM_ANIM_SPEED = 0.8               // Kecepatan animasi kepala golem
@@ -166,9 +166,6 @@ const CRACK_GLOW_INTENSITY = 0.15        // Sesuaikan dengan GolemModel agar blo
 const EYE_GLOW_COLOR = '#4ae0ff'
 const EYE_GLOW_INTENSITY = 10.55         // Sama seperti GolemModel — cukup terang untuk bloom threshold
 
-// --- Delay & Animasi ---
-const SECTION_EXIT_DELAY_MS = 700           // Delay animasi keluar sebelum pindah section
-
 // --- Scroll-Driven 200vh Multi-Content (Content 0: Golem, Content 1: GolemHand) ---
 // Total perjalanan terasa 200vh: user benar-benar scroll ke bawah, dan rotasi model
 // mengikuti input scroll secara dinamis (Scroll-Driven Animation), bukan durasi statis.
@@ -186,7 +183,6 @@ const OVERSHOOT_COOLDOWN_MS = 350           // Jeda waktu (ms) serap inersia saa
 
 // --- Parameter Animasi Muncul Konten (Entrance Animation) ---
 // Konten 3.5 disembunyikan sampai gelombang ombak selesai menyapu keluar viewport ke kanan atas
-const CONTENT_ENTRANCE_DELAY_MS = 140       // Jeda waktu (ms) setelah ombak tiba di kanan atas sebelum konten mulai muncul
 const CONTENT_ENTRANCE_OFFSET_Y = 35        // Jarak slide ke atas (px) untuk efek fade in up
 
 // --- Rotasi Scroll-Driven (Sumbu Vertikal Y) ---
@@ -207,12 +203,12 @@ const GOLEMHAND_MODEL_Y = 0.45              // Posisi ketinggian tangan di tenga
 const GOLEMHAND_MODEL_ROT_X = 3          // Kemiringan sumbu X (radian, agak condong ke depan)
 const GOLEMHAND_MODEL_ROT_Y = -1          // Rotasi sumbu vertikal Y (radian, menghadap agak serong kanan)
 const GOLEMHAND_MODEL_ROT_Z = -.5           // Kemiringan roll (radian)
-const GOLEMHAND_BOB_AMPLITUDE = 0.25        // Jarak naik-turun tangan mengambang
+const GOLEMHAND_BOB_AMPLITUDE = 0.08        // Jarak naik-turun tangan mengambang
 const GOLEMHAND_BOB_SPEED = 0.85            // Kecepatan mengambang tangan
 const GOLEMHAND_PLAY_ANIMATION = true       // Mainkan animasi gerak jari tangan dari file GLB
-const GOLEMHAND_ANIM_SPEED = 0.9           // Kecepatan animasi gerakan jari tangan
+const GOLEMHAND_ANIM_SPEED = 0.65           // Kecepatan animasi gerakan jari tangan
 const GOLEMHAND_CRACK_GLOW_COLOR = '#4ae0ff' // Warna glow retakan biru kristal tangan
-const GOLEMHAND_CRACK_GLOW_INTENSITY = 0.55 // Intensitas cahaya retakan tangan
+const GOLEMHAND_CRACK_GLOW_INTENSITY = 0.25 // Intensitas cahaya retakan tangan
 
 // --- Parameter TechText Content 0 (Kenapa Memilih Kami?) ---
 const WHYUS_HEADLINE_TEXT = 'Kenapa Memilih Kami?' // Teks headline interaktif Content 0
@@ -240,6 +236,29 @@ const GOLEMHAND_REVEAL = 'letter'           // Mode reveal: 'letter' | 'area' | 
 
 // --- Indikator Scroll 200vh (Track di Samping Kanan) ---
 const SHOW_SCROLL_INDICATOR = true          // Tampilkan track bar scroll di samping kanan layar
+
+// --- [BARU] Kehalusan Masuk / Keluar Section 3.5 ---
+// Model Golem & Tangan tidak lagi "pop" (visible true/false dalam 1 frame). Mereka TIBA dengan
+// gerak mengendap: naik dari bawah + membesar + memudar-masuk + sedikit berputar. Gerakannya memakai
+// peluruhan eksponensial berbasis waktu sehingga terasa sama di layar 60Hz maupun 144Hz.
+const ENTRY_DAMP_RATE = 3.6                 // Kecepatan model tiba (1/detik). Kecil = lebih lambat & lembut
+const ENTRY_RISE_FROM = -0.9                // Model mulai sejauh ini DI BAWAH posisi akhir (world unit)
+const ENTRY_SCALE_FROM = 0.86               // Skala awal relatif terhadap skala akhir (1 = tanpa efek skala)
+const ENTRY_SPIN_FROM = 0.7                 // Putaran Y awal yang mengendap ke posisi akhir (radian)
+const ENTRY_FADE_SPEED = 1.5                // Pengali kecepatan fade (>1 = opacity tuntas lebih dulu dari gerak)
+const ARRIVAL_INPUT_LOCK_MS = 100           // Abaikan scroll sesaat setelah konten tiba (serap ekor inersia gelombang)
+
+// Render canvas 3D SELAMA gelombang menyapu (preview), supaya batu & debu kosmik sudah ikut
+// tersibak oleh gelombang dan shader/bloom sudah terkompilasi SEBELUM Golem tiba (tidak ada hitch).
+// Di HP dimatikan (hemat GPU) — shader tetap dikompilasi lewat gl.compile.
+// [PERFORMA] Default MATI: merender canvas 3.5 bersamaan dengan canvas terrain + mask + frost adalah
+// beban terbesar saat gelombang menyapu. Pemanasan shader tetap dilakukan (lihat `warm` di bawah).
+const PREVIEW_RENDER_DESKTOP = false
+const PREVIEW_RENDER_MOBILE = false
+
+// Datang dari sheet 2D (scroll ke atas dari Section 4)? true = buka langsung di konten terakhir
+// ("Hand To Hand") agar terasa kontinu; false = selalu mulai dari Golem.
+const RETURN_FROM_SHEET_TO_LAST_CONTENT = true
 
 
 // ========== Three.js Sub-Components ==========
@@ -291,11 +310,12 @@ function EyePart({ node, material }) {
 // Scanline naik dari bawah: wireframe hanya tampil di atas scanline,
 // solid hanya tampil di bawah scanline. Keduanya bergerak bersamaan.
 // Golem dipusatkan lewat bounding box & di-fit ke ukuran target, lalu melayang di atas lantai.
-function GolemWhyUs({ hologramProgress, scrollProgRef, isMobile, isContentEntered }) {
+function GolemWhyUs({ hologramProgress, scrollProgRef, entryRef, isMobile }) {
   const { nodes, materials, animations } = useGLTF('/models/golem.glb')
   const outerRef = useRef()      // grup luar: posisi melayang, rotasi, skala hasil auto-fit
   const centeredRef = useRef()   // grup dalam: kompensasi supaya titik tengah model = origin grup luar
   const layoutRef = useRef({ fit: 1, baseY: 1.5, scanStart: 0, scanEnd: 3.5 })
+  const lastOpacityRef = useRef(1)
   const { actions } = useAnimations(animations, centeredRef)
 
   // Putar animasi alis & mulut golem dari file GLB
@@ -469,25 +489,38 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, isMobile, isContentEntere
     // Scroll-Driven Animation: posisi & rotasi mengikuti langsung scrollProgress (0.0 .. 1.0)
     const p = scrollProgRef.current
 
-    // Culling performa: sembunyikan jika belum masuk atau sudah meluncur jauh ke atas di luar jangkauan kamera
-    if (!isContentEntered || p >= 0.995) {
+    // Progress kedatangan (0 = belum tiba, 1 = sudah mengendap). Diatur WhyUsScene.
+    const e = entryRef.current
+    const eIn = 1 - e
+
+    // Culling performa: sembunyikan jika belum tiba atau sudah meluncur jauh ke atas di luar jangkauan kamera
+    if (e < 0.003 || p >= 0.995) {
       outer.visible = false
       return
     }
 
     outer.visible = true
 
-    // Posisi Y: meluncur naik ke atas keluar layar saat discroll (SOLID, TANPA FADE)
-    outer.position.y = L.baseY + Math.sin(t * GOLEM_BOB_SPEED) * GOLEM_BOB_AMPLITUDE + p * GOLEM_TRAVEL_Y
+    // Posisi Y: meluncur naik ke atas keluar layar saat discroll + naik dari bawah saat baru tiba
+    outer.position.y = L.baseY + Math.sin(t * GOLEM_BOB_SPEED) * GOLEM_BOB_AMPLITUDE + p * GOLEM_TRAVEL_Y + eIn * ENTRY_RISE_FROM
 
-    // Rotasi Y: berputar pada sumbu vertikal mengikuti input scroll secara dinamis
+    // Rotasi Y: berputar pada sumbu vertikal mengikuti input scroll secara dinamis (+ putaran mengendap saat tiba)
     outer.rotation.x = GOLEM_ROTATION_X + Math.sin(t * 0.6) * 0.025 + p * SCROLL_SPIN_X
-    outer.rotation.y = GOLEM_ROTATION_Y + Math.sin(t * GOLEM_SWAY_SPEED) * GOLEM_SWAY_YAW + p * SCROLL_SPIN_Y
+    outer.rotation.y = GOLEM_ROTATION_Y + Math.sin(t * GOLEM_SWAY_SPEED) * GOLEM_SWAY_YAW + p * SCROLL_SPIN_Y - eIn * ENTRY_SPIN_FROM
     outer.rotation.z = GOLEM_ROTATION_Z + Math.sin(t * 0.5) * 0.012
 
-    // Skala mengecil halus saat meluncur ke atas
-    const currentScale = L.fit * (1 - p * TRAVEL_SCALE_DROP)
+    // Skala mengecil halus saat meluncur ke atas, membesar halus saat baru tiba
+    const arrivalScale = ENTRY_SCALE_FROM + (1 - ENTRY_SCALE_FROM) * e
+    const currentScale = L.fit * (1 - p * TRAVEL_SCALE_DROP) * arrivalScale
     outer.scale.setScalar(currentScale)
+
+    // Fade-in saat tiba (material memang sudah transparent:true -> tidak memicu kompilasi ulang shader)
+    const op = Math.min(1, e * ENTRY_FADE_SPEED)
+    if (Math.abs(op - lastOpacityRef.current) > 0.004 || (op >= 1 && lastOpacityRef.current < 1)) {
+      lastOpacityRef.current = op
+      tunedMaterials.current.forEach((m) => { m.opacity = op })
+      eyeMaterial.opacity = op
+    }
 
     // Animasi scanline pembatuan di awal entrance
     const scanP = hologramProgress.current // 0 → 1
@@ -524,10 +557,12 @@ function GolemWhyUs({ hologramProgress, scrollProgRef, isMobile, isContentEntere
 
 // Model tangan golem (/golemhand.glb) — Content 1
 // Dipusatkan lewat bounding box & di-fit ke ukuran target, melayang di scene yang sama dengan batu-batu orbit
-function GolemHandModel({ scrollProgRef, isMobile, isContentEntered }) {
+function GolemHandModel({ scrollProgRef, entryRef, isMobile }) {
   const outerRef = useRef()
   const centeredRef = useRef()
   const layoutRef = useRef({ fit: 1 })
+  const handMatsRef = useRef([])
+  const lastOpacityRef = useRef(1)
   const { scene, animations } = useGLTF('/golemhand.glb')
   const { actions } = useAnimations(animations, outerRef)
 
@@ -552,12 +587,16 @@ function GolemHandModel({ scrollProgRef, isMobile, isContentEntered }) {
     }
   }, [actions])
 
-  // Tuning material: glow retakan cyan (tanpa fade, solid)
+  // Tuning material: glow retakan cyan. transparent:true dipasang SEKALI di awal (bukan di-toggle
+  // saat animasi) supaya fade-in kedatangan tidak memicu kompilasi ulang shader di tengah gerak.
   useEffect(() => {
+    handMatsRef.current = []
     scene.traverse((o) => {
       if (o.isMesh && o.material) {
         const prepareMat = (m) => {
+          m.transparent = true
           m.opacity = 1
+          handMatsRef.current.push(m)
           if (m.name === 'Material.005' || m.name === 'bluerift') {
             m.emissive = new THREE.Color(GOLEMHAND_CRACK_GLOW_COLOR)
             m.emissiveIntensity = GOLEMHAND_CRACK_GLOW_INTENSITY
@@ -609,8 +648,11 @@ function GolemHandModel({ scrollProgRef, isMobile, isContentEntered }) {
     // Scroll-Driven Animation: posisi & rotasi mengikuti langsung scrollProgress (0.0 .. 1.0)
     const p = scrollProgRef.current
 
-    // Culling performa: sembunyikan jika belum masuk atau masih jauh di bawah layar
-    if (!isContentEntered || p <= 0.005) {
+    const e = entryRef.current
+    const eIn = 1 - e
+
+    // Culling performa: sembunyikan jika belum tiba atau masih jauh di bawah layar
+    if (e < 0.003 || p <= 0.005) {
       outer.visible = false
       return
     }
@@ -620,17 +662,25 @@ function GolemHandModel({ scrollProgRef, isMobile, isContentEntered }) {
     const t = state.clock.elapsedTime
     const fit = layoutRef.current.fit || 1
 
-    // Posisi Y: meluncur naik dari bawah layar ke posisi tengah panggung (SOLID, TANPA FADE)
-    outer.position.y = GOLEMHAND_MODEL_Y + Math.sin(t * GOLEMHAND_BOB_SPEED) * GOLEMHAND_BOB_AMPLITUDE - factor * GOLEMHAND_TRAVEL_Y
+    // Posisi Y: meluncur naik dari bawah layar ke posisi tengah panggung (+ naik halus saat baru tiba)
+    outer.position.y = GOLEMHAND_MODEL_Y + Math.sin(t * GOLEMHAND_BOB_SPEED) * GOLEMHAND_BOB_AMPLITUDE - factor * GOLEMHAND_TRAVEL_Y + eIn * ENTRY_RISE_FROM
 
-    // Rotasi Y: berputar pada sumbu vertikal mengikuti input scroll secara dinamis
-    outer.rotation.y = GOLEMHAND_MODEL_ROT_Y - factor * SCROLL_SPIN_Y
+    // Rotasi Y: berputar pada sumbu vertikal mengikuti input scroll secara dinamis (+ putaran mengendap saat tiba)
+    outer.rotation.y = GOLEMHAND_MODEL_ROT_Y - factor * SCROLL_SPIN_Y - eIn * ENTRY_SPIN_FROM
     outer.rotation.x = GOLEMHAND_MODEL_ROT_X - factor * SCROLL_SPIN_X
     outer.rotation.z = GOLEMHAND_MODEL_ROT_Z
 
-    // Skala membesar ke normal saat sampai di tengah panggung
-    const currentScale = fit * (1 - factor * TRAVEL_SCALE_DROP)
+    // Skala membesar ke normal saat sampai di tengah panggung (+ membesar halus saat baru tiba)
+    const arrivalScale = ENTRY_SCALE_FROM + (1 - ENTRY_SCALE_FROM) * e
+    const currentScale = fit * (1 - factor * TRAVEL_SCALE_DROP) * arrivalScale
     outer.scale.setScalar(currentScale)
+
+    // Fade-in saat tiba
+    const op = Math.min(1, e * ENTRY_FADE_SPEED)
+    if (Math.abs(op - lastOpacityRef.current) > 0.004 || (op >= 1 && lastOpacityRef.current < 1)) {
+      lastOpacityRef.current = op
+      handMatsRef.current.forEach((m) => { m.opacity = op })
+    }
   })
 
   return (
@@ -943,18 +993,37 @@ function CameraRig({ hologramProgress }) {
 
 // Scene utama di dalam Canvas
 // clippingPlanes diaktifkan di renderer agar clippingPlane material bekerja
-function WhyUsScene({ hologramProgress, scrollProgRef, targetProgRef, sectionDomRef, isMobile, isContentEntered }) {
-  const { gl } = useThree()
+function WhyUsScene({ hologramProgress, scrollProgRef, targetProgRef, entryRef, sectionDomRef, isMobile, isContentEntered }) {
+  const { gl, scene, camera } = useThree()
 
   useEffect(() => {
     gl.localClippingEnabled = true
     return () => { gl.localClippingEnabled = false }
   }, [gl])
 
+  // [BARU] Pemanasan shader: kompilasi semua material scene (termasuk Golem/Tangan yang masih
+  // disembunyikan) SEBELUM dibutuhkan. Tanpa ini, kompilasi baru terjadi di frame pertama model
+  // tampil -> patah/hitch tepat saat Golem muncul. try/catch: tidak semua build three punya compileAsync.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        const r = gl.compileAsync ? gl.compileAsync(scene, camera) : gl.compile(scene, camera)
+        if (r && typeof r.catch === 'function') r.catch(() => { })
+      } catch { /* abaikan: hanya optimasi */ }
+    }, 500)
+    return () => clearTimeout(id)
+  }, [gl, scene, camera])
+
   // Scroll-Driven Animation Loop: interpolasi scrollProgress dengan lerp damping 60-120fps
   useFrame((state, delta) => {
-    // Lerp smooth scroll progres (0.0 .. 1.0)
-    scrollProgRef.current += (targetProgRef.current - scrollProgRef.current) * Math.min(1, delta * SCROLL_LERP_SPEED)
+    // Kedatangan model: peluruhan eksponensial berbasis waktu menuju 1 (tiba) / 0 (belum)
+    const entryTarget = isContentEntered ? 1 : 0
+    let e = entryRef.current + (entryTarget - entryRef.current) * (1 - Math.exp(-ENTRY_DAMP_RATE * delta))
+    if (Math.abs(e - entryTarget) < 0.002) e = entryTarget
+    entryRef.current = e
+
+    // Lerp smooth scroll progres (0.0 .. 1.0) — berbasis waktu juga (bukan faktor per-frame)
+    scrollProgRef.current += (targetProgRef.current - scrollProgRef.current) * (1 - Math.exp(-SCROLL_LERP_SPEED * delta))
 
     // Update CSS custom property pada container DOM secara langsung (zero re-render!)
     if (sectionDomRef.current) {
@@ -995,8 +1064,8 @@ function WhyUsScene({ hologramProgress, scrollProgRef, targetProgRef, sectionDom
         <GolemWhyUs
           hologramProgress={hologramProgress}
           scrollProgRef={scrollProgRef}
+          entryRef={entryRef}
           isMobile={isMobile}
-          isContentEntered={isContentEntered}
         />
       </Suspense>
 
@@ -1004,8 +1073,8 @@ function WhyUsScene({ hologramProgress, scrollProgRef, targetProgRef, sectionDom
       <Suspense fallback={null}>
         <GolemHandModel
           scrollProgRef={scrollProgRef}
+          entryRef={entryRef}
           isMobile={isMobile}
-          isContentEntered={isContentEntered}
         />
       </Suspense>
 
@@ -1070,22 +1139,35 @@ function generateGlitchTexts(count) {
 
 
 // ========== Main Component ==========
-const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNext, isPreview = false }, ref) {
+// Props:
+//  isVisible        : Section 3.5 aktif penuh (activeSection === 3.5, bukan sedang sapuan balik)
+//  isPreview        : gelombang sedang menyapu (entering / returning) -> section tampil di balik Section 3
+//  phase            : frostPhase dari App ('none' | 'entering' | 'inside' | 'returning')
+//  is2D             : sheet putih (Section 4/5) sedang/sudah naik
+//  entrySide        : 'above' (dari Section 3) | 'below' (kembali dari sheet 2D)
+//  sheetDurationMs  : durasi sheet naik (selaras CSS) — dipakai untuk efek "mundur" di bawah sheet
+const SectionWhyUs = forwardRef(function SectionWhyUs(
+  { isVisible, onBack, onNext, onScrubBack, isPreview = false, phase = 'none', is2D = false, entrySide = 'above', sheetDurationMs = 1000 },
+  ref
+) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
-  const [isExiting, setIsExiting] = useState(false)
   const isExitingRef = useRef(false)
   const sectionDomRef = useRef(null)
 
   // Status kesiapan konten: konten disembunyikan sampai gelombang tiba di kanan atas (bukan preview)
   const [isContentEntered, setIsContentEntered] = useState(false)
   const [isContentEntering, setIsContentEntering] = useState(false)
+  const isContentEnteredRef = useRef(false)
+  const contentEnteredAtRef = useRef(0)
   const boundaryHitTimeRef = useRef(0)
+  const entrySideRef = useRef(entrySide)
+  entrySideRef.current = entrySide
 
   // Scroll-Driven Animation state & refs (200vh total feel)
   const targetProgRef = useRef(0)        // 0.0 .. 1.0 (target dari input scroll)
   const scrollProgRef = useRef(0)        // 0.0 .. 1.0 (smooth interpolated)
+  const entryProgRef = useRef(0)         // 0.0 .. 1.0 (kedatangan model: naik, membesar, fade-in)
   const overshootRef = useRef(0)         // Akumulasi scroll saat sudah mentok di 0 atau 1
-  const timerRef = useRef(null)
   const hologramProgress = useRef(0)
   const hologramStartTime = useRef(null)
 
@@ -1093,27 +1175,78 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
   const stars = useMemo(() => generateStars(STAR_COUNT), [])
   const glitchTexts = useMemo(() => generateGlitchTexts(GLITCH_COUNT), [])
 
-  // Kontrol kemunculan konten: objek di 3.5 disembunyikan sampai ombak selesai menyapu keluar viewport (isPreview false)
+  // [BARU] Saat sheet 2D naik, Section 3.5 TIDAK dihilangkan: ia "mundur" (mengecil & meredup)
+  // di bawah sheet, dan baru dilepas setelah sheet menutup penuh. Dulu konten dihapus seketika +
+  // 220ms layar kosong + canvas dibekukan sebelum sheet mulai naik.
+  const [receded, setReceded] = useState(false)
   useEffect(() => {
-    if (isVisible && !isPreview) {
-      const t = setTimeout(() => {
-        setIsContentEntering(true)
-        setIsContentEntered(true)
-      }, CONTENT_ENTRANCE_DELAY_MS)
-      return () => clearTimeout(t)
-    } else {
-      setIsContentEntered(false)
-      setIsContentEntering(false)
-      targetProgRef.current = 0
-      scrollProgRef.current = 0
-      overshootRef.current = 0
-      boundaryHitTimeRef.current = 0
-      isExitingRef.current = false
-      if (sectionDomRef.current) {
-        sectionDomRef.current.style.setProperty('--scroll-p', '0')
-      }
+    if (!is2D) {
+      setReceded(false)
+      return undefined
     }
-  }, [isVisible, isPreview])
+    const t = setTimeout(() => setReceded(true), sheetDurationMs + 150)
+    return () => clearTimeout(t)
+  }, [is2D, sheetDurationMs])
+
+  const isReturning = phase === 'returning'
+
+  // [KABUT SCROLL] Selama gesture kabut (phase 'entering' | 'returning'), Section 3.5 menjadi LEMBAR yang
+  // menimpa Section 3: transform-nya digeser imperatif lewat setSheetY (kabut menyatu di tepi atasnya).
+  // `sheetOwned` = lembar sedang dikendalikan inline (bukan class). Setelah gesture selesai dan 3.5 tidak
+  // terlihat, ia tetap tersembunyi (visibility hidden) agar tidak ada "hantu" fade saat kembali ke class biasa.
+  const veilActive = phase === 'entering' || phase === 'returning'
+  const sheetYRef = useRef(0)
+  const [sheetOwned, setSheetOwned] = useState(false)
+  if (veilActive && !sheetOwned) setSheetOwned(true)
+  useLayoutEffect(() => {
+    if (!veilActive && sheetOwned && isVisible) {
+      sheetYRef.current = 0
+      setSheetOwned(false)
+    }
+  }, [veilActive, sheetOwned, isVisible])
+  const behindSheet = is2D && !receded
+  // Selama ombak menyapu balik ke Section 3 ATAU sheet masih naik, konten dipertahankan apa adanya
+  // (tertutup oleh ombak / sheet), bukan di-reset lebih dulu.
+  const holdContent = isReturning || behindSheet
+
+  // Kemunculan konten: LANGSUNG tampil penuh (tanpa jeda & tanpa animasi masuk) — model Golem dan teks
+  // sudah ada sejak lembar 3.5 mulai naik menimpa Section 3 (phase 'entering'), bukan menunggu setelah selesai.
+  const showContentNow = (isVisible || phase === 'entering') && !isPreview
+  useEffect(() => {
+    if (showContentNow) {
+      isExitingRef.current = false
+      if (!isContentEnteredRef.current) {
+        // Datang dari bawah (kembali dari sheet): mulai di konten terakhir
+        const startP = RETURN_FROM_SHEET_TO_LAST_CONTENT && entrySideRef.current === 'below' ? 1 : 0
+        targetProgRef.current = startP
+        scrollProgRef.current = startP
+        entryProgRef.current = 1   // model langsung di posisi akhir (tanpa naik/membesar/memutar/fade)
+        if (sectionDomRef.current) sectionDomRef.current.style.setProperty('--scroll-p', String(startP))
+      }
+      isContentEnteredRef.current = true
+      contentEnteredAtRef.current = performance.now()
+      setIsContentEntering(false)
+      setIsContentEntered(true)
+      return undefined
+    }
+
+    if (holdContent) return undefined
+
+    // Reset penuh (hanya saat benar-benar tidak terlihat & tidak sedang tertutup ombak/sheet)
+    isContentEnteredRef.current = false
+    setIsContentEntered(false)
+    setIsContentEntering(false)
+    targetProgRef.current = 0
+    scrollProgRef.current = 0
+    entryProgRef.current = 0
+    overshootRef.current = 0
+    boundaryHitTimeRef.current = 0
+    isExitingRef.current = false
+    if (sectionDomRef.current) {
+      sectionDomRef.current.style.setProperty('--scroll-p', '0')
+    }
+    return undefined
+  }, [showContentNow, isPreview, holdContent])
 
   // Hologram entrance animation timing
   useEffect(() => {
@@ -1135,15 +1268,17 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
     }
   }, [isVisible, isPreview])
 
-  // Handler input wheel delta dari App.jsx (atau touch)
-  const onWheelDelta = useCallback((deltaY) => {
-    if (isExitingRef.current || !isContentEntered) return
-
+  // Satu jalur untuk wheel & touch: geser progress, deteksi mentok, lalu keluar setelah overshoot.
+  // [PERBAIKAN] Keluar TIDAK lagi menyembunyikan konten + menunggu 220ms. onBack/onNext dipanggil
+  // langsung: ombak (ke Section 3) atau sheet (ke Section 4) mengambil alih, dan konten yang masih
+  // utuh itulah yang tertutup/mundur — satu gerakan menyambung, bukan "hilang -> kosong -> baru".
+  const applyDelta = useCallback((delta) => {
+    if (isExitingRef.current || !isContentEnteredRef.current) return
     const now = performance.now()
-    const delta = deltaY * SCROLL_WHEEL_FACTOR
+    if (now - contentEnteredAtRef.current < ARRIVAL_INPUT_LOCK_MS) return
+
     const prev = targetProgRef.current
-    const step = delta / SCROLL_DISTANCE_PX
-    const next = Math.max(0, Math.min(1, prev + step))
+    const next = Math.max(0, Math.min(1, prev + delta / SCROLL_DISTANCE_PX))
 
     // Deteksi jika baru saja mencapai batas (prev berada di tengah lalu menyentuh 0 atau 1)
     if ((prev > 0.001 && next <= 0.001) || (prev < 0.999 && next >= 0.999)) {
@@ -1155,104 +1290,32 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
 
     targetProgRef.current = next
 
-    // Cek jika sedang mentok di ujung atas (konten 0) dan terus scroll ke atas
-    if (prev <= 0 && delta < 0) {
-      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) {
-        return // Serap inersia scroll yang tersisa
-      }
+    const atTop = prev <= 0 && delta < 0       // mentok atas (konten 0) & terus scroll ke atas
+    const atBottom = prev >= 1 && delta > 0    // mentok bawah (konten 1) & terus scroll ke bawah
+    if (atTop || atBottom) {
+      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) return // serap inersia
+      // Mentok ATAS: kabut kembali ke Section 3 digerakkan scroll (App.jsx), threshold-nya di FROST_VEIL_CONFIG
+      if (atTop && onScrubBack) { onScrubBack(Math.abs(delta)); return }
       overshootRef.current += Math.abs(delta)
       if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
         overshootRef.current = 0
-        isExitingRef.current = true
-        setIsExiting(true)
-        setIsContentEntered(false)
-        timerRef.current = setTimeout(() => {
-          setIsExiting(false)
-          isExitingRef.current = false
-          if (onBack) onBack()
-        }, 220)
-      }
-      return
-    }
-
-    // Cek jika sedang mentok di ujung bawah (konten 1) dan terus scroll ke bawah
-    if (prev >= 1 && delta > 0) {
-      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) {
-        return // Serap inersia scroll yang tersisa
-      }
-      overshootRef.current += Math.abs(delta)
-      if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
-        overshootRef.current = 0
-        isExitingRef.current = true
-        setIsExiting(true)
-        setIsContentEntered(false)
-        timerRef.current = setTimeout(() => {
-          setIsExiting(false)
-          isExitingRef.current = false
-          if (onNext) onNext()
-        }, 220)
+        // [FIX] Dulu isExitingRef langsung di-set true walau App MENOLAK pindah (transitionLock aktif),
+        // sehingga applyDelta return selamanya => scroll di 3.5 mati total. Sekarang hanya terkunci bila diterima.
+        const accepted = atTop ? (onBack ? onBack() : undefined) : (onNext ? onNext() : undefined)
+        if (accepted !== false) isExitingRef.current = true
       }
       return
     }
 
     // Reset overshoot saat sedang di dalam rentang
     overshootRef.current = 0
-  }, [onBack, onNext, isContentEntered])
+  }, [onBack, onNext, onScrubBack])
+
+  // Handler input wheel delta dari App.jsx
+  const onWheelDelta = useCallback((deltaY) => applyDelta(deltaY * SCROLL_WHEEL_FACTOR), [applyDelta])
 
   // Handler touch delta untuk layar sentuh HP
-  const onTouchDelta = useCallback((dy) => {
-    if (isExitingRef.current || !isContentEntered) return
-    const now = performance.now()
-    const delta = dy * SCROLL_TOUCH_FACTOR
-    const prev = targetProgRef.current
-    const step = delta / SCROLL_DISTANCE_PX
-    const next = Math.max(0, Math.min(1, prev + step))
-
-    if ((prev > 0.001 && next <= 0.001) || (prev < 0.999 && next >= 0.999)) {
-      boundaryHitTimeRef.current = now
-      overshootRef.current = 0
-      targetProgRef.current = next
-      return
-    }
-
-    targetProgRef.current = next
-
-    if (prev <= 0 && delta < 0) {
-      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) return
-      overshootRef.current += Math.abs(delta)
-      if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
-        overshootRef.current = 0
-        isExitingRef.current = true
-        setIsExiting(true)
-        setIsContentEntered(false)
-        timerRef.current = setTimeout(() => {
-          setIsExiting(false)
-          isExitingRef.current = false
-          if (onBack) onBack()
-        }, 220)
-      }
-      return
-    }
-
-    if (prev >= 1 && delta > 0) {
-      if (now - boundaryHitTimeRef.current < OVERSHOOT_COOLDOWN_MS) return
-      overshootRef.current += Math.abs(delta)
-      if (overshootRef.current > SCROLL_OVERSHOOT_EXIT_PX) {
-        overshootRef.current = 0
-        isExitingRef.current = true
-        setIsExiting(true)
-        setIsContentEntered(false)
-        timerRef.current = setTimeout(() => {
-          setIsExiting(false)
-          isExitingRef.current = false
-          if (onNext) onNext()
-        }, 220)
-      }
-      return
-    }
-
-    overshootRef.current = 0
-  }, [onBack, onNext, isContentEntered])
+  const onTouchDelta = useCallback((dy) => applyDelta(dy * SCROLL_TOUCH_FACTOR), [applyDelta])
 
   // Handler touch end
   const onTouchEnd = useCallback(() => {
@@ -1276,31 +1339,80 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
     }
   }, [onBack])
 
+  // Mask gelombang (komplemen mask Section 3): Section 3.5 hanya terlihat DI DALAM elips gelombang.
+  // Diatur imperatif dari App.jsx per frame (nol re-render).
+  const setWaveMask = useCallback((mask) => {
+    const el = sectionDomRef.current
+    if (!el) return
+    el.style.maskImage = mask
+    el.style.webkitMaskImage = mask
+  }, [])
+
+  // Posisi tepi atas lembar 3.5 (vh dari atas layar; 0 = menutup penuh). Ditulis langsung ke DOM (nol re-render).
+  const setSheetY = useCallback((yVh) => {
+    sheetYRef.current = yVh
+    const el = sectionDomRef.current
+    if (el) el.style.transform = `translate3d(0, ${yVh}vh, 0)`
+  }, [])
+
   // Expose imperative handle untuk App.jsx
   useImperativeHandle(ref, () => ({
+    setSheetY,
     next,
     back,
     onWheelDelta,
     onTouchDelta,
     onTouchEnd,
-  }), [next, back, onWheelDelta, onTouchDelta, onTouchEnd])
+    setWaveMask,
+  }), [next, back, onWheelDelta, onTouchDelta, onTouchEnd, setWaveMask, setSheetY])
 
+  const showSection = isVisible || behindSheet
+
+  // Canvas 3D aktif: saat terlihat, saat sapuan balik (konten masih tampil), dan — di desktop — saat
+  // gelombang masuk menyapu (preview) agar scene sudah "hangat" ketika Golem tiba.
+  const previewRender = isPreview && !isReturning && (isMobile ? PREVIEW_RENDER_MOBILE : PREVIEW_RENDER_DESKTOP)
+  // Pemanasan singkat sekali saat mount (konten masih tersembunyi => murah): mengompilasi pipeline
+  // bloom/EffectComposer di awal, bukan saat Golem tampil.
+  const [warm, setWarm] = useState(true)
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
+    const t = setTimeout(() => setWarm(false), 900)
+    return () => clearTimeout(t)
   }, [])
+  const canvasActive = showSection || isReturning || veilActive || previewRender || warm
 
-  const showSection = isVisible || isExiting
+  const rootClass = [
+    'section-why-us',
+    (showSection || isPreview || veilActive) ? 'section-why-us--visible' : '',
+    veilActive ? 'section-why-us--preview' : '',
+    behindSheet ? 'section-why-us--behind' : '',
+    isContentEntered ? 'section-why-us--entered' : '',
+    isPreview ? 'section-why-us--preview' : '',
+  ].filter(Boolean).join(' ')
 
   return (
     <section
       ref={sectionDomRef}
-      className={`section-why-us ${(showSection || isPreview) ? 'section-why-us--visible' : ''}`}
+      className={rootClass}
       style={{
         '--scroll-p': '0',
-        // isPreview: tampil di bawah Section 3 (z-index < 4), pointer-events nonaktif, langsung terlihat penuh tanpa delay transisi
-        ...(isPreview ? { zIndex: 2, pointerEvents: 'none', opacity: 1, transform: 'none', visibility: 'visible', transition: 'none' } : {}),
+        '--s35-behind-dur': `${sheetDurationMs}ms`,
+        // isPreview: tampil DI ATAS terrain (z 3) tapi di bawah Section 3 (z 4), pointer-events nonaktif,
+        // langsung terlihat penuh tanpa delay transisi. Bentuk tampilnya dipotong oleh mask gelombang
+        // (lihat setWaveMask). Dulu z-index 2 -> berada DI BAWAH terrain, sehingga gunung & salju
+        // tetap tampak menembus area galaxy yang tersibak, lalu hilang tiba-tiba saat gelombang selesai.
+        ...(isPreview ? { zIndex: 3, pointerEvents: 'none', opacity: 1, transform: 'none', visibility: 'visible', transition: 'none' } : {}),
+        // [FIX] Lembar 3.5 harus MENIMPA Section 3 (wrapper z-index 4 di App). Class `--preview` (sisa desain
+        // gelombang) menaruhnya di z 3 => kartu Section 3 tetap tampil di atas lembar. Paksa di atas selama
+        // kabut berjalan / 3.5 aktif (kecuali saat sheet 2D naik, urutan itu diatur CSS).
+        ...(((veilActive || isVisible) && !is2D) ? { zIndex: 5 } : {}),
+        // Lembar kabut: posisi dikendalikan scroll (lihat setSheetY), tanpa transisi CSS
+        ...(sheetOwned ? {
+          opacity: 1,
+          transition: 'none',
+          transform: `translate3d(0, ${sheetYRef.current}vh, 0)`,
+          pointerEvents: veilActive ? 'none' : undefined,
+          visibility: (veilActive || isVisible) ? 'visible' : 'hidden',
+        } : {}),
       }}
     >
       {/* Galaxy Background + aurora yang bernapas pelan */}
@@ -1352,7 +1464,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
       {/* Canvas 3D — Shared scene (tetap aktif di content 0 & 1, batu orbit & debu tetap ada) */}
       <div className="section-why-us__canvas">
         <Canvas
-          frameloop={showSection ? 'always' : 'never'}
+          frameloop={canvasActive ? 'always' : 'never'}
           camera={{ position: [0, CAMERA_HEIGHT, CAMERA_END_DISTANCE + CAMERA_DOLLY_DISTANCE], fov: CAMERA_FOV }}
           dpr={isMobile ? [1, 1.25] : [1, 1.5]}
           gl={{
@@ -1368,6 +1480,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
             hologramProgress={hologramProgress}
             scrollProgRef={scrollProgRef}
             targetProgRef={targetProgRef}
+            entryRef={entryProgRef}
             sectionDomRef={sectionDomRef}
             isMobile={isMobile}
             isContentEntered={isContentEntered}
@@ -1406,7 +1519,7 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
       </div>
 
       {/* Content 1: GolemHand — TechText headline di tengah atas (Scroll-Driven) */}
-      <div className={`section-why-us__golemhand ${!isContentEntered ? 'section-why-us__content--hidden' : ''}`}>
+      <div className={`section-why-us__golemhand ${!isContentEntered ? 'section-why-us__content--hidden' : isContentEntering ? 'section-why-us__golemhand--entering' : ''}`}>
         <div className="section-why-us__golemhand-techtext">
           <TechText
             text={GOLEMHAND_TEXT}
@@ -1430,6 +1543,9 @@ const SectionWhyUs = forwardRef(function SectionWhyUs({ isVisible, onBack, onNex
           <div className="section-why-us__scroll-thumb" />
         </div>
       )}
+
+      {/* Peredup saat sheet 2D naik menutupi Section 3.5 (lebih murah daripada filter: brightness) */}
+      <div className="section-why-us__dim" />
     </section>
   )
 })

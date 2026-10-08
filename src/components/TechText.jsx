@@ -29,14 +29,14 @@ const TechText = ({
   fontFamily = '',
   fontWeight = 700,
   fontSize = 140,
-  letterSpacing = 1.4,
+  letterSpacing = -0.04,
   color = '#ffffff',
-  accentColor = '#bf67f9',
+  accentColor = '#67e8f9',
   reach = 220,
   softness = 0.65,
   dashLength = 4,
   dashGap = 2,
-  strokeWidth = .5,
+  strokeWidth = 1.5,
   lineStyle = 'dashed',
   reveal = 'letter',
   specks = 15,
@@ -44,14 +44,14 @@ const TechText = ({
   labels = true,
   draggable = true,
   sweep = true,
-  speed = 2,
+  speed = 1,
   className = '',
   style
 }) => {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const settingsRef = useRef(null);
-  const wakeRef = useRef(() => { });
+  const wakeRef = useRef(() => {});
 
   useEffect(() => {
     settingsRef.current = { text, fontFamily, fontWeight, fontSize, letterSpacing, color, accentColor, reach, softness, dashLength, dashGap, strokeWidth, lineStyle, reveal, specks, selection, labels, draggable, sweep, speed };
@@ -137,120 +137,120 @@ const TechText = ({
       const x0 = Math.max(0, Math.floor(cx - r)), y0 = Math.max(0, Math.floor(cy - r)), x1 = Math.min(canvas.width, Math.ceil(cx + r)), y1 = Math.min(canvas.height, Math.ceil(cy + r));
       if (x1 <= x0 || y1 <= y0) return; const w = x1 - x0, h = y1 - y0;
       if (scratch.width < w || scratch.height < h) { scratch.width = Math.max(scratch.width, w); scratch.height = Math.max(scratch.height, h); }
-      scratchCtx.setTransform(1, 0, 0, 1, 0, 0); scratchCtx.globalCompositeOperation = 'source-over'; scratchCtx.clearRect(0, 0, w, h);
+      scratchCtx.setTransform(1,0,0,1,0,0); scratchCtx.globalCompositeOperation = 'source-over'; scratchCtx.clearRect(0,0,w,h);
       for (const g of glyphs) blit(scratchCtx, g.dashes, g.offset.x, g.offset.y, x0, y0);
-      scratchCtx.globalCompositeOperation = 'destination-in'; scratchCtx.fillStyle = falloff(scratchCtx, cx - x0, cy - y0, r, 1, s.softness); scratchCtx.fillRect(0, 0, w, h); scratchCtx.globalCompositeOperation = 'source-over';
+      scratchCtx.globalCompositeOperation = 'destination-in'; scratchCtx.fillStyle = falloff(scratchCtx, cx - x0, cy - y0, r, 1, s.softness); scratchCtx.fillRect(0,0,w,h); scratchCtx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = presence; ctx.drawImage(scratch, 0, 0, w, h, x0, y0, w, h); ctx.globalAlpha = 1;
     };
     const crisp = v => (Math.round(v * dpr) + 0.5) / dpr;
     const perimeterPt = (dist, w, h) => {
-      let d = ((dist % (2 * (w + h))) + 2 * (w + h)) % (2 * (w + h));
-      if (d < w) return [frame.x1 + d, frame.y1, 0, -1]; d -= w;
-      if (d < h) return [frame.x2, frame.y1 + d, 1, 0]; d -= h;
-      if (d < w) return [frame.x2 - d, frame.y2, 0, 1]; d -= w;
-      return [frame.x1, frame.y2 - d, -1, 0];
+      let d = ((dist % (2*(w+h))) + 2*(w+h)) % (2*(w+h));
+      if (d < w) return [frame.x1+d, frame.y1, 0, -1]; d -= w;
+      if (d < h) return [frame.x2, frame.y1+d, 1, 0]; d -= h;
+      if (d < w) return [frame.x2-d, frame.y2, 0, 1]; d -= w;
+      return [frame.x1, frame.y2-d, -1, 0];
     };
     const drawSpecks = (s, a) => {
-      const w = frame.x2 - frame.x1, h = frame.y2 - frame.y1; if (w < 2 || h < 2) return;
-      const perim = 2 * (w + h), seed = frame.index + 1, grid = 3;
+      const w = frame.x2-frame.x1, h = frame.y2-frame.y1; if (w<2||h<2) return;
+      const perim = 2*(w+h), seed = frame.index+1, grid = 3;
       for (let k = 0; k < s.specks; k++) {
-        const period = 0.5 + noise(seed, k, 11) * 1.2, t = pulse / period + noise(seed, k, 17), cycle = Math.floor(t), life = t - cycle;
-        if (life > 0.7) continue;
-        const [px, py, nx, ny] = perimeterPt(noise(seed, k, cycle) * perim, w, h);
-        const pick = noise(seed, k, cycle, 2), size = pick < 0.46 ? 2 : pick < 0.7 ? 3 : pick < 0.84 ? 5 : pick < 0.94 ? 8 : 11, large = size >= 8;
-        const out = (large ? 9 : 4) + Math.floor(noise(seed, k, cycle, 1) * 5) * grid;
-        const x = frame.x1 + Math.round((px + nx * out - frame.x1) / grid) * grid, y = frame.y1 + Math.round((py + ny * out - frame.y1) / grid) * grid;
-        const tone = noise(seed, k, cycle, 3), blink = life < 0.06 || (life > 0.32 && life < 0.36) ? 0.35 : 1;
-        const alpha = a * (large ? 0.3 + 0.4 * tone : 0.3 + 0.6 * tone) * blink;
-        const left = Math.round(x - size / 2), top = Math.round(y - size / 2);
-        if (tone < 0.26 || (large && tone < 0.78)) { ctx.strokeStyle = rgba(s.accentColor, alpha); ctx.strokeRect(left + 0.5, top + 0.5, size, size); if (large && tone > 0.5) { ctx.fillStyle = rgba(s.accentColor, alpha); ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2); } }
-        else { ctx.fillStyle = rgba(s.accentColor, alpha); ctx.fillRect(left, top, size, size); }
+        const period = 0.5+noise(seed,k,11)*1.2, t = pulse/period+noise(seed,k,17), cycle = Math.floor(t), life = t-cycle;
+        if (life>0.7) continue;
+        const [px,py,nx,ny] = perimeterPt(noise(seed,k,cycle)*perim, w, h);
+        const pick = noise(seed,k,cycle,2), size = pick<0.46?2:pick<0.7?3:pick<0.84?5:pick<0.94?8:11, large = size>=8;
+        const out = (large?9:4)+Math.floor(noise(seed,k,cycle,1)*5)*grid;
+        const x = frame.x1+Math.round((px+nx*out-frame.x1)/grid)*grid, y = frame.y1+Math.round((py+ny*out-frame.y1)/grid)*grid;
+        const tone = noise(seed,k,cycle,3), blink = life<0.06||(life>0.32&&life<0.36)?0.35:1;
+        const alpha = a*(large?0.3+0.4*tone:0.3+0.6*tone)*blink;
+        const left = Math.round(x-size/2), top = Math.round(y-size/2);
+        if (tone<0.26||(large&&tone<0.78)) { ctx.strokeStyle=rgba(s.accentColor,alpha); ctx.strokeRect(left+0.5,top+0.5,size,size); if (large&&tone>0.5) { ctx.fillStyle=rgba(s.accentColor,alpha); ctx.fillRect(Math.round(x)-1,Math.round(y)-1,2,2); } }
+        else { ctx.fillStyle=rgba(s.accentColor,alpha); ctx.fillRect(left,top,size,size); }
       }
-      for (let j = 0; j < 2; j++) { const head = (pulse * 0.42 * s.speed + j * 0.5) * perim; for (let i = 0; i < 4; i++) { const [x, y] = perimeterPt(head - i * 6, w, h), sz = i === 0 ? 3 : 2; ctx.fillStyle = rgba(s.accentColor, a * [0.95, 0.55, 0.32, 0.16][i]); ctx.fillRect(Math.round(x - sz / 2), Math.round(y - sz / 2), sz, sz); } }
+      for (let j=0;j<2;j++) { const head=(pulse*0.42*s.speed+j*0.5)*perim; for (let i=0;i<4;i++) { const [x,y]=perimeterPt(head-i*6,w,h),sz=i===0?3:2; ctx.fillStyle=rgba(s.accentColor,a*[0.95,0.55,0.32,0.16][i]); ctx.fillRect(Math.round(x-sz/2),Math.round(y-sz/2),sz,sz); } }
     };
     const drawFrame = s => {
-      const g = glyphs[frame.index]; if (!g || frame.alpha < 0.01) return;
-      const a = frame.alpha, x1 = crisp(frame.x1), y1 = crisp(frame.y1), x2 = crisp(frame.x2), y2 = crisp(frame.y2);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const moved = Math.hypot(g.offset.x, g.offset.y);
-      if (moved > 1) { const hx = (g.box.x1 + g.box.x2) / 2, hy = (g.box.y1 + g.box.y2) / 2; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + g.offset.x, hy + g.offset.y); ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.strokeStyle = rgba(s.accentColor, 0.45 * a); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.rect(Math.round(hx) - 2, Math.round(hy) - 2, 4, 4); ctx.fillStyle = rgba(s.accentColor, 0.7 * a); ctx.fill(); }
-      ctx.beginPath(); ctx.rect(x1, y1, x2 - x1, y2 - y1); ctx.lineWidth = 1; ctx.strokeStyle = rgba(s.accentColor, 0.5 * a); ctx.stroke();
-      ctx.beginPath(); for (const [cx, cy] of [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]) ctx.rect(Math.round(cx) - 2, Math.round(cy) - 2, 5, 5); ctx.fillStyle = rgba(s.accentColor, 0.95 * a); ctx.fill();
-      if (s.specks > 0) { ctx.lineWidth = 1; drawSpecks(s, a); }
+      const g = glyphs[frame.index]; if (!g||frame.alpha<0.01) return;
+      const a = frame.alpha, x1=crisp(frame.x1), y1=crisp(frame.y1), x2=crisp(frame.x2), y2=crisp(frame.y2);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      const moved = Math.hypot(g.offset.x,g.offset.y);
+      if (moved>1) { const hx=(g.box.x1+g.box.x2)/2, hy=(g.box.y1+g.box.y2)/2; ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(hx+g.offset.x,hy+g.offset.y); ctx.setLineDash([3,4]); ctx.lineWidth=1; ctx.strokeStyle=rgba(s.accentColor,0.45*a); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.rect(Math.round(hx)-2,Math.round(hy)-2,4,4); ctx.fillStyle=rgba(s.accentColor,0.7*a); ctx.fill(); }
+      ctx.beginPath(); ctx.rect(x1,y1,x2-x1,y2-y1); ctx.lineWidth=1; ctx.strokeStyle=rgba(s.accentColor,0.5*a); ctx.stroke();
+      ctx.beginPath(); for (const [cx,cy] of [[x1,y1],[x2,y1],[x2,y2],[x1,y2]]) ctx.rect(Math.round(cx)-2,Math.round(cy)-2,5,5); ctx.fillStyle=rgba(s.accentColor,0.95*a); ctx.fill();
+      if (s.specks>0) { ctx.lineWidth=1; drawSpecks(s,a); }
       if (!s.labels) return;
-      ctx.font = LABEL_FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillStyle = rgba(s.accentColor, 0.62 * a);
-      const label = moved > 1 ? `${signed(Math.round(g.offset.x))}, ${signed(Math.round(-g.offset.y))}` : `${g.char}  ${Math.round(g.box.x2 - g.box.x1)} x ${Math.round(g.box.y2 - g.box.y1)}`;
-      ctx.fillText(label, Math.round(frame.x1), Math.round(frame.y1) - 7);
+      ctx.font=LABEL_FONT; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillStyle=rgba(s.accentColor,0.62*a);
+      const label = moved>1?`${signed(Math.round(g.offset.x))}, ${signed(Math.round(-g.offset.y))}` : `${g.char}  ${Math.round(g.box.x2-g.box.x1)} x ${Math.round(g.box.y2-g.box.y1)}`;
+      ctx.fillText(label, Math.round(frame.x1), Math.round(frame.y1)-7);
     };
     const tick = now => {
       raf = 0; const s = settingsRef.current; if (!s) return;
-      const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000)); last = now;
+      const dt = Math.min(0.05, Math.max(0.001, (now-last)/1000)); last = now;
       const view = ensureLayout(s);
-      const sweeping = s.sweep && !reducedMotion && !pointer.inside && dragging < 0;
-      if (sweeping) clock += dt * s.speed; pulse += dt;
+      const sweeping = s.sweep && !reducedMotion && !pointer.inside && dragging<0;
+      if (sweeping) clock += dt*s.speed; pulse += dt;
       let tx = pointer.x, ty = pointer.y;
-      if (sweeping) { tx = view.left + (view.right - view.left) * (0.5 - 0.5 * Math.cos(clock * 0.45)); ty = view.top + (view.bottom - view.top) * (0.45 + 0.1 * Math.sin(clock * 0.8)); }
-      const active = pointer.inside || sweeping || dragging >= 0;
-      if (active && !placed) { lens.x = tx; lens.y = ty; }
-      if (active) { const lag = pointer.inside ? 0.05 : 0.22; lens.x = approach(lens.x, tx, dt, lag); lens.y = approach(lens.y, ty, dt, lag); }
+      if (sweeping) { tx = view.left+(view.right-view.left)*(0.5-0.5*Math.cos(clock*0.45)); ty = view.top+(view.bottom-view.top)*(0.45+0.1*Math.sin(clock*0.8)); }
+      const active = pointer.inside||sweeping||dragging>=0;
+      if (active&&!placed) { lens.x=tx; lens.y=ty; }
+      if (active) { const lag=pointer.inside?0.05:0.22; lens.x=approach(lens.x,tx,dt,lag); lens.y=approach(lens.y,ty,dt,lag); }
       placed = active;
-      presence = approach(presence, s.reveal === 'area' && active && dragging < 0 ? 1 : 0, dt, 0.16);
+      presence = approach(presence, s.reveal==='area'&&active&&dragging<0?1:0, dt, 0.16);
       let moving = false;
       glyphs.forEach((g, i) => {
-        if (i === dragging) { g.offset.x = approach(g.offset.x, pointer.x - grab.x, dt, 0.03); g.offset.y = approach(g.offset.y, pointer.y - grab.y, dt, 0.03); g.velocity.x = 0; g.velocity.y = 0; moving = true; return; }
-        const { offset: o, velocity: v } = g;
-        if (Math.abs(o.x) < 0.05 && Math.abs(o.y) < 0.05 && Math.hypot(v.x, v.y) < 0.5) { o.x = 0; o.y = 0; v.x = 0; v.y = 0; return; }
-        v.x += (-SPRING * o.x - DAMPING * v.x) * dt; v.y += (-SPRING * o.y - DAMPING * v.y) * dt; o.x += v.x * dt; o.y += v.y * dt; moving = true;
+        if (i===dragging) { g.offset.x=approach(g.offset.x,pointer.x-grab.x,dt,0.03); g.offset.y=approach(g.offset.y,pointer.y-grab.y,dt,0.03); g.velocity.x=0; g.velocity.y=0; moving=true; return; }
+        const {offset:o, velocity:v} = g;
+        if (Math.abs(o.x)<0.05&&Math.abs(o.y)<0.05&&Math.hypot(v.x,v.y)<0.5) { o.x=0; o.y=0; v.x=0; v.y=0; return; }
+        v.x+=(-SPRING*o.x-DAMPING*v.x)*dt; v.y+=(-SPRING*o.y-DAMPING*v.y)*dt; o.x+=v.x*dt; o.y+=v.y*dt; moving=true;
       });
-      const focus = dragging >= 0 ? dragging : active ? glyphAt(lens.x, lens.y) : -1;
-      if (focus >= 0 && s.selection) {
-        const g = glyphs[focus], bx1 = g.box.x1 + g.offset.x - 6, by1 = g.box.y1 + g.offset.y - 6, bx2 = g.box.x2 + g.offset.x + 6, by2 = g.box.y2 + g.offset.y + 6;
-        if (frame.index < 0 || frame.alpha < 0.02) { frame.x1 = bx1; frame.y1 = by1; frame.x2 = bx2; frame.y2 = by2; }
-        const glide = focus === dragging ? 0.02 : 0.08;
-        frame.x1 = approach(frame.x1, bx1, dt, glide); frame.y1 = approach(frame.y1, by1, dt, glide);
-        frame.x2 = approach(frame.x2, bx2, dt, glide); frame.y2 = approach(frame.y2, by2, dt, glide); frame.index = focus;
+      const focus = dragging>=0?dragging:active?glyphAt(lens.x,lens.y):-1;
+      if (focus>=0&&s.selection) {
+        const g=glyphs[focus], bx1=g.box.x1+g.offset.x-6, by1=g.box.y1+g.offset.y-6, bx2=g.box.x2+g.offset.x+6, by2=g.box.y2+g.offset.y+6;
+        if (frame.index<0||frame.alpha<0.02) { frame.x1=bx1; frame.y1=by1; frame.x2=bx2; frame.y2=by2; }
+        const glide=focus===dragging?0.02:0.08;
+        frame.x1=approach(frame.x1,bx1,dt,glide); frame.y1=approach(frame.y1,by1,dt,glide);
+        frame.x2=approach(frame.x2,bx2,dt,glide); frame.y2=approach(frame.y2,by2,dt,glide); frame.index=focus;
       }
-      frame.alpha = approach(frame.alpha, focus >= 0 && s.selection ? 1 : 0, dt, 0.1);
-      glyphs.forEach((g, i) => { const tgt = s.reveal === 'letter' && i === focus && i !== dragging ? 1 : 0; g.outline = approach(g.outline, tgt, dt, 0.09); if (Math.abs(g.outline - tgt) > 0.002) moving = true; else g.outline = tgt; });
-      if (s.draggable) container.style.cursor = dragging >= 0 ? 'grabbing' : focus >= 0 && pointer.inside ? 'grab' : '';
-      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const g of glyphs) { const mv = Math.hypot(g.offset.x, g.offset.y); if (mv > 1) { ctx.globalAlpha = Math.min(1, mv / 24) * 0.55; blit(ctx, g.dashes, 0, 0, 0, 0); ctx.globalAlpha = 1; } }
+      frame.alpha=approach(frame.alpha,focus>=0&&s.selection?1:0,dt,0.1);
+      glyphs.forEach((g,i) => { const tgt=s.reveal==='letter'&&i===focus&&i!==dragging?1:0; g.outline=approach(g.outline,tgt,dt,0.09); if (Math.abs(g.outline-tgt)>0.002) moving=true; else g.outline=tgt; });
+      if (s.draggable) container.style.cursor=dragging>=0?'grabbing':focus>=0&&pointer.inside?'grab':'';
+      ctx.setTransform(1,0,0,1,0,0); ctx.globalCompositeOperation='source-over'; ctx.clearRect(0,0,canvas.width,canvas.height);
+      for (const g of glyphs) { const mv=Math.hypot(g.offset.x,g.offset.y); if (mv>1) { ctx.globalAlpha=Math.min(1,mv/24)*0.55; blit(ctx,g.dashes,0,0,0,0); ctx.globalAlpha=1; } }
       for (const g of glyphs) {
-        if (g.outline < 0.999) { ctx.globalAlpha = 1 - g.outline; blit(ctx, g.fill, g.offset.x, g.offset.y, 0, 0); }
-        if (g.outline > 0.001) { ctx.globalAlpha = g.outline; blit(ctx, g.dashes, g.offset.x, g.offset.y, 0, 0); }
-        ctx.globalAlpha = 1;
+        if (g.outline<0.999) { ctx.globalAlpha=1-g.outline; blit(ctx,g.fill,g.offset.x,g.offset.y,0,0); }
+        if (g.outline>0.001) { ctx.globalAlpha=g.outline; blit(ctx,g.dashes,g.offset.x,g.offset.y,0,0); }
+        ctx.globalAlpha=1;
       }
-      if (presence > 0.001) drawReveal(s); drawFrame(s);
-      const settling = moving || Math.abs(presence - (s.reveal === 'area' && active && dragging < 0 ? 1 : 0)) > 0.002 || (frame.alpha > 0.01 && frame.alpha < 0.99);
-      if ((active || settling) && visible && alive) raf = requestAnimationFrame(tick);
+      if (presence>0.001) drawReveal(s); drawFrame(s);
+      const settling=moving||Math.abs(presence-(s.reveal==='area'&&active&&dragging<0?1:0))>0.002||(frame.alpha>0.01&&frame.alpha<0.99);
+      if ((active||settling)&&visible&&alive) raf=requestAnimationFrame(tick);
     };
-    const wake = () => { if (raf || !visible || !alive) return; last = performance.now(); raf = requestAnimationFrame(tick); };
+    const wake = () => { if (raf||!visible||!alive) return; last=performance.now(); raf=requestAnimationFrame(tick); };
     wakeRef.current = wake;
-    const resize = () => { width = Math.max(1, container.clientWidth); height = Math.max(1, container.clientHeight); dpr = Math.min(window.devicePixelRatio || 1, 2); canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr); layoutKey = ''; wake(); };
-    const locate = e => { const r = container.getBoundingClientRect(); pointer.x = e.clientX - r.left; pointer.y = e.clientY - r.top; };
-    const onMove = e => { locate(e); pointer.inside = true; wake(); };
-    const onLeave = () => { if (dragging >= 0) return; pointer.inside = false; wake(); };
+    const resize = () => { width=Math.max(1,container.clientWidth); height=Math.max(1,container.clientHeight); dpr=Math.min(window.devicePixelRatio||1,2); canvas.width=Math.round(width*dpr); canvas.height=Math.round(height*dpr); layoutKey=''; wake(); };
+    const locate = e => { const r=container.getBoundingClientRect(); pointer.x=e.clientX-r.left; pointer.y=e.clientY-r.top; };
+    const onMove = e => { locate(e); pointer.inside=true; wake(); };
+    const onLeave = () => { if (dragging>=0) return; pointer.inside=false; wake(); };
     const onDown = e => {
-      locate(e); pointer.inside = true; const s = settingsRef.current;
-      if (s?.draggable && (e.pointerType !== 'mouse' || e.button === 0)) { const idx = glyphAt(pointer.x, pointer.y); if (idx >= 0) { dragging = idx; grab.x = pointer.x - glyphs[idx].offset.x; grab.y = pointer.y - glyphs[idx].offset.y; container.setPointerCapture?.(e.pointerId); } }
+      locate(e); pointer.inside=true; const s=settingsRef.current;
+      if (s?.draggable&&(e.pointerType!=='mouse'||e.button===0)) { const idx=glyphAt(pointer.x,pointer.y); if (idx>=0) { dragging=idx; grab.x=pointer.x-glyphs[idx].offset.x; grab.y=pointer.y-glyphs[idx].offset.y; container.setPointerCapture?.(e.pointerId); } }
       wake();
     };
     const onUp = e => {
-      if (dragging >= 0) { dragging = -1; container.releasePointerCapture?.(e.pointerId); const r = container.getBoundingClientRect(); pointer.inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; }
+      if (dragging>=0) { dragging=-1; container.releasePointerCapture?.(e.pointerId); const r=container.getBoundingClientRect(); pointer.inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom; }
       wake();
     };
-    container.addEventListener('pointermove', onMove, { passive: true });
-    container.addEventListener('pointerenter', onMove, { passive: true });
-    container.addEventListener('pointerdown', onDown, { passive: true });
-    container.addEventListener('pointerup', onUp, { passive: true });
-    container.addEventListener('pointercancel', onUp, { passive: true });
-    container.addEventListener('pointerleave', onLeave, { passive: true });
+    container.addEventListener('pointermove', onMove, {passive:true});
+    container.addEventListener('pointerenter', onMove, {passive:true});
+    container.addEventListener('pointerdown', onDown, {passive:true});
+    container.addEventListener('pointerup', onUp, {passive:true});
+    container.addEventListener('pointercancel', onUp, {passive:true});
+    container.addEventListener('pointerleave', onLeave, {passive:true});
     const ro = new ResizeObserver(resize); ro.observe(container);
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; wake(); }); io.observe(container);
+    const io = new IntersectionObserver(([e]) => { visible=e.isIntersecting; wake(); }); io.observe(container);
     if (document.fonts) document.fonts.ready.then(refreshFonts, refreshFonts);
     resize();
     return () => {
-      alive = false; cancelAnimationFrame(raf); wakeRef.current = () => { };
+      alive=false; cancelAnimationFrame(raf); wakeRef.current=()=>{};
       ro.disconnect(); io.disconnect();
       container.removeEventListener('pointermove', onMove);
       container.removeEventListener('pointerenter', onMove);

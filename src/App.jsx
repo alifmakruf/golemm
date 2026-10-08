@@ -7,8 +7,8 @@ import GolemHero from './components/GolemHero.jsx'
 import SectionTwo from './components/SectionTwo.jsx'
 import SectionThree from './components/SectionThree.jsx'
 import SectionWhyUs from './components/SectionWhyUs.jsx'
-import FrostTransition, { FROST_CONFIG } from './components/FrostTransition.jsx'
-import SectionPortfolio from './components/SectionPortfolio.jsx'
+import FrostVeil, { FROST_VEIL_CONFIG } from './components/FrostTransition.jsx'
+import SectionPortfolio, { SHEET_TRANSITION_SEC } from './components/SectionPortfolio.jsx'
 import SidebarNav from './components/SidebarNav.jsx'
 import TerrainLoader, { SKY_COLOR } from './components/TerrainLoader.jsx'
 import HeadlineModel, { HEADLINE_LAYER_HEIGHT_FRACTION } from './components/HeadlineModel.jsx'
@@ -29,7 +29,10 @@ const PARALLAX_HEADLINE = 4
 const PARALLAX_LERP_SPEED = 0.2
 
 // 2. Durasi animasi fade out model 3D saat masuk ke Section 4 & 5 (website 2D)
-const CANVAS_3D_FADEOUT_DURATION = '0.8s'
+// [SELARAS] Mengikuti durasi sheet putih (SHEET_TRANSITION_SEC di SectionPortfolio.jsx)
+// supaya terrain memudar PERSIS selama sheet naik, bukan lebih cepat / lebih lambat.
+const SHEET_TRANSITION_MS = SHEET_TRANSITION_SEC * 1000
+const CANVAS_3D_FADEOUT_DURATION = `${SHEET_TRANSITION_SEC}s`
 
 // 3. Tuning CSS Fog Overlay (kabut di lereng gunung)
 // [OPTIMASI FPS] FOG_ENABLED: kabut ini berupa elemen 200% lebar layar dengan blur(40px) yang
@@ -67,21 +70,19 @@ const SCROLL_NAV_COOLDOWN_MS = 900      // Jeda minimum antar perpindahan sectio
 const SCROLL_WHEEL_THRESHOLD = 35       // Ambang deltaY scroll mouse/trackpad supaya dianggap "niat pindah"
 const SWIPE_THRESHOLD_PX = 60           // Jarak minimum swipe layar sentuh (px) supaya dianggap "niat pindah"
 
-// 6. Frost Transition (Section 3 ↔ 3.5 ↔ 4)
-// Jumlah scroll frost MENGIKUTI panjang array di FROST_CONFIG (FrostTransition.jsx):
-//   inSteps  [0, 0.10, 1.00]       -> IN_LAST_STEP  = 2 (2 scroll sebelum masuk Section 3.5)
-//   outSteps [0, 0.30, 0.65, 1.00] -> OUT_LAST_STEP = 3
-const IN_LAST_STEP = (FROST_CONFIG?.inSteps?.length ?? 2) - 1
-const OUT_LAST_STEP = (FROST_CONFIG?.outSteps?.length ?? 4) - 1
-const FROST_STEP_COOLDOWN_MS = 380      // Jeda antar step frost (ms) — lebih responsif & halus
+// 6. Frost Veil (Section 3 <-> 3.5)
+// Lembar es naik/turun menutupi layar (konsep sama dengan sheet Section 4), section diganti saat tertutup.
+// Transisi DIGERAKKAN SCROLL: posisi kabut mengikuti jarak scroll/swipe. Saat scroll berhenti, threshold
+// (commitThreshold) menentukan dilanjutkan atau dibatalkan. Semua pengaturan ada di FROST_VEIL_CONFIG (FrostTransition.jsx).
+const FROST_GESTURE_GAP_MS = 140   // Jeda tenang antar event wheel agar dianggap gesture BARU (tolak ekor inersia)
+const FROST_TOUCH_DEADZONE_PX = 8  // Geseran jari minimum (px) sebelum kabut mulai bergerak
 
-// 7. Section 3.5: keluar dengan SATU kali scroll (ke Section 3 atau 4)
-// FROST_COVER_MS   : waktu frost menutup layar penuh sebelum section diganti (selaras FROST_CONFIG.animDuration)
-// FROST_REVEAL_MS  : waktu frost mencair membuka section tujuan
-// WHYUS_GESTURE_GAP_MS : jeda "tenang" minimum antar event wheel supaya dianggap gesture BARU.
-//   Mencegah inersia trackpad dari scroll sebelumnya langsung memicu pindah section lagi.
-const FROST_COVER_MS = 900
-const FROST_REVEAL_MS = 900
+// 9. [BARU] Section 4/5 -> kembali ke 3.5 lewat scroll ke atas
+// Dulu SATU tick wheel saat sheet berada di atas langsung membuang sheet (termasuk sisa
+// inersia dari scroll ke atas barusan). Sekarang butuh: (a) sheet sudah diam di atas
+// minimal SHEET_EXIT_COOLDOWN_MS, dan (b) dorongan ke atas terakumulasi >= SHEET_EXIT_ACCUM_PX.
+const SHEET_EXIT_COOLDOWN_MS = 420
+const SHEET_EXIT_ACCUM_PX = 140
 
 export default function App() {
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
@@ -91,12 +92,15 @@ export default function App() {
   // frostPhase: 'none' | 'entering' (3→3.5) | 'exiting' (3.5→4) | 'inside' (di dalam 3.5, frost mencair)
   // frostStep: 0..IN_LAST_STEP (entering) atau 0..OUT_LAST_STEP (exiting)
   const [frostPhase, setFrostPhase] = useState('none')
-  const [frostStep, setFrostStep] = useState(0)
-  const frostLockRef = useRef(false)
-  const frostCancelTimerRef = useRef(null)  // [BARU] timer unmount frost setelah animasi batal selesai
+  const frostCancelTimerRef = useRef(null)  // timer unmount frost (cadangan)
   const transitionLockRef = useRef(false)   // true selama transisi frost 3 <-> 3.5 <-> 4 berjalan penuh
   const transitionTimersRef = useRef([])
   const lastWheelTimeRef = useRef(0)
+  const whyUsEntryRef = useRef('above')     // 'above' = datang dari Section 3, 'below' = kembali dari Section 4
+  const sheetLastScrollAtRef = useRef(0)    // kapan terakhir sheet 2D tidak berada di paling atas
+  const sheetExitAccumRef = useRef(0)       // akumulasi dorongan ke atas saat sheet sudah di paling atas
+  const touchGestureStartYRef = useRef(null)    // Y awal SATU gesture sentuh (touchStartYRef di-reset tiap move)
+  const touchStartScrollTopRef = useRef(0)      // scrollTop sheet saat jari menyentuh
 
   const { active, progress } = useProgress()
   const timerRef = useRef(null)
@@ -116,12 +120,10 @@ export default function App() {
   const terrainLayerRef = useRef(null)
   const terrainWrapperRef = useRef(null)
   // Ref wrapper Section 3 & filter Heat Haze (imperiatif, zero React state)
-  const section3WrapRef = useRef(null)
-  const section3FilterRef = useRef(null)
-  const heatHazeDispRef = useRef(null)
   const frostRef = useRef(null)
-  const frostProgressRef = useRef(0)
-  const frostTargetProgressRef = useRef(0)
+  const frostScrubRef = useRef(null)          // arah gesture kabut yang sedang berjalan ('up' | 'down') atau null
+  const frostReleaseTimerRef = useRef(null)   // timer "scroll berhenti" => release kabut (wheel)
+  const frostWatchdogRef = useRef(null)       // pengaman: buka kunci bila transisi kabut macet
 
   // Nilai posisi mouse untuk Parallax via RequestAnimationFrame (Zero Re-render)
   const mouseTargetRef = useRef({ x: 0, y: 0 })
@@ -142,194 +144,121 @@ export default function App() {
   }, [])
 
   // ============================================================================
-  // Parameter Tuning: Liquid Wave Wipe & Heat Haze Transition (Section 3 -> 3.5)
-  // Sesuai target.txt:
-  // 1. Muncul dari pojok kiri bawah (originX: 0, originY: 100)
-  // 2. Wave cerah di depan menyibak Section 3.5 di belakang Section 3
-  // 3. Efek Heat Haze (Atmospheric Distortion) pada Section 3 saat discroll
-  // 4. Merambat saat scroll (scroll-driven), bukan dengan timer
+  // Frost Veil Section 3 <-> 3.5 — DIGERAKKAN SCROLL (hanya transform => ringan).
+  // 'up'   = 3 -> 3.5 (lembar naik dari bawah); 'down' = 3.5 -> 3 (lembar turun dari atas).
+  // Alur: startFrostScrub (mulai) -> pushFrostScrub (tiap scroll/swipe) -> releaseFrostScrub
+  // (scroll berhenti / jari diangkat; threshold menentukan lanjut atau batal).
+  // Section 3.5 adalah LEMBAR yang menimpa Section 3 (kabut = tepi atasnya); activeSection baru diganti saat gesture selesai.
+  // Selama gesture frostPhase != 'none' -> CSS mematikan backdrop-filter kartu & fluid cursor dijeda.
   // ============================================================================
-  const WAVE_WIPE_CONFIG = {
-    // Titik asal sapuan (persen viewport): 0% kiri, 100% bawah = pojok kiri bawah
-    originX: 0,
-    originY: 100,
-
-    // Jarak scroll wheel (px) yang dibutuhkan untuk menyelesaikan transisi penuh 0 -> 1
-    // Semakin besar nilainya, semakin santai dan bertahap rambatan gelombangnya
-    scrollDistance: 450,
-
-    // Jarak swipe sentuh mobile (px) untuk transisi penuh
-    touchDistance: 320,
-
-    // Kecepatan interpolasi kehalusan gerakan (lerp factor: 0.05 - 0.20)
-    // Nilai lebih kecil = lebih lambat & licin, nilai lebih besar = lebih responsif langsung
-    lerpSpeed: 0.12,
-
-    // Kelembutan batas tepi lingkaran sapuan mask (px feathering)
-    feather: 90,
-
-    // Intensitas maksimal efek distorsi udara/panas (Heat Haze) saat scroll (px displacement)
-    heatHazeMaxScale: 14,
-  }
-
-  // Update mask Section 3 secara imperatif
-  const updateSection3Mask = useCallback((val) => {
-    const el = section3WrapRef.current
-    if (!el) return
-    if (val <= 0.001) {
-      el.style.maskImage = ''
-      el.style.webkitMaskImage = ''
-      return
-    }
-    const diag = Math.hypot(window.innerWidth, window.innerHeight)
-    const maxR = diag + WAVE_WIPE_CONFIG.feather
-    const r = val * maxR
-    const rInner = Math.max(0, r - WAVE_WIPE_CONFIG.feather)
-    const cx = (WAVE_WIPE_CONFIG.originX / 100) * window.innerWidth
-    const cy = (WAVE_WIPE_CONFIG.originY / 100) * window.innerHeight
-    // Section 3 terlihat di luar lingkaran, transparan di dalam -> Section 3.5 tersibak
-    const mask = `radial-gradient(circle at ${cx}px ${cy}px, transparent ${rInner}px, black ${r}px)`
-    el.style.maskImage = mask
-    el.style.webkitMaskImage = mask
+  const releaseFrostScrub = useCallback(() => {
+    clearTimeout(frostReleaseTimerRef.current)
+    if (!frostScrubRef.current || !frostRef.current) return
+    frostScrubRef.current = null   // input berikutnya diabaikan (transitionLockRef masih true) sampai selesai
+    frostRef.current.release()
+    // Pengaman: transisi paling lama ~2.2 detik. Bila 6 detik kemudian kunci masih menyala (animasi macet),
+    // paksa buka kunci supaya scroll tidak terkunci selamanya.
+    clearTimeout(frostWatchdogRef.current)
+    frostWatchdogRef.current = setTimeout(() => {
+      if (transitionLockRef.current && !frostScrubRef.current && frostRef.current) {
+        // [FIX] abort() memanggil onDone(false) sehingga lock, phase & lembar kembali konsisten
+        if (frostRef.current.isActive()) frostRef.current.abort()
+        else frostRef.current.kill()
+        transitionLockRef.current = false
+        frostScrubRef.current = null
+        setFrostPhase('none')
+      }
+    }, 6000)
   }, [])
 
-  // Callback fallback saat GSAP mengontrol (misal arah out atau inside)
-  const frostProgressCallback = useCallback((val) => {
-    updateSection3Mask(val)
-  }, [updateSection3Mask])
+  // Kabut DIAM di posisinya saat input berhenti; baru setelah settleDelayMs tanpa input, threshold menentukan lanjut/batal.
+  const scheduleFrostRelease = useCallback(() => {
+    clearTimeout(frostReleaseTimerRef.current)
+    frostReleaseTimerRef.current = setTimeout(releaseFrostScrub, FROST_VEIL_CONFIG.settleDelayMs)
+  }, [releaseFrostScrub])
 
-  // ============================================================================
-  // Parameter Tuning: Wave Return Animation (Section 3.5 -> Section 3)
-  // Sesuai permintaan: gelombang yang berada overlap di kanan atas kembali
-  // secara halus menyapu ke kiri bawah menutup Section 3.5 dan menampilkan Section 3
-  // ============================================================================
-  const WAVE_RETURN_CONFIG = {
-    // Durasi animasi ombak kembali ke kiri bawah (detik)
-    duration: 0.85,
-    // Kurva kehalusan gerak ombak
-    ease: 'power2.inOut',
-  }
-
-  // Transisi halus kembali dari Section 3.5 ke Section 3 (ombak menyapu balik)
-  const returnToSection3 = useCallback(() => {
-    if (transitionLockRef.current) return
+  const startFrostScrub = useCallback((direction) => {
+    if (transitionLockRef.current || !frostRef.current) return false
     transitionLockRef.current = true
-    setFrostPhase('returning')
-
-    const startProg = frostProgressRef.current || 1.0
-    const animObj = { val: startProg }
-
-    gsap.to(animObj, {
-      val: 0.0,
-      duration: WAVE_RETURN_CONFIG.duration,
-      ease: WAVE_RETURN_CONFIG.ease,
-      onUpdate: () => {
-        const p = animObj.val
-        frostProgressRef.current = p
-        frostTargetProgressRef.current = p
-        updateSection3Mask(p)
-        if (frostRef.current) frostRef.current.setProgress(p)
-      },
-      onComplete: () => {
-        frostProgressRef.current = 0
-        frostTargetProgressRef.current = 0
-        if (section3WrapRef.current) {
-          section3WrapRef.current.style.maskImage = ''
-          section3WrapRef.current.style.webkitMaskImage = ''
+    frostScrubRef.current = direction
+    // [FIX] Watchdog dari gesture sebelumnya tidak boleh "membunuh" gesture baru
+    clearTimeout(frostWatchdogRef.current)
+    clearTimeout(frostReleaseTimerRef.current)
+    if (direction === 'up') whyUsEntryRef.current = 'above'   // 3.5 selalu mulai dari konten pertama saat datang dari Section 3
+    setFrostPhase(direction === 'up' ? 'entering' : 'returning')
+    frostRef.current.begin(direction, {
+      // Lembar Section 3.5 digeser mengikuti scroll; kabut menyatu di tepi atasnya
+      onSheet: (yVh) => sectionWhyUsRef.current?.setSheetY(yVh),
+      onDone: (committed, instant) => {
+        // [FIX] Gesture SELESAI: bersihkan semua sisa state. Sebelumnya frostScrubRef & watchdog tidak
+        // dibersihkan di jalur 'completing' (scroll sampai 100%), sehingga event wheel pertama di 3.5 termakan
+        // dan watchdog basi (6 dtk) bisa mematikan gesture berikutnya di tengah jalan.
+        clearTimeout(frostReleaseTimerRef.current)
+        clearTimeout(frostWatchdogRef.current)
+        frostScrubRef.current = null
+        // Section baru diganti di sini (lembar sudah menutup penuh / sudah menyingkap penuh)
+        if (committed) {
+          if (direction === 'up') {
+            whyUsEntryRef.current = 'above'
+            setActiveSection(3.5)
+          } else {
+            setActiveSection(3)
+          }
         }
-        if (section3FilterRef.current) {
-          section3FilterRef.current.style.filter = 'none'
-        }
-        if (heatHazeDispRef.current) {
-          heatHazeDispRef.current.setAttribute('scale', '0')
-        }
-        setActiveSection(3)
         setFrostPhase('none')
-        setFrostStep(0)
         transitionLockRef.current = false
+        // Kunci singkat agar sisa inersia scroll tidak langsung memicu pindah lagi
+        // (tidak dipakai saat gesture dibatalkan seketika oleh scroll berlawanan arah — user ingin langsung scroll)
+        if (!instant) {
+          scrollLockRef.current = true
+          setTimeout(() => { scrollLockRef.current = false }, SCROLL_NAV_COOLDOWN_MS)
+        }
       },
     })
-  }, [updateSection3Mask])
+    return true
+  }, [])
 
-  // Loop RAF scroll-driven untuk animasi wave wipe & heat haze (Zero React State, 60-120 FPS)
-  useEffect(() => {
-    if (frostPhase !== 'entering') return
-
-    let rafId
-    const updateFrame = () => {
-      const target = frostTargetProgressRef.current
-      let curr = frostProgressRef.current
-      const diff = target - curr
-
-      if (Math.abs(diff) > 0.0002) {
-        curr += diff * WAVE_WIPE_CONFIG.lerpSpeed
-        frostProgressRef.current = curr
-
-        // 1. Update mask Section 3
-        updateSection3Mask(curr)
-
-        // 2. Update Heat Haze pada Section 3
-        const hazeFactor = Math.sin(curr * Math.PI) // puncak di tengah transisi
-        const hazeScale = hazeFactor * WAVE_WIPE_CONFIG.heatHazeMaxScale
-        if (heatHazeDispRef.current) {
-          heatHazeDispRef.current.setAttribute('scale', hazeScale.toFixed(1))
-        }
-        if (section3FilterRef.current) {
-          section3FilterRef.current.style.filter = hazeScale > 0.5 ? 'url(#heat-haze-filter)' : 'none'
-        }
-
-        // 3. Update canvas frost wave secara imperatif
-        if (frostRef.current) {
-          frostRef.current.setProgress(curr)
-        }
-      }
-
-      // Selesai masuk ke Section 3.5 secara mulus
-      if (curr >= 0.985 && target >= 0.985) {
-        // Ombak tetap diam di posisi overlap di pojok kanan atas (progress = 1.0)
-        frostTargetProgressRef.current = 1.0
-        frostProgressRef.current = 1.0
-        if (frostRef.current) {
-          frostRef.current.setProgress(1.0)
-        }
-        updateSection3Mask(1.0)
-        if (section3FilterRef.current) {
-          section3FilterRef.current.style.filter = 'none'
-        }
-        if (heatHazeDispRef.current) {
-          heatHazeDispRef.current.setAttribute('scale', '0')
-        }
-        setActiveSection(3.5)
-        setFrostPhase('inside')
-        return
-      }
-
-      // Batal / mundur kembali ke Section 3
-      if (curr <= 0.003 && target <= 0.001) {
-        frostTargetProgressRef.current = 0
-        frostProgressRef.current = 0
-        if (section3WrapRef.current) {
-          section3WrapRef.current.style.maskImage = ''
-          section3WrapRef.current.style.webkitMaskImage = ''
-        }
-        if (section3FilterRef.current) {
-          section3FilterRef.current.style.filter = 'none'
-        }
-        if (heatHazeDispRef.current) {
-          heatHazeDispRef.current.setAttribute('scale', '0')
-        }
-        setFrostPhase('none')
-        return
-      }
-
-      rafId = requestAnimationFrame(updateFrame)
+  // amount = jarak input dalam px; POSITIF = scroll ke bawah / swipe ke atas (arah "maju"), NEGATIF = sebaliknya.
+  // Arah 'up' bergerak oleh amount positif, arah 'down' oleh amount negatif; input berlawanan menarik kabut balik.
+  // Mengembalikan false bila gesture kabut ditutup seketika (scroll berlawanan arah saat kabut sudah di titik awal):
+  // pemanggil lalu meneruskan input yang sama ke section seperti biasa (goBack di Section 3 / scroll konten di 3.5).
+  const pushFrostScrub = useCallback((amount) => {
+    const dir = frostScrubRef.current
+    if (!dir || !frostRef.current) return false
+    const isTouch = touchGestureStartYRef.current != null   // jari sedang menyentuh layar
+    const distance = isTouch ? FROST_VEIL_CONFIG.touchDistancePx : FROST_VEIL_CONFIG.scrollDistancePx
+    const res = frostRef.current.push((dir === 'up' ? amount : -amount) / distance)
+    if (res === false) {
+      clearTimeout(frostReleaseTimerRef.current)
+      frostScrubRef.current = null
+      return false
     }
-
-    rafId = requestAnimationFrame(updateFrame)
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId)
+    if (res === 'completing') {
+      clearTimeout(frostReleaseTimerRef.current)
+      return true
     }
-  }, [frostPhase, updateSection3Mask])
+    if (res === 'committed') {
+      // [FIX] Transisi selesai di event ini. Event TIDAK boleh diteruskan ke handler section: closure handler masih
+      // memegang activeSection LAMA (React belum re-render), jadi dulu event yang sama memulai gesture baru
+      // (3->3.5 lalu langsung "naik lagi", atau 3.5->3 lalu langsung "terlempar" balik ke 3.5).
+      clearTimeout(frostReleaseTimerRef.current)
+      frostScrubRef.current = null
+      return true
+    }
+    // Wheel tidak punya "event selesai": anggap berhenti bila tidak ada event baru.
+    // (Untuk touch, jeda dimulai saat jari diangkat — lihat onTouchEnd.)
+    if (!isTouch) scheduleFrostRelease()
+    return true
+  }, [scheduleFrostRelease])
+
+  // Jalan otomatis penuh (tanpa scroll user): untuk pemanggilan programatik (tombol/keyboard/ref)
+  const playFrost = useCallback((direction) => {
+    if (!startFrostScrub(direction)) return
+    frostRef.current.push(1)
+    releaseFrostScrub()
+  }, [startFrostScrub, releaseFrostScrub])
+
+  const returnToSection3 = useCallback(() => playFrost('down'), [playFrost])
 
   // Parallax animation loop ber-lerp (inertial damping) yang fluid 60-120 FPS
   useEffect(() => {
@@ -474,36 +403,12 @@ export default function App() {
   // berada TEPAT di paling atas dan user scroll ke ATAS lagi, itu dianggap
   // sebagai niat "kembali ke 3D" (activeSection 3).
   // ============================================================
-  // Jalankan transisi frost penuh (otomatis, 1 gesture) dari Section 3.5 ke Section lain.
-  // Urutan: frost menutup layar -> section diganti saat layar tertutup -> frost mencair
-  // membuka section tujuan -> frost dilepas. Semua timer dilacak supaya bisa dibersihkan.
-  const jumpFrom35 = useCallback((target) => {
-    if (transitionLockRef.current) return
-    transitionLockRef.current = true
-
-    // target 4 memakai kurva 'out', target 3 memakai kurva 'in'.
-    // Step terakhir tiap kurva = 100% tertutup (dibaca dari panjang array di FROST_CONFIG).
-    setFrostPhase(target === 4 ? 'exiting' : 'entering')
-    setFrostStep(target === 4 ? OUT_LAST_STEP : IN_LAST_STEP)
-
-    const t1 = setTimeout(() => {
-      setActiveSection(target)
-      // 'inside' = target progress 0 -> frost mencair mulus menyingkap section tujuan
-      setFrostPhase('inside')
-      setFrostStep(0)
-    }, FROST_COVER_MS)
-
-    const t2 = setTimeout(() => {
-      setFrostPhase('none')
-      transitionLockRef.current = false
-    }, FROST_COVER_MS + FROST_REVEAL_MS)
-
-    transitionTimersRef.current.push(t1, t2)
-  }, [])
-
   useEffect(() => () => {
     transitionTimersRef.current.forEach(clearTimeout)
     clearTimeout(frostCancelTimerRef.current)
+    clearTimeout(frostReleaseTimerRef.current)
+    clearTimeout(frostWatchdogRef.current)
+    if (frostRef.current) frostRef.current.kill()
   }, [])
 
   const goNext = useCallback(() => {
@@ -518,24 +423,27 @@ export default function App() {
       lockNav()
       section2Ref.current.next()
     } else if (activeSection === 3) {
-      // Tombol next / trigger maju di Section 3: luncurkan gelombang penuh ke Section 3.5
-      if (frostPhase === 'none') setFrostPhase('entering')
-      frostTargetProgressRef.current = 1.0
-      return
+      // Maju di Section 3: jalankan Frost Veil ke Section 3.5
+      playFrost('up')
     }
-  }, [activeSection, lockNav, frostPhase, jumpFrom35])
+  }, [activeSection, lockNav, playFrost])
+
+  // Kembali dari sheet 2D (Section 4/5) ke Section 3.5. Datang dari BAWAH, jadi 3.5
+  // dibuka langsung di konten terakhir ("Hand To Hand"), bukan loncat ke Golem di awal.
+  const backFromSheet = useCallback(() => {
+    if (transitionLockRef.current) return
+    whyUsEntryRef.current = 'below'
+    setActiveSection(3.5)
+    transitionLockRef.current = true
+    const t = setTimeout(() => { transitionLockRef.current = false }, SHEET_TRANSITION_MS * 0.6)
+    transitionTimersRef.current.push(t)
+  }, [])
 
   const goBack = useCallback(() => {
     if (scrollLockRef.current || transitionLockRef.current) return
 
     if (activeSection === 3.5) {
       returnToSection3()
-      return
-    }
-
-    // Section 3: jika gelombang sedang merambat, surutkan kembali ke 0
-    if (activeSection === 3 && frostPhase === 'entering') {
-      frostTargetProgressRef.current = 0
       return
     }
 
@@ -547,11 +455,9 @@ export default function App() {
       section3Ref.current.back()
     } else if (activeSection === 4 || activeSection === 5) {
       lockNav()
-      setActiveSection(3.5)
-      setFrostPhase('inside')
-      setFrostStep(0)
+      backFromSheet()
     }
-  }, [activeSection, lockNav, frostPhase, frostStep, returnToSection3])
+  }, [activeSection, lockNav, returnToSection3, backFromSheet])
 
   // Section 2 & 3 kadang isinya lebih tinggi dari layar di HP (card-card jadi
   // ditumpuk vertikal), sehingga container-nya punya scroll internal sendiri
@@ -572,21 +478,81 @@ export default function App() {
 
   const SCROLLABLE_SECTION_SELECTOR = { 2: '.section-two', 3: '.section-three', 3.5: '.section-why-us' }
 
+  // Sheet 2D baru "tiba" di Section 4/5 -> beri jeda sebelum scroll ke atas boleh membuangnya
+  useEffect(() => {
+    if (activeSection >= 4) {
+      sheetLastScrollAtRef.current = performance.now() + SHEET_TRANSITION_MS * 0.5
+      sheetExitAccumRef.current = 0
+    }
+  }, [activeSection])
+
   // Wheel (mouse/trackpad desktop)
   useEffect(() => {
     if (!isLoadingComplete) return
 
     const onWheel = (e) => {
-      // Catat waktu event wheel terakhir (dipakai gesture-gate Section 3.5)
+      // Catat waktu event wheel terakhir (dipakai gesture-gate Section 3, 3.5 & sheet 2D)
       const now = performance.now()
       const quietGap = now - lastWheelTimeRef.current
       lastWheelTimeRef.current = now
+      // Event wheel = tidak ada jari di layar. Bersihkan sisa status sentuh (touchend yang tidak sampai) supaya
+      // gesture kabut dari wheel SELALU dapat timer "scroll berhenti" dan tidak menggantung.
+      touchGestureStartYRef.current = null
+      touchStartYRef.current = null
+
+      // Gesture kabut sedang berjalan: SEMUA wheel menggerakkan kabut (maju / ditarik balik)
+      if (frostScrubRef.current) {
+        e.preventDefault()
+        if (pushFrostScrub(e.deltaY) !== false) return
+        // false = gesture kabut ditutup (scroll berlawanan di titik awal): lanjut diproses normal di bawah
+      }
 
       // Section 3.5: delegasikan langsung ke SectionWhyUs (scroll internal content + overshoot exit)
       if (activeSection === 3.5) {
         e.preventDefault()
+        // [FIX] Dulu: `lock && frostScrubRef` -> saat kabut sedang menetap/membatalkan (frostScrubRef sudah null)
+        // wheel bocor ke konten 3.5. Selama lock aktif, SEMUA input konten harus ditahan.
         if (transitionLockRef.current) return
         sectionWhyUsRef.current?.onWheelDelta(e.deltaY)
+        return
+      }
+
+      // SECTION 3: scroll ke bawah menggerakkan kabut ke 3.5 (dilanjutkan bila melewati threshold); ke atas = kembali ke Section 2.
+      // Ekor inersia dari gesture sebelumnya (mis. dari Section 2) ditolak lewat "gerbang gesture".
+      if (activeSection === 3) {
+        e.preventDefault()
+        if (transitionLockRef.current || scrollLockRef.current) return
+        const strong = Math.abs(e.deltaY) >= SCROLL_WHEEL_THRESHOLD
+        const fresh = quietGap > FROST_GESTURE_GAP_MS
+        if (!strong && !fresh) return
+        if (e.deltaY > 0) {
+          if (startFrostScrub('up')) pushFrostScrub(e.deltaY)
+        } else if (strong) goBack()
+        return
+      }
+
+      // Section 4/5 (sheet 2D): scroll normal di dalam sheet. Saat sudah di paling atas dan user
+      // MEMANG mendorong ke atas (bukan sisa inersia), baru kembali ke 3D.
+      if (activeSection === 4 || activeSection === 5) {
+        const sheet = document.querySelector('.portfolio-page-2d')
+        if (!sheet) return
+        if (sheet.scrollTop > 0) {
+          sheetLastScrollAtRef.current = now
+          sheetExitAccumRef.current = 0
+          return
+        }
+        if (e.deltaY < 0) {
+          e.preventDefault()
+          if (now - sheetLastScrollAtRef.current < SHEET_EXIT_COOLDOWN_MS) return
+          if (quietGap > 300) sheetExitAccumRef.current = 0
+          sheetExitAccumRef.current += -e.deltaY
+          if (sheetExitAccumRef.current >= SHEET_EXIT_ACCUM_PX) {
+            sheetExitAccumRef.current = 0
+            goBack()
+          }
+        } else {
+          sheetExitAccumRef.current = 0
+        }
         return
       }
 
@@ -596,22 +562,6 @@ export default function App() {
         // Hero: tidak ada scroll internal, scroll SELALU berarti pindah section.
         e.preventDefault()
         if (e.deltaY > 0) goNext()
-        return
-      }
-
-      // KETIKA DI SECTION 3: scroll langsung mengendalikan gelombang merambat (scroll-driven wave)
-      if (activeSection === 3) {
-        if (e.deltaY < 0 && frostTargetProgressRef.current <= 0.001) {
-          e.preventDefault()
-          goBack()
-          return
-        }
-        e.preventDefault()
-        if (frostPhase === 'none') {
-          setFrostPhase('entering')
-        }
-        const delta = e.deltaY / WAVE_WIPE_CONFIG.scrollDistance
-        frostTargetProgressRef.current = Math.min(1.0, Math.max(0.0, frostTargetProgressRef.current + delta))
         return
       }
 
@@ -626,30 +576,25 @@ export default function App() {
           goBack()
         }
         // Selain itu: biarkan scroll native jalan di dalam section (belum mentok).
-        return
-      }
-
-      // Section 4/5 (sheet 2D): biarkan scroll normal di dalam sheet, KECUALI
-      // saat sudah mentok di paling atas dan masih scroll ke atas -> balik ke 3D.
-      if (activeSection === 4 || activeSection === 5) {
-        const sheet = document.querySelector('.portfolio-page-2d')
-        if (sheet && e.deltaY < 0 && sheet.scrollTop <= 0) {
-          e.preventDefault()
-          goBack()
-        }
       }
     }
 
     window.addEventListener('wheel', onWheel, { passive: false })
     return () => window.removeEventListener('wheel', onWheel)
-  }, [isLoadingComplete, activeSection, goNext, goBack, frostPhase])
+  }, [isLoadingComplete, activeSection, goNext, goBack, startFrostScrub, pushFrostScrub])
 
   // Swipe & Touch Drag (layar sentuh mobile)
   useEffect(() => {
     if (!isLoadingComplete) return
 
     const onTouchStart = (e) => {
-      touchStartYRef.current = e.touches[0]?.clientY ?? null
+      const y = e.touches[0]?.clientY ?? null
+      touchStartYRef.current = y
+      touchGestureStartYRef.current = y
+      // Jari menyentuh lagi saat kabut sedang diam: batalkan hitung mundur, lanjutkan menggeser
+      if (frostScrubRef.current) clearTimeout(frostReleaseTimerRef.current)
+      const sheet = document.querySelector('.portfolio-page-2d')
+      touchStartScrollTopRef.current = sheet ? sheet.scrollTop : 0
     }
 
     const onTouchMove = (e) => {
@@ -659,30 +604,45 @@ export default function App() {
       const dy = touchStartYRef.current - currentY
       touchStartYRef.current = currentY
 
+      // Gesture kabut sedang berjalan: jari menggerakkan kabut (maju / ditarik balik)
+      if (frostScrubRef.current) {
+        if (e.cancelable) e.preventDefault()
+        if (pushFrostScrub(dy) !== false) return
+        // false = gesture kabut ditutup: lanjut diproses normal di bawah
+      }
+
       // Section 3.5: delegasikan ke SectionWhyUs
       if (activeSection === 3.5) {
         if (e.cancelable) e.preventDefault()
-        if (!transitionLockRef.current) sectionWhyUsRef.current?.onTouchDelta(dy)
+        if (!transitionLockRef.current) sectionWhyUsRef.current?.onTouchDelta(dy)   // [FIX] sama seperti wheel
         return
       }
 
+      // Section 3: geser jari ke atas menggerakkan kabut; swipe turun (kembali ke Section 2) diputuskan saat jari diangkat
       if (activeSection === 3) {
-        if (dy > 0 || (dy < 0 && frostTargetProgressRef.current > 0.001)) {
-          if (e.cancelable) e.preventDefault()
-          if (frostPhase === 'none') setFrostPhase('entering')
-          const delta = dy / WAVE_WIPE_CONFIG.touchDistance
-          frostTargetProgressRef.current = Math.min(1.0, Math.max(0.0, frostTargetProgressRef.current + delta))
+        if (e.cancelable) e.preventDefault()
+        const total = (touchGestureStartYRef.current ?? currentY) - currentY   // positif = jari bergerak naik
+        if (!transitionLockRef.current && !scrollLockRef.current && total > FROST_TOUCH_DEADZONE_PX) {
+          if (startFrostScrub('up')) pushFrostScrub(total)
         }
       }
     }
 
     const onTouchEnd = (e) => {
-      const startY = touchStartYRef.current
+      // [PERBAIKAN] Pakai Y AWAL gesture (bukan Y terakhir yang di-reset tiap touchmove).
+      // Sebelumnya dy di sini nyaris selalu ~0 sehingga swipe pindah section tidak pernah terpicu.
+      const startY = touchGestureStartYRef.current
+      touchGestureStartYRef.current = null
       touchStartYRef.current = null
+
+      // Jari diangkat saat kabut bergerak: threshold menentukan lanjut atau batal
+      if (frostScrubRef.current) {
+        scheduleFrostRelease()
+        return
+      }
       if (startY == null) return
       const endY = e.changedTouches[0]?.clientY ?? startY
       const dy = startY - endY // positif = swipe ke atas (niat maju)
-      if (Math.abs(dy) < SWIPE_THRESHOLD_PX) return
 
       // Section 3.5: touch end → reset overshoot di SectionWhyUs
       if (activeSection === 3.5) {
@@ -690,22 +650,16 @@ export default function App() {
         return
       }
 
-      if (activeSection === 1) {
-        if (dy > 0) goNext()
+      // Section 3: swipe turun = kembali ke Section 2 (swipe naik sudah ditangani kabut di atas)
+      if (activeSection === 3) {
+        if (dy <= -SWIPE_THRESHOLD_PX) goBack()
         return
       }
 
-      // KETIKA DI SECTION 3: swipe mobile mengendalikan gelombang
-      if (activeSection === 3) {
-        if (dy < 0 && frostTargetProgressRef.current <= 0.001) {
-          goBack()
-          return
-        }
-        if (frostPhase === 'none') {
-          setFrostPhase('entering')
-        }
-        const delta = dy / WAVE_WIPE_CONFIG.touchDistance
-        frostTargetProgressRef.current = Math.min(1.0, Math.max(0.0, frostTargetProgressRef.current + delta))
+      if (Math.abs(dy) < SWIPE_THRESHOLD_PX) return
+
+      if (activeSection === 1) {
+        if (dy > 0) goNext()
         return
       }
 
@@ -718,20 +672,24 @@ export default function App() {
       }
 
       if (activeSection === 4 || activeSection === 5) {
+        // Hanya bila jari MULAI menyentuh saat sheet sudah di paling atas
+        // (bukan flick yang kebetulan berakhir di atas karena momentum scroll).
         const sheet = document.querySelector('.portfolio-page-2d')
-        if (sheet && dy < 0 && sheet.scrollTop <= 0) goBack()
+        if (sheet && dy < 0 && sheet.scrollTop <= 0 && touchStartScrollTopRef.current <= 1) goBack()
       }
     }
 
     window.addEventListener('touchstart', onTouchStart, { passive: true })
     window.addEventListener('touchmove', onTouchMove, { passive: false })
     window.addEventListener('touchend', onTouchEnd, { passive: true })
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true })
     return () => {
       window.removeEventListener('touchstart', onTouchStart)
       window.removeEventListener('touchmove', onTouchMove)
       window.removeEventListener('touchend', onTouchEnd)
+      window.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [isLoadingComplete, activeSection, goNext, goBack, frostPhase])
+  }, [isLoadingComplete, activeSection, goNext, goBack, startFrostScrub, pushFrostScrub, scheduleFrostRelease])
 
   // Handler navigasi dari SidebarNav & TopNav
   const handleSelectSection = useCallback((secId) => {
@@ -739,9 +697,17 @@ export default function App() {
     transitionTimersRef.current.forEach(clearTimeout)
     transitionTimersRef.current = []
     clearTimeout(frostCancelTimerRef.current)
+    clearTimeout(frostReleaseTimerRef.current)
+    clearTimeout(frostWatchdogRef.current)
+    frostScrubRef.current = null
+    if (frostRef.current) frostRef.current.kill()
     transitionLockRef.current = false
-    setFrostPhase(secId === 3.5 ? 'inside' : 'none')
-    setFrostStep(0)
+
+    // [PERBAIKAN] Dulu mask Section 3 yang tertinggal (progress 1.0) tidak pernah dibersihkan,
+    // sehingga memilih "Section 3" lewat sidebar setelah mengunjungi 3.5 menampilkan layar KOSONG
+    // dan progress gelombang tetap 1.0. Sekarang state gelombang selalu disinkronkan.
+    whyUsEntryRef.current = 'above'
+    setFrostPhase('none')
     setActiveSection(secId)
     if (secId === 4) {
       setTimeout(() => {
@@ -776,18 +742,40 @@ export default function App() {
     return () => clearTimeout(t)
   }, [is2DMode])
 
+  // [SELARAS] Untuk terrain, Section 3.5 diperlakukan sama dengan Section 3: kamera, cahaya, salju
+  // & kunang-kunang TETAP di keadaan Section 3 selama berada di 3.5 (canvas terrain memang dihentikan).
+  // Jadi saat gelombang menyapu balik 3.5 -> 3, latar di belakang kartu sama persis dengan sebelum
+  // gelombang masuk — tidak ada "lonjakan" kamera/cahaya saat Section 3 tersibak lagi.
+  const terrainSection = isSection35 ? 3 : activeSection
+  const terrainFrameloop = (terrainPaused || (isSection35 && frostPhase !== 'returning')) ? 'never' : 'always'
+
+  // SplashCursor dilepas SETELAH sheet putih menutup layar (bukan tepat saat sheet mulai naik),
+  // supaya percikan kursor tidak hilang mendadak di tengah transisi.
+  const [splashAllowed, setSplashAllowed] = useState(true)
+  useEffect(() => {
+    if (!is2DMode) {
+      setSplashAllowed(true)
+      return undefined
+    }
+    const t = setTimeout(() => setSplashAllowed(false), SHEET_TRANSITION_MS + 100)
+    return () => clearTimeout(t)
+  }, [is2DMode])
+
   const headlineClass = isHeadlineExiting ? 'app-headline-layer--exiting' : ''
 
   return (
     <div
       className={`app-container ${activeSection === 1 ? 'app-container--hero' : ''}`}
+      data-wave={frostPhase}
       onMouseMove={!isMobile ? handleMouseMove : undefined}
     >
       {/* Loading Screen */}
       {!isLoadingComplete && <LoadingScreen progress={progress} />}
 
       {/* SplashCursor: Efek fluid cursor trail (desktop only, skip di mobile) */}
-      {isLoadingComplete && !isMobile && SPLASH_ENABLED && !is2DMode && (
+      {/* [PERFORMA] Simulasi fluid kursor (WebGL) DIJEDA selama gelombang & di Section 3.5 — tidak terlihat
+          di sana, tapi sebelumnya tetap memakan GPU berdampingan dengan terrain + canvas 3.5. */}
+      {isLoadingComplete && !isMobile && SPLASH_ENABLED && splashAllowed && frostPhase === 'none' && !isSection35 && (
         <SplashCursor
           DENSITY_DISSIPATION={SPLASH_DENSITY_DISSIPATION}
           VELOCITY_DISSIPATION={SPLASH_VELOCITY_DISSIPATION}
@@ -875,7 +863,7 @@ export default function App() {
           }}
         >
           <Canvas
-            frameloop={(terrainPaused || isSection35) ? 'never' : 'always'}
+            frameloop={terrainFrameloop}
             camera={{ position: [11.68, 2.92, -0.94], fov: 45 }}
             dpr={isMobile ? [1, 1.25] : [1, 1.5]}
             gl={{
@@ -896,7 +884,7 @@ export default function App() {
               pointerEvents: !is2DMode && isLoadingComplete ? 'auto' : 'none',
             }}
           >
-            <TerrainLoader activeSection={activeSection} />
+            <TerrainLoader activeSection={terrainSection} />
           </Canvas>
         </div>
       </div>
@@ -921,112 +909,56 @@ export default function App() {
         />
       )}
 
-      {/* SVG Filter untuk Heat Haze (Atmospheric Distortion) - Ringan & Hardware-Accelerated */}
-      <svg
-        style={{ position: 'fixed', width: 0, height: 0, pointerEvents: 'none', zIndex: -1 }}
-        aria-hidden="true"
-      >
-        <defs>
-          <filter id="heat-haze-filter" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.015 0.035"
-              numOctaves="1"
-              result="noise"
-              seed="3"
-            >
-              <animate
-                attributeName="baseFrequency"
-                dur="8s"
-                values="0.015 0.035; 0.02 0.025; 0.015 0.035"
-                repeatCount="indefinite"
-              />
-            </feTurbulence>
-            <feDisplacementMap
-              ref={heatHazeDispRef}
-              id="heat-haze-disp"
-              in="SourceGraphic"
-              in2="noise"
-              scale="0"
-              xChannelSelector="R"
-              yChannelSelector="G"
-            />
-          </filter>
-        </defs>
-      </svg>
-
-      {/* Section 3 Layer: 3D Car-Glass Cards (Tawaran Kami)
-          Dibungkus div dengan mask-image agar liquid wave wipe bisa menyibak Section 3.5 di belakang.
-          Di dalamnya terdapat filter wrapper untuk efek Heat Haze saat scroll. */}
+      {/* Section 3 Layer: 3D Car-Glass Cards (Tawaran Kami) */}
       {isLoadingComplete && (
-        <div
-          ref={section3WrapRef}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 4,
-          }}
-        >
-          <div
-            ref={section3FilterRef}
-            style={{
-              width: '100%',
-              height: '100%',
-            }}
-          >
-            <SectionThree
-              ref={section3Ref}
-              isVisible={activeSection === 3 || frostPhase === 'returning'}
-              onBack={() => setActiveSection(2)}
-              onNext={() => {
-                if (frostPhase === 'none') setFrostPhase('entering')
-                frostTargetProgressRef.current = 1.0
-              }}
-            />
-          </div>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 4 }}>
+          <SectionThree
+            ref={section3Ref}
+            // Saat lembar 3.5 turun (returning), Section 3 sudah tampil di baliknya & langsung mendarat (instant)
+            isVisible={activeSection === 3 || frostPhase === 'returning'}
+            instant={frostPhase === 'returning'}
+            onBack={() => setActiveSection(2)}
+            onNext={() => playFrost('up')}
+          />
         </div>
       )}
 
-      {/* Frost Transition Overlay (Section 3 ↔ 3.5 ↔ 4) */}
-      {frostPhase !== 'none' && (
-        <FrostTransition
-          ref={frostRef}
-          scrollStep={frostStep}
-          direction={frostPhase === 'entering' ? 'in' : (frostPhase === 'inside' || frostPhase === 'returning') ? 'inside' : 'out'}
-          onProgress={frostProgressCallback}
-        />
-      )}
-
-      {/* Section 3.5 Layer: Kenapa Kami? (Golem mengambang + Galaxy)
-          Selalu dirender agar bisa terlihat di balik mask Section 3 saat frost entering / returning.
-          isPreview=true saat entering/returning → z-index diturunkan agar di bawah Section 3 (z 4). */}
+      {/* Section 3.5 Layer: Kenapa Kami? (Golem mengambang + Galaxy) */}
       {isLoadingComplete && (
         <SectionWhyUs
           ref={sectionWhyUsRef}
-          isVisible={isSection35 && frostPhase !== 'returning'}
-          isPreview={frostPhase === 'entering' || frostPhase === 'returning'}
+          isVisible={isSection35}
+          phase={frostPhase}
+          is2D={is2DMode}
+          entrySide={whyUsEntryRef.current}
+          sheetDurationMs={SHEET_TRANSITION_MS}
           onBack={returnToSection3}
+          onScrubBack={(px) => {
+            // Scroll ke atas saat konten 3.5 sudah di awal: kabut digerakkan scroll menuju Section 3
+            if (scrollLockRef.current) return
+            if (startFrostScrub('down')) pushFrostScrub(-px)
+          }}
           onNext={() => {
-            if (transitionLockRef.current) return
+            // Keluar ke sheet 2D: sheet langsung naik, Section 3.5 "mundur" di bawahnya
+            // [FIX] Mengembalikan false bila DITOLAK (lock aktif) supaya SectionWhyUs tidak mengunci scroll-nya sendiri.
+            if (transitionLockRef.current) return false
             transitionLockRef.current = true
-            setFrostPhase('none')
-            setFrostStep(0)
             setActiveSection(4)
-            const t = setTimeout(() => { transitionLockRef.current = false }, SCROLL_NAV_COOLDOWN_MS)
+            const t = setTimeout(() => { transitionLockRef.current = false }, SHEET_TRANSITION_MS)
             transitionTimersRef.current.push(t)
+            return true
           }}
         />
       )}
+
+      {/* Frost Veil (Section 3 <-> 3.5): lembar es di atas semua layer, hanya animasi transform */}
+      <FrostVeil ref={frostRef} />
 
       {/* Section 4 & 5 Layer: Website 2D Sheet Putih (Portfolio, Tech Stack, Clients, Kontak) */}
       {isLoadingComplete && (
         <SectionPortfolio
           isVisible={is2DMode}
-          onBackTo3D={() => {
-            setActiveSection(3.5)
-            setFrostPhase('inside')
-            setFrostStep(0)
-          }}
+          onBackTo3D={backFromSheet}
         />
       )}
     </div>

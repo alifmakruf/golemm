@@ -15,11 +15,15 @@ const CARD_ENTRANCE_DURATION = '0.8s'   // Durasi animasi masuk card (desktop)
 const CARD_ENTRANCE_STAGGER_SEC = 0.1   // Jeda antar card yang muncul bersamaan (detik)
 const CARD_INIT_SCALE = 0.92            // Skala awal card (desktop saja)
 const CARD_INIT_ROTATE_DEG = 2          // Rotasi awal card (desktop saja; mobile tanpa rotasi)
-const ENTRANCE_START_DELAY_FRAC = 0.35  // Mulai animasi konten setelah sheet meluncur sekian % (0-1)
+const ENTRANCE_START_DELAY_FRAC = 0.5   // Mulai animasi konten setelah sheet meluncur sekian % (0-1). Kurva sheet kini
+                                        // easeInOut (pelan di awal), jadi konten baru mulai saat sheet sudah ~setengah jalan.
 const MOBILE_BREAKPOINT_PX = 960        // <= lebar ini dianggap mobile: animasi dibuat lebih ringan
 
 // 3. Durasi Transisi Sheet Putih dari bawah (detik)
-const SHEET_TRANSITION_DURATION = '0.9s'
+// [SELARAS] Diekspor & dipakai App.jsx + SectionWhyUs.jsx supaya fade-out terrain, efek "mundur" Section 3.5,
+// kunci scroll, dan sheet ini semuanya memakai durasi yang SAMA. Kurvanya (--sheet-ease) ada di SectionPortfolio.css.
+export const SHEET_TRANSITION_SEC = 1.0
+const SHEET_TRANSITION_DURATION = `${SHEET_TRANSITION_SEC}s`
 
 // 5. Data Kontak Pribadi (Bisa langsung diubah di sini)
 const CONTACT_DATA = {

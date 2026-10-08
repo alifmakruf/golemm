@@ -35,8 +35,15 @@ const PARALLAX_TRANSLATION_X = 36        // Geser horizontal maksimum card (px)
 const PARALLAX_TRANSLATION_Y = 29        // Geser vertikal maksimum card (px)
 const PARALLAX_DEPTH_Z = 20              // Jarak kedalaman Z saat parallax (px)
 
-const SectionThree = forwardRef(function SectionThree({ onBack, onNext, isVisible }, ref) {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+// 4. [BARU] Kehalusan parallax & sapuan balik
+// PARALLAX_DAMP_RATE   : kecepatan kartu "mengikuti" kursor (1/detik). Berbasis waktu (frame-rate independent).
+//                        Kecil = licin & melayang, besar = nempel. Menggantikan CSS transition 0.18s yang
+//                        di-reset tiap event pointermove (terasa patah-patah).
+// LANDED_PARALLAX_DELAY_MS : jeda sebelum parallax aktif saat Section 3 hanya TERSIBAK gelombang (tanpa entrance)
+const PARALLAX_DAMP_RATE = 7
+const LANDED_PARALLAX_DELAY_MS = 350
+
+const SectionThree = forwardRef(function SectionThree({ onBack, onNext, isVisible, instant = false }, ref) {
   const stageRef = useRef(null)
 
   const [cardsReady, setCardsReady] = useState(false)
@@ -44,36 +51,80 @@ const SectionThree = forwardRef(function SectionThree({ onBack, onNext, isVisibl
   const [animKey, setAnimKey] = useState(0)
   const [isExiting, setIsExiting] = useState(false)
   const [canParallax, setCanParallax] = useState(false)
+  // landed = Section 3 muncul karena TERSIBAK gelombang (kembali dari 3.5): kartu langsung
+  // dalam posisi akhir, tidak terbang lagi dari bawah. Dibaca dari prop `instant` pada saat section
+  // menjadi terlihat, lalu dipertahankan sampai section benar-benar disembunyikan.
+  const [landed, setLanded] = useState(false)
+  const instantRef = useRef(instant)
+  instantRef.current = instant
   const timerRef = useRef(null)
   const footerTimerRef = useRef(null)
   const parallaxTimerRef = useRef(null)
+
+  // --- Parallax imperatif (nol re-render React) ---
+  const cardElsRef = useRef([])                      // elemen <article> tiap kartu
+  const pointerTargetRef = useRef({ x: 0, y: 0 })    // posisi kursor ternormalisasi -1..1
+  const pointerCurrentRef = useRef({ x: 0, y: 0 })   // posisi yang sudah di-smooth
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
+
+  // Kalkulasi transform 3D untuk 1 kartu pada posisi kursor (mx, my)
+  const buildCardTransform = useCallback((baseRotY, mx, my) => {
+    const scale = isMobile ? MOBILE_CARD_SCALE : CARD_SCALE
+    const rotY = isMobile ? 0 : baseRotY + mx * PARALLAX_ROTATION_SENSITIVITY
+    const rotX = isMobile ? 0 : -my * PARALLAX_ROTATION_SENSITIVITY
+    const transX = isMobile ? 0 : mx * -PARALLAX_TRANSLATION_X
+    const transY = isMobile ? 0 : my * -PARALLAX_TRANSLATION_Y
+
+    return `scale(${scale}) rotateY(${rotY.toFixed(3)}deg) rotateX(${rotX.toFixed(3)}deg) translate3d(${transX.toFixed(2)}px, ${transY.toFixed(2)}px, ${PARALLAX_DEPTH_Z}px)`
+  }, [isMobile])
+
+  const rotYs = [CARD_1_ROTATION_Y, CARD_2_ROTATION_Y, CARD_3_ROTATION_Y]
+
+  const applyParallax = useCallback(() => {
+    const { x, y } = pointerCurrentRef.current
+    cardElsRef.current.forEach((el, i) => {
+      if (el) el.style.transform = buildCardTransform(rotYs[i] ?? 0, x, y)
+    })
+  }, [buildCardTransform])
 
   useEffect(() => {
     if (isVisible) {
       setIsExiting(false)
       setFooterReady(false)
-      setMousePos({ x: 0, y: 0 })
       setCanParallax(false)
+      pointerTargetRef.current = { x: 0, y: 0 }
+      pointerCurrentRef.current = { x: 0, y: 0 }
 
-      timerRef.current = setTimeout(() => {
+      if (instantRef.current) {
+        // TERSIBAK gelombang: langsung mendarat, tanpa delay kamera & tanpa terbang dari bawah
+        setLanded(true)
         setCardsReady(true)
-        setAnimKey((prev) => prev + 1)
-
-        // Parallax baru aktif setelah animasi masuk selesai mendarat sempurna (1.1s + stagger)
-        parallaxTimerRef.current = setTimeout(() => {
-          setCanParallax(true)
-        }, 1300)
-      }, CAMERA_ARRIVE_DELAY_MS)
-
-      // Tombol lanjut ke portfolio baru muncul setelah card selesai animasi in
-      footerTimerRef.current = setTimeout(() => {
         setFooterReady(true)
-      }, CAMERA_ARRIVE_DELAY_MS + FOOTER_BTN_DELAY_MS)
+        parallaxTimerRef.current = setTimeout(() => setCanParallax(true), LANDED_PARALLAX_DELAY_MS)
+      } else {
+        setLanded(false)
+        timerRef.current = setTimeout(() => {
+          setCardsReady(true)
+          setAnimKey((prev) => prev + 1)
+
+          // Parallax baru aktif setelah animasi masuk selesai mendarat sempurna (1.1s + stagger)
+          parallaxTimerRef.current = setTimeout(() => {
+            setCanParallax(true)
+          }, 1300)
+        }, CAMERA_ARRIVE_DELAY_MS)
+
+        // Tombol lanjut ke portfolio baru muncul setelah card selesai animasi in
+        footerTimerRef.current = setTimeout(() => {
+          setFooterReady(true)
+        }, CAMERA_ARRIVE_DELAY_MS + FOOTER_BTN_DELAY_MS)
+      }
     } else {
+      setLanded(false)
       setCardsReady(false)
       setFooterReady(false)
       setCanParallax(false)
-      setMousePos({ x: 0, y: 0 })
+      pointerTargetRef.current = { x: 0, y: 0 }
+      pointerCurrentRef.current = { x: 0, y: 0 }
     }
 
     return () => {
@@ -117,53 +168,62 @@ const SectionThree = forwardRef(function SectionThree({ onBack, onNext, isVisibl
   }), [handleNext, handleBack])
 
   const showSection = isVisible || isExiting
+  // [FIX] `landed` baru true SETELAH effect jalan (1 render terlambat) => frame pertama tersibak memakai
+  // transisi fade biasa (berkedip). Pakai prop `instant` langsung supaya mode instan aktif sejak frame pertama.
+  const instantMode = (landed || instant) && isVisible && !isExiting
 
   const entranceClass = isExiting
     ? 'card-s3-entrance--exit'
     : (isVisible && cardsReady)
-      ? 'card-s3-entrance--play'
+      ? (landed ? 'card-s3-entrance--landed' : 'card-s3-entrance--play')
       : ''
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 960
-
-  // Tangkap pergerakan mouse: hanya aktif setelah animasi entrance selesai
-  // dan card akan tetap statis netral sampai kursor digerakkan pengguna
-  const handlePointerMove = useCallback((e) => {
-    if (!stageRef.current || !canParallax) return
-    const rect = stageRef.current.getBoundingClientRect()
-    const x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
-    const y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
-    setMousePos({ x, y })
-  }, [canParallax])
-
+  // Parallax: kursor hanya menggeser TARGET (ref); loop rAF di bawah menghaluskannya
+  // lalu menulis transform langsung ke elemen kartu. Tidak ada setState per pointermove.
   useEffect(() => {
-    if (!canParallax) return
-    const handleGlobalMove = (e) => {
-      if (!stageRef.current) return
-      const rect = stageRef.current.getBoundingClientRect()
-      const x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
-      const y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
-      setMousePos({ x, y })
+    if (!canParallax || isMobile) return undefined
+
+    const onMove = (e) => {
+      const stage = stageRef.current
+      if (!stage) return
+      const rect = stage.getBoundingClientRect()
+      pointerTargetRef.current.x = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
+      pointerTargetRef.current.y = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
     }
-    window.addEventListener('pointermove', handleGlobalMove, { passive: true })
-    return () => window.removeEventListener('pointermove', handleGlobalMove)
-  }, [canParallax])
+    window.addEventListener('pointermove', onMove, { passive: true })
 
-  // Kalkulasi transform 3D untuk 3 card
-  const getCardTransform = (baseRotY) => {
-    const scale = isMobile ? MOBILE_CARD_SCALE : CARD_SCALE
-    const rotY = isMobile ? 0 : baseRotY + mousePos.x * PARALLAX_ROTATION_SENSITIVITY
-    const rotX = isMobile ? 0 : -mousePos.y * PARALLAX_ROTATION_SENSITIVITY
-    const transX = isMobile ? 0 : mousePos.x * -PARALLAX_TRANSLATION_X
-    const transY = isMobile ? 0 : mousePos.y * -PARALLAX_TRANSLATION_Y
+    let raf
+    let last = performance.now()
+    const tick = (now) => {
+      const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000))
+      last = now
+      const k = 1 - Math.exp(-PARALLAX_DAMP_RATE * dt)
+      const cur = pointerCurrentRef.current
+      const tgt = pointerTargetRef.current
+      const dx = tgt.x - cur.x
+      const dy = tgt.y - cur.y
+      // Berhenti menulis DOM saat sudah diam (hemat), tetap polling target
+      if (Math.abs(dx) > 0.0005 || Math.abs(dy) > 0.0005) {
+        cur.x += dx * k
+        cur.y += dy * k
+        applyParallax()
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
 
-    return `
-      scale(${scale})
-      rotateY(${rotY}deg)
-      rotateX(${rotX}deg)
-      translate3d(${transX}px, ${transY}px, ${PARALLAX_DEPTH_Z}px)
-    `
-  }
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      cancelAnimationFrame(raf)
+    }
+  }, [canParallax, isMobile, applyParallax])
+
+  // Saat parallax tidak aktif (belum mulai / sedang keluar) kartu dipastikan berada di posisi netral.
+  useEffect(() => {
+    if (canParallax) return
+    pointerCurrentRef.current = { x: 0, y: 0 }
+    applyParallax()
+  }, [canParallax, applyParallax])
 
   // Data 3 Tawaran Eksklusif sesuai target.txt
   const offers = [
@@ -221,9 +281,8 @@ const SectionThree = forwardRef(function SectionThree({ onBack, onNext, isVisibl
 
   return (
     <section
-      className={`section-three ${showSection ? 'section-three--visible' : ''}`}
+      className={`section-three ${showSection ? 'section-three--visible' : ''} ${instantMode ? 'section-three--instant' : ''} ${isExiting ? 'section-three--leaving' : ''}`}
       ref={stageRef}
-      onPointerMove={handlePointerMove}
     >
       {/* Header bar navigasi Section 3 */}
       <header className="section-three__header">
@@ -257,7 +316,11 @@ const SectionThree = forwardRef(function SectionThree({ onBack, onNext, isVisibl
             >
               <article
                 className={`glass-card-s3 glass-card-s3--${item.glowType}`}
-                style={{ transform: getCardTransform(item.rotY) }}
+                ref={(el) => {
+                  cardElsRef.current[index] = el
+                  // Kartu di-remount tiap animKey berganti -> pulihkan transform terakhir
+                  if (el) el.style.transform = buildCardTransform(item.rotY, pointerCurrentRef.current.x, pointerCurrentRef.current.y)
+                }}
               >
                 {/* Efek kilap specular sheen kaca */}
                 <div className="glass-card-s3__specular" />

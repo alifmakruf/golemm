@@ -2,6 +2,14 @@
    Section 4 & 5: 2D White Canvas Portfolio, Tech Stack, Clients & Contact
    ========================================================================== */
 
+/* Kurva sheet — SAMA dengan EASE.sheet (gsap/eases.js) & dipakai juga oleh SectionWhyUs.css
+   (Section 3.5 mundur di bawah sheet). easeInOut asimetris: bergerak lembut, melaju di tengah,
+   lalu mendarat pelan. Kurva lama (0.16,1,0.3,1) hampir seluruh jaraknya habis di 25% waktu
+   pertama lalu "merayap" — terasa seperti sheet menempel pelan, bukan satu gerakan penuh. */
+:root {
+  --sheet-ease: cubic-bezier(0.76, 0, 0.18, 1);
+}
+
 /* Container Utama 2D Sheet: Muncul dari bawah menutupi seluruh objek 3D */
 .portfolio-page-2d {
   position: fixed;
@@ -16,12 +24,15 @@
   overscroll-behavior: contain;
   contain: layout style;
   transform: translate3d(0, 100%, 0);
+  /* Bayangan statis di tepi atas sheet: memberi kedalaman saat sheet naik menutupi Section 3.5
+     (tidak dianimasikan -> tetap murah; ikut bergerak bersama layer yang sudah di-compose). */
+  box-shadow: 0 -28px 70px rgba(2, 6, 23, 0.45);
   /* visibility:hidden setelah sheet keluar -> browser berhenti me-render seluruh
      isi halaman saat tidak dilihat (hemat GPU/CPU di HP). */
   visibility: hidden;
   pointer-events: none;
-  transition: transform var(--sheet-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 0s linear var(--sheet-dur, 0.85s);
+  transition: transform var(--sheet-dur, 1s) var(--sheet-ease),
+    visibility 0s linear var(--sheet-dur, 1s);
   scroll-behavior: smooth;
 }
 
@@ -30,7 +41,7 @@
   visibility: visible;
   pointer-events: auto;
   /* visible langsung (tanpa delay) saat sheet mulai masuk */
-  transition: transform var(--sheet-dur, 0.85s) cubic-bezier(0.16, 1, 0.3, 1),
+  transition: transform var(--sheet-dur, 1s) var(--sheet-ease),
     visibility 0s linear 0s;
 }
 

@@ -59,7 +59,33 @@
   pointer-events: auto;
   transform: scale(1);
   visibility: visible;
-  transition: opacity 0.65s var(--s35-ease), transform 0.65s var(--s35-ease), visibility 0s;
+  /* transform memakai durasi & kurva SHEET (bukan s35-ease) supaya saat sheet 2D turun kembali,
+     Section 3.5 "maju" lagi dengan irama yang sama dengan sheet-nya. */
+  transition: opacity 0.65s var(--s35-ease),
+    transform var(--s35-behind-dur, 0.65s) var(--sheet-ease, var(--s35-ease)),
+    visibility 0s;
+}
+
+/* ---- [BARU] Section 3.5 "mundur" di bawah sheet 2D (Section 4) ----
+   Mengecil sedikit & naik tipis seperti halaman yang didorong ke belakang, sementara peredup
+   (.section-why-us__dim) menggelapkannya. Durasi & kurva SAMA dengan sheet (lihat SectionPortfolio.css),
+   sehingga keduanya terasa satu gerakan. Hanya transform + opacity => jalan di compositor. */
+.section-why-us--visible.section-why-us--behind {
+  transform: scale(0.95) translate3d(0, -2.5%, 0);
+}
+
+.section-why-us__dim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: #02030c;
+  opacity: 0;
+  transition: opacity var(--s35-behind-dur, 1s) var(--sheet-ease, cubic-bezier(0.76, 0, 0.18, 1));
+}
+
+.section-why-us--behind .section-why-us__dim {
+  opacity: 0.72;
 }
 
 /* ---- Background galaxy: gradien vertikal + cahaya horizon ---- */
@@ -254,8 +280,10 @@
   will-change: transform, opacity;
 }
 
-.section-why-us--visible .section-why-us__flare {
-  animation: s35Flare 1.6s cubic-bezier(0.45, 0, 0.2, 1) 0.35s 1 both;
+/* [PERBAIKAN] Dulu dipicu oleh --visible, yaitu SAAT gelombang baru mulai menyapu (tersembunyi di
+   balik Section 3 / mask) sehingga kilat cahayanya habis sebelum terlihat. Kini dipicu saat konten tiba. */
+.section-why-us--entered .section-why-us__flare {
+  animation: s35Flare 1.6s cubic-bezier(0.45, 0, 0.2, 1) 0.1s 1 both;
 }
 
 @keyframes s35Flare {
@@ -348,7 +376,9 @@
   /* Fade out bersih: habis pada scroll 0.38, sehingga tidak bertumpuk dengan Konten 1 */
   opacity: calc(clamp(0, 1 - var(--scroll-p, 0) / 0.38, 1));
   will-change: transform, opacity;
-  transition: opacity 0.35s ease;
+  /* [PERBAIKAN] transition: opacity 0.35s DIHAPUS. Opacity di sini dihitung dari --scroll-p yang berubah
+     tiap frame; transisi membuatnya di-retarget terus & TERTINGGAL ~0.35s dari transform dan model 3D
+     (yang sudah di-smooth sendiri). Efeknya teks & Golem terasa tidak sinkron. */
 }
 
 /* Sembunyikan konten secara total sebelum ombak selesai menyapu keluar viewport */
@@ -441,7 +471,23 @@
   /* Fade in bersih: mulai muncul baru di scroll 0.58, memberi jeda lega di tengah (zero overlap) */
   opacity: calc(clamp(0, (var(--scroll-p, 0) - 0.58) / 0.32, 1));
   will-change: transform, opacity;
-  transition: opacity 0.35s ease;
+}
+
+/* Animasi tiba untuk Content 1 (sama seperti Content 0) — penting saat 3.5 dibuka dari sheet 2D
+   langsung di "Hand To Hand": tanpa ini teksnya muncul mendadak. */
+.section-why-us__golemhand--entering {
+  animation: s35HandFadeInUp var(--s35-entrance-dur, 0.85s) var(--s35-ease) both;
+}
+
+@keyframes s35HandFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(calc((1 - var(--scroll-p, 0)) * 160px + 35px));
+  }
+  100% {
+    opacity: calc(clamp(0, (var(--scroll-p, 0) - 0.58) / 0.32, 1));
+    transform: translateY(calc((1 - var(--scroll-p, 0)) * 160px));
+  }
 }
 
 /* Container TechText Content 0 (Kenapa Memilih Kami?) & Content 1 (Hand To Hand) */
@@ -599,8 +645,24 @@
     animation: none;
   }
 
-  .section-why-us--visible .section-why-us__flare {
+  .section-why-us--entered .section-why-us__flare {
     animation: none;
     opacity: 0;
   }
+}
+
+/* ---- [PERFORMA] Saat gelombang menyapu (preview) layer ini di-mask ulang tiap frame.
+   Efek blend-mode & animasi dekoratif dimatikan sementara karena memaksa re-komposit penuh
+   di bawah mask. Begitu gelombang selesai, semuanya menyala lagi. ---- */
+.section-why-us--preview .section-why-us__grain,
+.section-why-us--preview .section-why-us__rays,
+.section-why-us--preview .section-why-us__flare,
+.section-why-us--preview .section-why-us__glitch-layer {
+  display: none;
+}
+
+.section-why-us--preview .section-why-us__aurora,
+.section-why-us--preview .section-why-us__star {
+  animation: none;
+  will-change: auto;
 }
