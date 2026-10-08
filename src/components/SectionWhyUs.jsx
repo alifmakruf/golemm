@@ -197,7 +197,7 @@ const TRAVEL_SCALE_DROP = 0.15              // Pengurangan skala saat model melu
 
 // --- Model 3D GolemHand (/golemhand.glb) ---
 const GOLEMHAND_MODEL_SIZE = 5.9            // Ukuran sisi terpanjang model tangan di desktop (world unit)
-const GOLEMHAND_MODEL_SIZE_MOBILE = 1.35    // Ukuran model tangan di HP/tablet
+const GOLEMHAND_MODEL_SIZE_MOBILE = 3.35    // Ukuran model tangan di HP/tablet
 const GOLEMHAND_MODEL_SCALE = 1.0           // Pengali skala tambahan di atas auto-fit
 const GOLEMHAND_MODEL_Y = 0.45              // Posisi ketinggian tangan di tengah panggung (world unit)
 const GOLEMHAND_MODEL_ROT_X = 3          // Kemiringan sumbu X (radian, agak condong ke depan)
