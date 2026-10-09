@@ -238,7 +238,7 @@ const GOLEMHAND_BOB_AMPLITUDE = 0.08        // Jarak naik-turun tangan mengamban
 const GOLEMHAND_BOB_SPEED = 0.85            // Kecepatan mengambang tangan
 const GOLEMHAND_PLAY_ANIMATION = true       // Mainkan animasi gerak jari tangan dari file GLB
 const GOLEMHAND_ANIM_SPEED = 0.7           // Kecepatan animasi gerakan jari tangan
-const GOLEMHAND_ANIM_DELAY_SEC = 3.0        // Jeda diam (detik) antar pengulangan animasi jari tangan. 0 = loop terus tanpa jeda
+const GOLEMHAND_ANIM_DELAY_SEC = 2.0        // Jeda diam (detik) antar pengulangan animasi jari tangan. 0 = loop terus tanpa jeda
 const GOLEMHAND_CRACK_GLOW_COLOR = '#4ae0ff' // Warna glow retakan biru kristal tangan
 const GOLEMHAND_CRACK_GLOW_INTENSITY = 0.25 // Intensitas cahaya retakan tangan
 

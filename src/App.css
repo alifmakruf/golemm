@@ -175,6 +175,8 @@
    Section 2 & 3 memang tidak terlihat -> aman dinonaktifkan sentuhannya.
    Class ini hanya dipasang di App.jsx ketika activeSection === 1.
    ========================================================================== */
+.app-container--hero .section-three-wrapper,
+.app-container--hero .section-three-wrapper *,
 .app-container--hero .section-two,
 .app-container--hero .section-two *,
 .app-container--hero .section-three,

@@ -102,6 +102,12 @@ const FROST_PAUSE_TERRAIN_BELOW_VH = 85
 const SHEET_EXIT_COOLDOWN_MS = 420
 const SHEET_EXIT_ACCUM_PX = 140
 
+// 10. [PARAMETER] Stacking Context & Interaksi Section 3
+// SECTION_3_WRAPPER_Z_INDEX : z-index kontainer Section 3 (tetap 4 agar berada di bawah lembar Section 3.5).
+// Kontainer ini diberi pointerEvents kondisional agar saat berada di Section 1 (Hero) atau section lainnya,
+// kontainer tidak menghalangi event klik/tap ke tombol Hero ("Jelajahi Sekarang").
+const SECTION_3_WRAPPER_Z_INDEX = 4
+
 export default function App() {
   const [isLoadingComplete, setIsLoadingComplete] = useState(false)
   const [activeSection, setActiveSection] = useState(1)
@@ -945,7 +951,15 @@ export default function App() {
 
       {/* Section 3 Layer: 3D Car-Glass Cards (Tawaran Kami) */}
       {isLoadingComplete && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 4 }}>
+        <div
+          className="section-three-wrapper"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: SECTION_3_WRAPPER_Z_INDEX,
+            pointerEvents: (activeSection === 3 || frostPhase === 'returning') ? 'auto' : 'none',
+          }}
+        >
           <SectionThree
             ref={section3Ref}
             // Saat lembar 3.5 turun (returning), Section 3 sudah tampil di baliknya & langsung mendarat (instant)
